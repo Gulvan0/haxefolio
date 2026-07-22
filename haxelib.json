@@ -1,0 +1,14 @@
+{
+    "name": "haxefolio",
+    "url": "",
+    "license": "MIT",
+    "version": "0.1.0",
+    "classPath": "src/",
+    "description": "A framework for building a HaxeUI HTML5 single-page web app: menu bar, page routing, responsivity and a preference system.",
+    "contributors": [],
+    "dependencies": {
+        "haxeui-core": "",
+        "haxeui-html5": "",
+        "morestd": ""
+    }
+}
