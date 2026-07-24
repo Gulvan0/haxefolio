@@ -307,6 +307,61 @@ Every component HaxeFolio builds carries a `haxefolio-*` CSS class (and often an
 
 See `CSS classes and elements` in `Reference` for the full list of selectors HaxeFolio's own components carry.
 
+## Browser utilities
+
+Bundled alongside the framework, under `haxefolio.browser`, are a handful of small utilities - each wraps a single browser/DOM API, has no dependency on HaxeUI, HaxeFolio's own state, or locale, and is usable directly in any HTML5 Haxe app that already depends on HaxeFolio. `Blinker`/`Favicon` are what `PageBase.startBlink`/`stopBlink`/`setTitle` sit on top of (see `Page title and notifications`); all four classes below are also available for direct use.
+
+### Blinker
+
+```haxe
+class Blinker
+{
+    public static inline var DEFAULT_INTERVAL:Int = 1000;
+
+    public var isActive(get, never):Bool;
+
+    public function new(alternateTitle:String, ?alternateFaviconHref:String, intervalMs:Int = DEFAULT_INTERVAL)
+    public function start():Void
+    public function stop():Void
+}
+```
+
+An instance alternates `document.title` between whatever it was when `start()` was called and `alternateTitle`, once every `intervalMs` milliseconds. Passing `alternateFaviconHref` additionally swaps the favicon (via `Favicon.href`, below) in lockstep - shown while the alternate title is showing, restored otherwise; omit it to blink only the title. `start()` captures the current title/favicon as the base to restore to, implicitly stopping any blink already in progress first, so calling it again later re-captures a fresh base rather than reusing a stale one. `stop()` restores the base title/favicon and is a no-op if nothing is active; `isActive` reflects whether a blink is currently running.
+
+### Favicon
+
+```haxe
+class Favicon
+{
+    public static var href(get, set):Null<String>;
+}
+```
+
+A static property wrapping the page's `<link rel="icon">` element. Reading it returns the element's current `href` attribute, or `null` if no such link element exists yet. Writing creates the link element (with `rel="icon"`) on first use if none exists yet, then sets/updates its `href`; writing `null` removes the `href` attribute from an existing link element (leaving the element itself in place), and is a no-op if no link element exists yet.
+
+### ActivityTracker
+
+```haxe
+class ActivityTracker
+{
+    public static function activate():Void
+    public static function getLastActivityTs():Int
+}
+```
+
+Tracks the Unix timestamp (in seconds) of the user's last interaction with the page. `activate()` attaches document-level listeners for `mousedown`, `mousemove`, `keypress`, `scroll` and `touchstart`, each updating the tracked timestamp; call it once, typically at startup - calling it again attaches a second set of listeners rather than replacing the first, redundantly updating the same timestamp on every subsequent event instead of changing what gets tracked. `getLastActivityTs()` returns the tracked timestamp, or `0` if `activate()` was never called or no tracked event has fired yet.
+
+### Clipboard
+
+```haxe
+class Clipboard
+{
+    public static function copy(text:String, ?onSuccess:Void->Void, ?onError:Void->Void):Void
+}
+```
+
+Writes `text` to the system clipboard via the browser's asynchronous Clipboard API. `onSuccess` runs if the write succeeds, `onError` if it's rejected (e.g. the page lacks clipboard permission); both are optional, and `onError` isn't passed the underlying rejection reason.
+
 ## Reference
 
 ### CSS classes and elements
