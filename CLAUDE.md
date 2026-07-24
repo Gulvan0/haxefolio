@@ -2,8 +2,6 @@ This is the HaxeFolio framework's own source repository, distributed as a haxeli
 
 All source lives under `src/haxefolio` (`haxefolio` package and its subpackages), including the bundled `haxefolio.browser` utilities - small helpers wrapping browser/DOM APIs, independent of HaxeUI and of the rest of the framework. HaxeFolio is built over the `HaxeUI` library, and depends on the `morestd` haxelib for small, universal utilities (see `haxelib.json`'s `dependencies`).
 
-An example app exercising this library as a consumer lives in a separate sandbox repo (`haxefolio-dev`), which links this one via `haxelib dev` rather than vendoring its source.
-
 The library is written in **Haxe**, targeting **HTML5**.
 
 ANY AMBIGUITY OR MANUAL GAP SURFACING DURING IMPLEMENTATION SHOULD NOT BE RESOLVED SILENTLY. Instead, explicitly ask the question.
