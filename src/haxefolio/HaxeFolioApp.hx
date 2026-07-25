@@ -52,6 +52,11 @@ class HaxeFolioApp
     **/
     public static var fragment(get, never):Null<String>;
 
+    /**
+        App-and-hostname-scoped key-value storage. Built over the browser's LocalStorage
+    **/
+    public static var valueStorage(default, null):StorageBackend;
+
     private static var pendingNavigationState:Dynamic;
     private static var pendingFragment:Null<String>;
     private static var config:HaxeFolioConfig;
@@ -82,7 +87,8 @@ class HaxeFolioApp
         PageRouter.init(config.pages);
         HaxeFolioApp.config = config;
 
-        PreferenceRegistry.provideBackend(new StorageBackend(config.appSlug));
+        valueStorage = new StorageBackend(config.appSlug);
+        PreferenceRegistry.provideBackend(valueStorage);
 
         LocaleManager.instance.language = config.languagePreference != null ? config.languagePreference.get() : detectedLocale;
 

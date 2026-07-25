@@ -11,6 +11,11 @@ class StorageBackend
         this.appSlug = appSlug;
     }
 
+    public function has(id:String):Bool
+    {
+        return read(id) != null;
+    }
+
     public function read(id:String):Null<String>
     {
         return Browser.window.localStorage.getItem(key(id));

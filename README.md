@@ -256,6 +256,19 @@ Values are persisted to LocalStorage under `<hostname>.<appSlug>.<id>` - namespa
 
 Removing a preference from the declaration leaves its LocalStorage entry in place; renaming one is equivalent to removing the old id and adding a new one, so the old value isn't inherited. Preference values aren't readable or writable before `HaxeFolioApp.init` has provided the storage backend.
 
+The same namespaced LocalStorage access preferences are built on is also exposed directly, for a framework user's own arbitrary key-value data, via `HaxeFolioApp.valueStorage`:
+
+```haxe
+class StorageBackend
+{
+    public function has(id:String):Bool
+    public function read(id:String):Null<String>
+    public function write(id:String, value:String):Void
+}
+```
+
+`has`/`read`/`write` all key into the same `<hostname>.<appSlug>.<id>` namespace described above - `id` should therefore be chosen to avoid colliding with any declared preference's own `id`, since a colliding pair reads/writes the very same LocalStorage entry. As with preference values, `valueStorage` isn't available before `HaxeFolioApp.init` has run.
+
 ### Preference window
 
 The preference window's content - tabs and controls - is generated at runtime from what `Preferences` declared, organized as one `TabView` tab per `tabId`, each optionally iconed via `HaxeFolioConfig.preferenceTabIcons` (mapping `tabId` to an icon asset path). Each tab contains a control per preference assigned to it, in declaration order: a slider for `toggle`, a row of buttons (one per admissible value, current one marked active) for `option`/`locale`. Below the tabs, a footer holds a reset button (`PreferenceRegistry.resetAll()`) and a label noting that changes save automatically - there's no separate "OK"/"Apply" step.
