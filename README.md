@@ -349,18 +349,18 @@ class ActivityTracker
 }
 ```
 
-Tracks the Unix timestamp (in seconds) of the user's last interaction with the page. `activate()` attaches document-level listeners for `mousedown`, `mousemove`, `keypress`, `scroll` and `touchstart`, each updating the tracked timestamp; call it once, typically at startup - calling it again attaches a second set of listeners rather than replacing the first, redundantly updating the same timestamp on every subsequent event instead of changing what gets tracked. `getLastActivityTs()` returns the tracked timestamp, or `0` if `activate()` was never called or no tracked event has fired yet.
+Tracks the Unix timestamp (in seconds) of the user's last interaction with the page. `activate()` attaches document-level listeners for `mousedown`, `mousemove`, `keypress`, `scroll` and `touchstart`, each updating the tracked timestamp; call it once, typically at startup - calling it again has no effect. `getLastActivityTs()` returns the tracked timestamp, or `0` if `activate()` was never called or no tracked event has fired yet.
 
 ### Clipboard
 
 ```haxe
 class Clipboard
 {
-    public static function copy(text:String, ?onSuccess:Void->Void, ?onError:Void->Void):Void
+    public static function copy(text:String, ?onSuccess:Void->Void, ?onError:Dynamic->Void):Void
 }
 ```
 
-Writes `text` to the system clipboard via the browser's asynchronous Clipboard API. `onSuccess` runs if the write succeeds, `onError` if it's rejected (e.g. the page lacks clipboard permission); both are optional, and `onError` isn't passed the underlying rejection reason.
+Writes `text` to the system clipboard via the browser's asynchronous Clipboard API. `onSuccess` runs if the write succeeds, `onError` if it's rejected (e.g. the page lacks clipboard permission); both are optional, and `onError` is passed the underlying rejection reason.
 
 ## Reference
 

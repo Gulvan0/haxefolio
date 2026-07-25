@@ -7,11 +7,13 @@ import js.Browser;
 class ActivityTracker
 {
     private static var lastActivityTs:Int;
+    private static var isActive:Bool = false;
 
     public static function activate()
     {
-        for (eventKind in ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'])
-            Browser.document.addEventListener(eventKind, updateTs);
+        if (!isActive)
+            for (eventKind in ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'])
+                Browser.document.addEventListener(eventKind, updateTs);
     }
 
     public static function getLastActivityTs():Int
