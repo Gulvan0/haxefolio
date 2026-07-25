@@ -178,7 +178,7 @@ Every menu/item/group label goes through localization; see `Locale keys` in `Ref
 
 ## Responsivity
 
-HaxeFolio reacts to viewport size changes - window resizing on desktop, orientation changes on mobile - resizing the menu bar and notifying the active page, debounced so a drag-resize doesn't trigger continuous work.
+HaxeFolio reacts to viewport size changes - window resizing on desktop, orientation changes on mobile - resizing the menu bar and notifying the active page, debounced (`HaxeFolioConfig.debounceMs`; defaults to 500) so a drag-resize doesn't trigger continuous work.
 
 Below `HaxeFolioConfig.menuCollapseWidth` (an author-chosen width past which the menu bar no longer fits everything; defaults to 900), the menu bar hides its `NormalMenu`s and any `Widget` not marked `persistent`, and reveals the hamburger button to reach the side bar instead. Above it, the reverse. Deciding *what* happens at the threshold is HaxeFolio's job; the framework user only supplies the threshold itself and which widgets should stay persistent.
 
@@ -276,6 +276,7 @@ Every displayed string is localized; see `Locale keys` in `Reference`.
 | `appIcon` | `String` | Icon path for the `HaxeUIApp`/browser tab. |
 | `siteName` | `String` | Literal (not localized) `SiteName` menu bar item text. |
 | `?menuCollapseWidth` | `Int` | Mobile/desktop breakpoint (see `Responsivity`). Defaults to 900. |
+| `?debounceMs` | `Int` | Resize handling debounce interval, in milliseconds (see `Responsivity`). Defaults to 500. |
 | `pages` | `Array<PageDefinition>` | See `Registering pages`. |
 | `menubar` | `MenuBarConfig` (`{left, right}`) | See `Menu bar`. |
 | `?sidebarExtras` | `Array<SidebarGroup>` | See `Side bar`. |

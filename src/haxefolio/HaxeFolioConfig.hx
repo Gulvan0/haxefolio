@@ -31,6 +31,13 @@ typedef HaxeFolioConfig = {
     ?menuCollapseWidth:Int,
 
     /**
+        Debounce interval, in milliseconds, applied to viewport resize handling (see
+        `ResponsivityController`) - a drag-resize is applied once no further resize has been
+        observed for this long. Defaults to 500.
+    **/
+    ?debounceMs:Int,
+
+    /**
         The app's page definitions, checked top-to-bottom to resolve a URL path - see
         `PageDefinition`.
     **/

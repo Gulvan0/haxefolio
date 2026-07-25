@@ -117,8 +117,9 @@ class HaxeFolioApp
         Screen.instance.addComponent(sideBar);
 
         var menuCollapseWidth:Int = config.menuCollapseWidth ?? 900;
+        var debounceMs:Int = config.debounceMs ?? 500;
 
-        ResponsivityController.init(pageContainer, menuBarBuildResult.hamburgerButton, menuBarBuildResult.collapsibleComponents, menuCollapseWidth, (width, height) ->
+        ResponsivityController.init(pageContainer, menuBarBuildResult.hamburgerButton, menuBarBuildResult.collapsibleComponents, menuCollapseWidth, debounceMs, (width, height) ->
         {
             if (currentPage != null)
                 currentPage.onResize(width, height);

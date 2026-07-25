@@ -23,8 +23,6 @@ import morestd.RefreshableTimer;
 */
 class ResponsivityController
 {
-    private static inline var DEBOUNCE_MS:Int = 500;
-
     /*
         Whether the menu bar is currently in its collapsed (mobile) state - exposed so other parts
         of the framework (e.g. HaxeFolioApp.showPreferences) can pick a presentation appropriate to
@@ -41,7 +39,7 @@ class ResponsivityController
     private static var latestWidth:Float;
     private static var hasAppliedInitialState:Bool;
 
-    public static function init(pageContainer:Component, hamburgerButton:Component, collapsibleMenuBarComponents:Array<Component>, menuCollapseWidth:Int, onDebouncedResize:Float->Float->Void):Void
+    public static function init(pageContainer:Component, hamburgerButton:Component, collapsibleMenuBarComponents:Array<Component>, menuCollapseWidth:Int, debounceMs:Int, onDebouncedResize:Float->Float->Void):Void
     {
         ResponsivityController.pageContainer = pageContainer;
         ResponsivityController.hamburgerButton = hamburgerButton;
@@ -50,7 +48,7 @@ class ResponsivityController
         ResponsivityController.onDebouncedResize = onDebouncedResize;
         ResponsivityController.hasAppliedInitialState = false;
 
-        debounceTimer = new RefreshableTimer(DEBOUNCE_MS, applyResize);
+        debounceTimer = new RefreshableTimer(debounceMs, applyResize);
 
         /*
             No synchronous initial read here - haxeui defers actual layout validation, so even a
