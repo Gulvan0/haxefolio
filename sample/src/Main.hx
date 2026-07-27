@@ -29,7 +29,6 @@ class Main
             .addPage("home", params -> new HomePage(), true)
             .addPage("about", params -> new AboutPage())
             .addPage("text-demo", params -> new TextDemoPage())
-            .addLeftMenubarItem(SiteName)
             .addLeftMenubarItem(NormalMenu("navigation", []))
             .addNormalMenuItem("navigation", "home", NavigateTo(() -> "home"))
             .addNormalMenuItem("navigation", "about", NavigateTo(() -> "about"))

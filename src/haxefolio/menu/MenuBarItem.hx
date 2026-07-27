@@ -8,12 +8,6 @@ import haxe.ui.core.Component;
 enum MenuBarItem
 {
     /**
-        The site name label - navigates to the default page when clicked. Only its text is
-        user-defined (`HaxeFolioConfig.siteName`); its other behavior is constant.
-    **/
-    SiteName;
-
-    /**
         An ordinary dropdown menu identified by `slug` (also used to build its CSS id and, absent
         `defaultText`, its locale key - see `haxefolio.menubar.menu.<slug>`), containing `items`.
         `defaultText`, if given, is used verbatim as the menu's initial label - interpreted the

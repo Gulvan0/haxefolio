@@ -20,7 +20,6 @@ class Main
             .setSiteName("My App")
             .addPage("home", params -> new HomePage(), true)
             .addPage("user/{login}", params -> new UserPage(params["login"]))
-            .addLeftMenubarItem(SiteName)
             .addLeftMenubarItem(NormalMenu("navigation", []))
             .addNormalMenuItem("navigation", "home", NavigateTo(() -> "home"))
             .addRightMenubarItem(Widget(settingsWidget, true))
@@ -143,18 +142,16 @@ The top of the app is a menu bar (`haxe.ui.containers.menus.MenuBar`); a side ba
 
 ### Menu bar
 
-The menu bar can hold four kinds of items, assembled into `left`/`right` groups (`HaxeFolioConfig.menubar.left`/`.right`, each an `Array<MenuBarItem>` in layout order):
+The menu bar can hold two kinds of user-defined items, assembled into `left`/`right` groups (`HaxeFolioConfig.menubar.left`/`.right`, each an `Array<MenuBarItem>` in layout order):
 
 ```haxe
 enum MenuBarItem
 {
-    SiteName;
     NormalMenu(slug:String, items:Array<MenuItemDefinition>, ?defaultText:String);
     Widget(component:Component, ?persistent:Bool);
 }
 ```
 
-- **`SiteName`** - a label showing `HaxeFolioConfig.siteName`, interpreted the same way any HaxeUI `.text` property is (see `LocaleUtils.resolveText` in `Page title and notifications`); navigates to the default page when clicked.
 - **`NormalMenu(slug, items, ?defaultText)`** - an ordinary dropdown menu, identified by `slug` (also used to build its CSS id, and - absent `defaultText` - its locale key, see `Locale keys` in `Reference`). `defaultText`, if given, is used verbatim as the menu's initial label, interpreted the same way any HaxeUI `.text` property is; omitted, the label defaults to the derived locale key. Each `MenuItemDefinition` is `{slug, action, ?icon, ?defaultText}` (`defaultText` working the same way, per item), where `action` is:
 
   ```haxe
@@ -168,7 +165,7 @@ enum MenuBarItem
   `NavigateTo` goes through `HaxeFolioApp.navigateTo` just like any other navigation; `Execute` runs an arbitrary function, which may itself call `navigateTo` if it needs to combine navigation with something `NavigateTo` alone doesn't cover (e.g. passing `state`).
 - **`Widget(component, ?persistent)`** - a custom component wrapped in its own menu, e.g. the settings button shown in `Getting started`.
 
-Additionally, a hamburger button is always present as the menu bar's leftmost child - hidden by default, shown once the menu bar collapses to its mobile layout (see `Responsivity`), at which point clicking it opens the side bar.
+Additionally, two components are always present as the menu bar's leftmost children, placed there by the framework itself rather than configured as `MenuBarItem`s: a hamburger button - hidden by default, shown once the menu bar collapses to its mobile layout (see `Responsivity`), at which point clicking it opens the side bar - followed by the site name label, showing `HaxeFolioConfig.siteName` (interpreted the same way any HaxeUI `.text` property is, see `LocaleUtils.resolveText` in `Page title and notifications`) and navigating to the default page when clicked.
 
 ### Updating menu bar labels at runtime
 
@@ -180,13 +177,13 @@ public static function updateMenuLabelText(slug:String, text:String):Void
 public static function updateMenuItemLabelText(menuSlug:String, itemSlug:String, text:String):Void
 ```
 
-`updateSiteNameLabelText` changes the `SiteName` label; `updateMenuLabelText` changes the label of the `NormalMenu` identified by `slug`; `updateMenuItemLabelText` changes the label of one of its items, identified by `menuSlug`/`itemSlug`. Each of these updates both the menu bar's own label and its mobile side bar mirror (see `Side bar` below) together, in one call, so the two can never go out of sync through this API. `updateMenuLabelText`/`updateMenuItemLabelText` throw if no such `NormalMenu`/item is present in the menu bar; `updateSiteNameLabelText` throws only if the menu bar has no `SiteName` item to update (the side bar's `SiteName` label always exists, so it's always updated). In every case, `text` is interpreted exactly like any other HaxeUI `.text` property: a literal label by default, or - enclosed in `{{}}`, e.g. `"{{haxefolio.menubar.menu.navigation}}"` - a locale key, re-resolved automatically on every locale change.
+`updateSiteNameLabelText` changes the site name label; `updateMenuLabelText` changes the label of the `NormalMenu` identified by `slug`; `updateMenuItemLabelText` changes the label of one of its items, identified by `menuSlug`/`itemSlug`. Each of these updates both the menu bar's own label and its mobile side bar mirror (see `Side bar` below) together, in one call, so the two can never go out of sync through this API. `updateMenuLabelText`/`updateMenuItemLabelText` throw if no such `NormalMenu`/item is present in the menu bar; `updateSiteNameLabelText` never throws, since both the menu bar and the side bar always have a site name label. In every case, `text` is interpreted exactly like any other HaxeUI `.text` property: a literal label by default, or - enclosed in `{{}}`, e.g. `"{{haxefolio.menubar.menu.navigation}}"` - a locale key, re-resolved automatically on every locale change.
 
 ### Side bar
 
 The side bar's first row always holds a hamburger button (closes the side bar) and the site name (closes the side bar and navigates to the default page). Below that, every `NormalMenu` from the menu bar is mirrored as a group: a header line with the menu's own label, followed by an indented, clickable line per item - clicking closes the side bar, then runs the same action as the menu bar counterpart.
 
-The side bar's `SiteName` label and every mirrored group/item label are built from the very same `siteName`/`defaultText` (or derived locale key) as their menu bar counterparts, and stay coherent with them afterwards too: any `MenuFacade` update (see `Updating menu bar labels at runtime` above) applies to both the menu bar's label and its side bar mirror together.
+The side bar's site name label and every mirrored group/item label are built from the very same `siteName`/`defaultText` (or derived locale key) as their menu bar counterparts, and stay coherent with them afterwards too: any `MenuFacade` update (see `Updating menu bar labels at runtime` above) applies to both the menu bar's label and its side bar mirror together.
 
 `HaxeFolioConfig.sidebarExtras` adds further, side-bar-only groups in the same shape:
 
@@ -402,7 +399,7 @@ Every displayed string is localized; see `Locale keys` in `Reference`.
 |---|---|---|
 | `appSlug` | `String` | App identifier; namespaces LocalStorage entries (see `Preference storage`) and distinguishes this site from other HaxeFolio-based sites. |
 | `appIcon` | `String` | Icon path for the `HaxeUIApp`/browser tab. |
-| `siteName` | `String` | `SiteName` menu bar item text - see `Menu bar` for how it's interpreted. |
+| `siteName` | `String` | Site name label text - see `Menu bar` for how it's interpreted. |
 | `?menuCollapseWidth` | `Int` | Mobile/desktop breakpoint (see `Responsivity`). Defaults to 900. |
 | `?debounceMs` | `Int` | Resize handling debounce interval, in milliseconds (see `Responsivity`). Defaults to 500. |
 | `pages` | `Array<PageDefinition>` | See `Registering pages`. |

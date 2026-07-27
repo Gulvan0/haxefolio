@@ -42,7 +42,7 @@ class SideBarBuilder
             {
                 case NormalMenu(slug, items, defaultText):
                     sideBar.addComponent(buildGroup(sideBar, slug, 'haxefolio.menubar.menu', items, defaultText));
-                case SiteName, Widget(_, _):
+                case Widget(_, _):
             }
 
         if (config.sidebarExtras != null)

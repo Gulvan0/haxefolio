@@ -20,9 +20,10 @@ typedef HaxeFolioConfig = {
     appIcon:String,
 
     /**
-        Text of the `SiteName` menu bar item's label, interpreted the same way any HaxeUI `.text`
-        property is: a literal by default, or - wrapped in `{{}}` - a locale key, kept in sync with
-        locale changes the same way any other menu/side bar label is (see `Menu bar`).
+        Text of the site name label the framework automatically places in the menu bar and side
+        bar, interpreted the same way any HaxeUI `.text` property is: a literal by default, or -
+        wrapped in `{{}}` - a locale key, kept in sync with locale changes the same way any other
+        menu/side bar label is (see `Menu bar`).
     **/
     siteName:String,
 

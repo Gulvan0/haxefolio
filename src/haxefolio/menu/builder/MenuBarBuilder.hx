@@ -36,6 +36,8 @@ class MenuBarBuilder
         hamburgerButton.hidden = true;
         menuBar.addComponent(hamburgerButton);
 
+        menuBar.addComponent(new SiteNameLabel(SOURCE_REFERENCE, config.siteName, HaxeFolioApp.navigateToDefault));
+
         var collapsibleComponents:Array<Component> = [];
 
         for (item in config.menubar.left)
@@ -64,7 +66,6 @@ class MenuBarBuilder
     {
         return switch item
         {
-            case SiteName: false;
             case NormalMenu(_, _, _): true;
             case Widget(_, persistent): persistent != true;
         }
@@ -74,8 +75,6 @@ class MenuBarBuilder
     {
         switch item
         {
-            case SiteName:
-                return new SiteNameLabel(SOURCE_REFERENCE, config.siteName, HaxeFolioApp.navigateToDefault);
             case NormalMenu(slug, items, defaultText):
                 return new NormalMenu(slug, items, defaultText);
             case Widget(component, _):

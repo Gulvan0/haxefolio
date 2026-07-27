@@ -36,19 +36,17 @@ class MenuFacade
     }
 
     /**
-        Updates the `SiteName` label's text in both the menu bar (if it has one - `SiteName` is
-        optional there) and the side bar (which always has one). `text` is interpreted the same
-        way any HaxeUI `.text` property is: a literal by default, or - enclosed in `{{}}` - a
-        locale key, re-resolved on every locale change.
+        Updates the site name label's text in both the menu bar and the side bar together. `text`
+        is interpreted the same way any HaxeUI `.text` property is: a literal by default, or -
+        enclosed in `{{}}` - a locale key, re-resolved on every locale change.
     **/
     public static function updateSiteNameLabelText(text:String):Void
     {
         var sidebarLabel:SiteNameLabel = sideBar.findComponent("haxefolio-site-name-label-sidebar", SiteNameLabel);
         sidebarLabel.text = text;
 
-        var menuBarLabel:Null<SiteNameLabel> = menuBar.findComponent("haxefolio-site-name-label-menubar", SiteNameLabel);
-        if (menuBarLabel != null)
-            menuBarLabel.text = text;
+        var menuBarLabel:SiteNameLabel = menuBar.findComponent("haxefolio-site-name-label-menubar", SiteNameLabel);
+        menuBarLabel.text = text;
     }
 
     /**
