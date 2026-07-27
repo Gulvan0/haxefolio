@@ -65,7 +65,7 @@ class MenuBarBuilder
         return switch item
         {
             case SiteName: false;
-            case NormalMenu(_, _): true;
+            case NormalMenu(_, _, _): true;
             case Widget(_, persistent): persistent != true;
         }
     }
@@ -76,8 +76,8 @@ class MenuBarBuilder
         {
             case SiteName:
                 return new SiteNameLabel(SOURCE_REFERENCE, config.siteName, HaxeFolioApp.navigateToDefault);
-            case NormalMenu(slug, items):
-                return new NormalMenu(slug, items);
+            case NormalMenu(slug, items, defaultText):
+                return new NormalMenu(slug, items, defaultText);
             case Widget(component, _):
                 component.verticalAlign = "center";
                 return component;

@@ -14,7 +14,7 @@ class PreferenceTabPage extends VBox
         super();
 
         this.id = 'haxefolio-preference-tab-${group.tabId}';
-        this.text = Utils.localeBinding('haxefolio.preference.tab.${group.tabId}');
+        this.text = LocaleUtils.localeBinding('haxefolio.preference.tab.${group.tabId}');
         this.addClass("haxefolio-preference-tab");
         this.percentWidth = 100;
 

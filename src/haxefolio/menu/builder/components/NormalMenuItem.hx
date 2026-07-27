@@ -9,7 +9,7 @@ class NormalMenuItem extends MenuItem
         super();
 
         this.id = 'haxefolio-normal-menu-$menuSlug-item-${item.slug}';
-        this.text = Utils.localeBinding('haxefolio.menubar.menu.$menuSlug.item.${item.slug}');
+        this.text = MenuBuilderHelpers.resolveLabelText(item.defaultText, 'haxefolio.menubar.menu.$menuSlug.item.${item.slug}');
         this.addClass('haxefolio-normal-menu-item');
 
         if (item.icon != null)

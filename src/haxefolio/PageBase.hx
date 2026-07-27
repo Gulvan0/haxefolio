@@ -1,7 +1,6 @@
 package haxefolio;
 
 import haxe.ui.containers.Box;
-import haxe.ui.locale.LocaleManager;
 import js.Browser;
 import haxefolio.browser.Blinker;
 
@@ -11,13 +10,13 @@ class PageBase extends Box
     private var titleWasSet:Bool = false;
     private var activeBlink:Null<Blinker>;
 
-    private var titleKey:String;
+    private var titleText:String;
     private var titleParam0:Any;
     private var titleParam1:Any;
     private var titleParam2:Any;
     private var titleParam3:Any;
 
-    private var blinkKey:String;
+    private var blinkText:String;
     private var blinkParam0:Any;
     private var blinkParam1:Any;
     private var blinkParam2:Any;
@@ -64,43 +63,42 @@ class PageBase extends Box
     }
 
     /**
-        Resolves `key` (and up to 4 optional positional params, substituted for `[0]`..`[3]` in
-        the locale string, per HaxeUI's own `LocaleManager.lookupString` convention) through the
-        localization system and assigns the result to `document.title`. Callable from `init` or at
-        any later point (e.g. once data that only becomes available asynchronously has arrived).
-        Stops any active blink for this page first.
+        Assigns `document.title` to `LocaleUtils.resolveText(text, param0, param1, param2, param3)` -
+        see `LocaleUtils.resolveText` for exactly how `text`/`param0`-`param3` are interpreted. Callable
+        from `init` or at any later point (e.g. once data that only becomes available
+        asynchronously has arrived). Stops any active blink for this page first.
     **/
-    private function setTitle(key:String, ?param0:Any, ?param1:Any, ?param2:Any, ?param3:Any):Void
+    private function setTitle(text:String, ?param0:Any, ?param1:Any, ?param2:Any, ?param3:Any):Void
     {
         stopBlink();
 
-        titleKey = key;
+        titleText = text;
         titleParam0 = param0;
         titleParam1 = param1;
         titleParam2 = param2;
         titleParam3 = param3;
 
-        Browser.document.title = LocaleManager.instance.lookupString(key, param0, param1, param2, param3);
+        Browser.document.title = LocaleUtils.resolveText(text, param0, param1, param2, param3);
         titleWasSet = true;
     }
 
     /**
-        Starts alternating the tab title between its current value and the localized,
-        parameterized notification text resolved from `key`, once every `intervalMs` (1000 by
-        default). If `iconHref` is given, the favicon is swapped in lockstep with the title -
-        notification icon while showing the notification text, restored to whatever it was before
-        while showing the normal title; if omitted, only the title blinks. Can only be called
-        after `setTitle` (throws otherwise, since there'd be no "normal" title/favicon yet to
-        restore to). Replaces any already-active blink for this page rather than stacking (there
-        is only one `document.title`/favicon, so only one blink can be meaningfully active at a
-        time).
+        Starts alternating the tab title between its current value and
+        `LocaleUtils.resolveText(text, param0, param1, param2, param3)` (see `LocaleUtils.resolveText`), once
+        every `intervalMs` (1000 by default). If `iconHref` is given, the favicon is swapped in
+        lockstep with the title - notification icon while showing the notification text, restored
+        to whatever it was before while showing the normal title; if omitted, only the title
+        blinks. Can only be called after `setTitle` (throws otherwise, since there'd be no "normal"
+        title/favicon yet to restore to). Replaces any already-active blink for this page rather
+        than stacking (there is only one `document.title`/favicon, so only one blink can be
+        meaningfully active at a time).
     **/
-    private function startBlink(key:String, ?param0:Any, ?param1:Any, ?param2:Any, ?param3:Any, ?iconHref:String, intervalMs:Int = Blinker.DEFAULT_INTERVAL):Void
+    private function startBlink(text:String, ?param0:Any, ?param1:Any, ?param2:Any, ?param3:Any, ?iconHref:String, intervalMs:Int = Blinker.DEFAULT_INTERVAL):Void
     {
         if (!titleWasSet)
             throw "startBlink can only be called after setTitle.";
 
-        blinkKey = key;
+        blinkText = text;
         blinkParam0 = param0;
         blinkParam1 = param1;
         blinkParam2 = param2;
@@ -108,7 +106,7 @@ class PageBase extends Box
         blinkIconHref = iconHref;
         blinkIntervalMs = intervalMs;
 
-        var notificationText:String = LocaleManager.instance.lookupString(key, param0, param1, param2, param3);
+        var notificationText:String = LocaleUtils.resolveText(text, param0, param1, param2, param3);
 
         stopBlink();
         activeBlink = new Blinker(notificationText, iconHref, intervalMs);
@@ -132,16 +130,18 @@ class PageBase extends Box
         Called by HaxeFolioApp whenever the language preference changes, so this page's tab
         title/blink text stays in sync with the newly selected language - unlike {{key}}-bound
         component text, setTitle/startBlink resolve their string once and don't otherwise refresh.
+        A no-op for a page whose title/blink text was set to a literal (not a {{key}} binding),
+        since there's nothing for it to resync to.
     */
     private function resyncLocalizedText():Void
     {
         if (!titleWasSet)
             return;
 
-        var resolvedTitle:String = LocaleManager.instance.lookupString(titleKey, titleParam0, titleParam1, titleParam2, titleParam3);
+        var resolvedTitle:String = LocaleUtils.resolveText(titleText, titleParam0, titleParam1, titleParam2, titleParam3);
         var blinkWasActive:Bool = activeBlink != null;
         var resolvedNotification:String = blinkWasActive
-            ? LocaleManager.instance.lookupString(blinkKey, blinkParam0, blinkParam1, blinkParam2, blinkParam3)
+            ? LocaleUtils.resolveText(blinkText, blinkParam0, blinkParam1, blinkParam2, blinkParam3)
             : null;
 
         stopBlink();

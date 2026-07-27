@@ -19,7 +19,7 @@ class OptionPreferenceRow extends HBox
 
         var nameLabel:Label = new Label();
         nameLabel.id = 'haxefolio-preference-name-label-${preference.id}';
-        nameLabel.text = Utils.localeBinding('haxefolio.preference.${preference.id}.name');
+        nameLabel.text = LocaleUtils.localeBinding('haxefolio.preference.${preference.id}.name');
         nameLabel.addClass("haxefolio-preference-name-label");
         nameLabel.textAlign = "center";
         nameLabel.verticalAlign = "center";

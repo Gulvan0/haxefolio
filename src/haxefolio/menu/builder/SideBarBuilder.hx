@@ -11,7 +11,6 @@ import haxe.ui.containers.VBox;
 import haxe.ui.layouts.VerticalLayout;
 import haxefolio.HaxeFolioApp;
 import haxefolio.HaxeFolioConfig;
-import haxefolio.menu.MenuAction;
 
 class SideBarBuilder
 {
@@ -41,8 +40,8 @@ class SideBarBuilder
         for (item in config.menubar.left.concat(config.menubar.right))
             switch item
             {
-                case NormalMenu(slug, items):
-                    sideBar.addComponent(buildGroup(sideBar, slug, 'haxefolio.menubar.menu', items));
+                case NormalMenu(slug, items, defaultText):
+                    sideBar.addComponent(buildGroup(sideBar, slug, 'haxefolio.menubar.menu', items, defaultText));
                 case SiteName, Widget(_, _):
             }
 
@@ -53,16 +52,16 @@ class SideBarBuilder
         return sideBar;
     }
 
-    private static function buildGroup(sideBar:SideBar, slug:String, keyPrefix:String, items:Array<{slug: String, action: MenuAction}>):VBox
+    private static function buildGroup(sideBar:SideBar, slug:String, keyPrefix:String, items:Array<MenuItemDefinition>, ?groupDefaultText:String):VBox
     {
         var baseKey:String = keyPrefix + "." + slug;
         var group:VBox = new VBox();
 
-        group.addComponent(new SidebarGroupHeader(slug, Utils.localeBinding(baseKey)));
+        group.addComponent(new SidebarGroupHeader(slug, MenuBuilderHelpers.resolveLabelText(groupDefaultText, baseKey)));
 
         for (item in items)
         {
-            var text:String = Utils.localeBinding('$baseKey.item.${item.slug}');
+            var text:String = MenuBuilderHelpers.resolveLabelText(item.defaultText, '$baseKey.item.${item.slug}');
             group.addComponent(new SidebarGroupItem(slug, item.slug, text, () -> {
                 sideBar.hide();
                 MenuBuilderHelpers.invokeAction(item.action);

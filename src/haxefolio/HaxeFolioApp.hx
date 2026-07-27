@@ -9,6 +9,7 @@ import haxe.ui.containers.VBox;
 import haxe.ui.containers.menus.MenuBar;
 import haxe.ui.core.Screen;
 import js.Browser;
+import haxefolio.menu.MenuFacade;
 import haxefolio.menu.builder.MenuBarBuilder;
 import haxefolio.menu.builder.MenuBarBuilder.MenuBarBuildResult;
 import haxefolio.menu.builder.SideBarBuilder;
@@ -24,20 +25,6 @@ using StringTools;
 
 class HaxeFolioApp
 {
-    /**
-        The framework-managed menu bar component, exposed so a framework user can adjust its style
-        properties once during initialization (see `HaxeFolioConfig.menubar`). Built and assigned
-        by `init`; read-only from the outside afterwards.
-    **/
-    public static var menuBar(default, null):MenuBar;
-
-    /**
-        The framework-managed side bar component, exposed so a framework user can adjust its style
-        properties once during initialization (see `HaxeFolioConfig.sidebarExtras`). Built and
-        assigned by `init`; read-only from the outside afterwards.
-    **/
-    public static var sideBar(default, null):SideBar;
-
     /**
         Holds the state passed to `navigateTo` while a transition is in progress, since at that
         point it has not been pushed to `history.state` yet. Outside of an in-progress transition
@@ -103,10 +90,12 @@ class HaxeFolioApp
                     currentPage.resyncLocalizedText();
             });
 
-        sideBar = SideBarBuilder.build(config);
+        var sideBar:SideBar = SideBarBuilder.build(config);
 
         var menuBarBuildResult:MenuBarBuildResult = MenuBarBuilder.build(config, sideBar);
-        menuBar = menuBarBuildResult.menuBar;
+        var menuBar:MenuBar = menuBarBuildResult.menuBar;
+
+        MenuFacade.init(menuBar, sideBar);
 
         pageContainer = new Box();
         pageContainer.percentWidth = 100;
@@ -374,9 +363,7 @@ class HaxeFolioApp
         }
 
         if (!page.titleWasSet)
-            Browser.document.title = config.defaultTitleKey != null
-                ? LocaleManager.instance.lookupString(config.defaultTitleKey)
-                : config.siteName;
+            Browser.document.title = LocaleUtils.resolveText(config.defaultTitleText ?? config.siteName);
 
         currentPage = page;
     }

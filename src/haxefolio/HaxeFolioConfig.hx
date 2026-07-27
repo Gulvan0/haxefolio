@@ -20,7 +20,9 @@ typedef HaxeFolioConfig = {
     appIcon:String,
 
     /**
-        Literal (not localized) text of the `SiteName` menu bar item's label.
+        Text of the `SiteName` menu bar item's label, interpreted the same way any HaxeUI `.text`
+        property is: a literal by default, or - wrapped in `{{}}` - a locale key, kept in sync with
+        locale changes the same way any other menu/side bar label is (see `Menu bar`).
     **/
     siteName:String,
 
@@ -55,10 +57,11 @@ typedef HaxeFolioConfig = {
     ?sidebarExtras:Array<SidebarGroup>,
 
     /**
-        Locale key (resolved with no params) used as the tab title fallback for pages that never
-        call `PageBase.setTitle`. If omitted, the literal `siteName` is used instead.
+        Text (see `PageBase.setTitle` for how it's interpreted - resolved with no params) used as
+        the tab title fallback for pages that never call `PageBase.setTitle`. If omitted, `siteName`
+        is used instead.
     **/
-    ?defaultTitleKey:String,
+    ?defaultTitleText:String,
 
     /**
         Maps each locale id the app provides strings for (the `id` declared under `<locales>` in

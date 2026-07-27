@@ -14,7 +14,7 @@ class PreferenceAutosaveNoticeLabel extends Label
         super();
 
         this.id = "haxefolio-preference-autosave-notice";
-        this.text = Utils.localeBinding("haxefolio.preference.autosave_notice");
+        this.text = LocaleUtils.localeBinding("haxefolio.preference.autosave_notice");
         this.addClass("haxefolio-preference-autosave-notice");
         this.percentWidth = 100;
         this.textAlign = "right";

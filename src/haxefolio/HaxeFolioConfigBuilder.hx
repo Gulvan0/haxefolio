@@ -24,7 +24,7 @@ class HaxeFolioConfigBuilder
     private var menubarLeft:Array<MenuBarItem>;
     private var menubarRight:Array<MenuBarItem>;
     private var sidebarExtras:Array<SidebarGroup>;
-    private var defaultTitleKey:Null<String>;
+    private var defaultTitleText:Null<String>;
     private var supportedLocales:Null<Map<String, String>>;
     private var preferenceTabIcons:Null<Map<String, String>>;
     private var preferences:Class<PreferenceRegistry>;
@@ -96,11 +96,12 @@ class HaxeFolioConfigBuilder
 
     /**
         Appends an item to the `NormalMenu` identified by `menuSlug`. That menu must already have
-        been added via `addLeftMenubarItem`/`addRightMenubarItem` - throws otherwise.
+        been added via `addLeftMenubarItem`/`addRightMenubarItem` - throws otherwise. See
+        `MenuItemDefinition.defaultText` for `defaultText`.
     **/
-    public function addNormalMenuItem(menuSlug:String, itemSlug:String, action:MenuAction, ?icon:String):HaxeFolioConfigBuilder
+    public function addNormalMenuItem(menuSlug:String, itemSlug:String, action:MenuAction, ?icon:String, ?defaultText:String):HaxeFolioConfigBuilder
     {
-        findNormalMenuItems(menuSlug).push({slug: itemSlug, action: action, icon: icon});
+        findNormalMenuItems(menuSlug).push({slug: itemSlug, action: action, icon: icon, defaultText: defaultText});
         return this;
     }
 
@@ -114,9 +115,9 @@ class HaxeFolioConfigBuilder
         return this;
     }
 
-    public function setDefaultTitleKey(defaultTitleKey:String):HaxeFolioConfigBuilder
+    public function setDefaultTitleText(defaultTitleText:String):HaxeFolioConfigBuilder
     {
-        this.defaultTitleKey = defaultTitleKey;
+        this.defaultTitleText = defaultTitleText;
         return this;
     }
 
@@ -162,7 +163,7 @@ class HaxeFolioConfigBuilder
             pages: pages,
             menubar: {left: menubarLeft, right: menubarRight},
             sidebarExtras: sidebarExtras,
-            defaultTitleKey: defaultTitleKey,
+            defaultTitleText: defaultTitleText,
             supportedLocales: supportedLocales,
             preferenceTabIcons: preferenceTabIcons,
             preferences: preferences,
@@ -175,7 +176,7 @@ class HaxeFolioConfigBuilder
         for (item in menubarLeft.concat(menubarRight))
             switch item
             {
-                case NormalMenu(slug, items) if (slug == menuSlug):
+                case NormalMenu(slug, items, _) if (slug == menuSlug):
                     return items;
                 default:
             }

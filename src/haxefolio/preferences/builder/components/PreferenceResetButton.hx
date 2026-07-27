@@ -10,7 +10,7 @@ class PreferenceResetButton extends Button
         super();
 
         this.id = "haxefolio-preference-reset-button";
-        this.text = Utils.localeBinding("haxefolio.preference.reset");
+        this.text = LocaleUtils.localeBinding("haxefolio.preference.reset");
         this.addClass("haxefolio-preference-reset-button");
         this.onClick = _ -> PreferenceRegistry.resetAll();
     }

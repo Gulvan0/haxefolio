@@ -16,7 +16,7 @@ class OptionPreferenceButton extends Button
 
         this.optionValue = optionValue;
         this.id = 'haxefolio-preference-option-button-$preferenceId-$optionValue';
-        this.text = Utils.localeBinding('haxefolio.preference.$preferenceId.value.$optionValue');
+        this.text = LocaleUtils.localeBinding('haxefolio.preference.$preferenceId.value.$optionValue');
         this.addClass("haxefolio-preference-option-button");
         this.toggle = true;
         this.componentGroup = preferenceId;
