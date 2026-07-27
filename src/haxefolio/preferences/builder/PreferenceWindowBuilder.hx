@@ -2,6 +2,7 @@ package haxefolio.preferences.builder;
 
 import haxe.ui.containers.HBox;
 import haxe.ui.containers.TabView;
+import haxefolio.overlay.OverlayContent;
 import haxefolio.preferences.PreferenceRegistry;
 import haxefolio.preferences.builder.components.PreferenceAutosaveNoticeLabel;
 import haxefolio.preferences.builder.components.PreferenceResetButton;
@@ -9,16 +10,15 @@ import haxefolio.preferences.builder.components.PreferenceTabPage;
 
 /*
     Builds the preference panel's content - tabs plus a reset button - independently of how it ends
-    up presented. PreferenceSideBarOverlay and PreferenceModalOverlay each call build() to get their
-    own fresh copy and are responsible for wrapping it in their own container/chrome.
+    up presented. Called directly by HaxeFolioApp.showPreferences() (via a factory closure passed
+    to HaxeFolioApp.showOverlay), which is also what tags the returned content with its slug-based
+    id/class - see ModalOverlay/SideBarOverlay.
 */
 class PreferenceWindowBuilder
 {
-    public static function build(tabIcons:Map<String, String>):PreferenceWindowContent
+    public static function build(tabIcons:Map<String, String>):OverlayContent
     {
-        var content:PreferenceWindowContent = new PreferenceWindowContent();
-        content.id = "haxefolio-preference-content";
-        content.addClass("haxefolio-preference-content");
+        var content:OverlayContent = new OverlayContent();
         content.percentWidth = 100;
         content.percentHeight = 100;
 
