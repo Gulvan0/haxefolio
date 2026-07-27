@@ -1,0 +1,11 @@
+.haxefolio-overlay-close-button {
+    resource: 'haxefolio-sample/images/alt_close_icon.svg';
+    width: 20px;
+    height: 20px;
+}
+
+#haxefolio-overlay-custom-dismissible-close-button {
+    resource: 'haxefolio/images/close_btn_icon.svg';
+    width: 14px;
+    height: 14px;
+}

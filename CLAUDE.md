@@ -6,6 +6,8 @@ The library is written in **Haxe**, targeting **HTML5**.
 
 ANY AMBIGUITY OR MANUAL GAP SURFACING DURING IMPLEMENTATION SHOULD NOT BE RESOLVED SILENTLY. Instead, explicitly ask the question.
 
+To check whether the library compiles and test it, the sample project (located in @sample/, built via @sample/build.hxml) may be used.
+
 # Code style conventions
 
 See `code_style.md`.

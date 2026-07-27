@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<module id="haxefolio-sample" priority="10">
+    <resources>
+        <resource path="${module}/assets/locale" prefix="haxefolio-sample/locale" />
+        <resource path="${module}/assets/images" prefix="haxefolio-sample/images" />
+        <resource path="${module}/assets/styles" prefix="haxefolio-sample/styles" />
+    </resources>
+
+    <locales>
+        <locale id="en">
+            <resource path="haxefolio-sample/locale/en.properties" />
+        </locale>
+        <locale id="ru">
+            <resource path="haxefolio-sample/locale/ru.properties" />
+        </locale>
+    </locales>
+
+    <themes>
+        <default>
+            <style resource="haxefolio-sample/styles/main.css" priority="10" />
+        </default>
+    </themes>
+</module>
