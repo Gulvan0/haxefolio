@@ -1,5 +1,6 @@
 package haxefolio.menu.builder;
 
+import js.Browser;
 import haxefolio.HaxeFolioApp;
 import haxefolio.LocaleUtils;
 import haxefolio.menu.MenuAction;
@@ -14,6 +15,8 @@ class MenuBuilderHelpers
                 HaxeFolioApp.navigateTo(pathFactory());
             case Execute(fn):
                 fn();
+            case Link(url, newTab):
+                Browser.window.open(url, newTab ? "_blank" : "_self");
         }
     }
 

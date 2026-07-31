@@ -17,4 +17,10 @@ enum MenuAction
         `state`/`fragment`) can still call `HaxeFolioApp.navigateTo` itself from here.
     **/
     Execute(fn:Void->Void);
+
+    /**
+        Opens `url` in a new tab if `newTab` is `true`, or the current one otherwise. Shorthand for
+        an `Execute` whose callback opens `url` via `window.open` with the respective target.
+    **/
+    Link(url:String, newTab:Bool);
 }

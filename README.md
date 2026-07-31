@@ -159,10 +159,11 @@ enum MenuBarItem
   {
       NavigateTo(pathFactory:Void->String);
       Execute(fn:Void->Void);
+      Link(url:String, newTab:Bool);
   }
   ```
 
-  `NavigateTo` goes through `HaxeFolioApp.navigateTo` just like any other navigation; `Execute` runs an arbitrary function, which may itself call `navigateTo` if it needs to combine navigation with something `NavigateTo` alone doesn't cover (e.g. passing `state`).
+  `NavigateTo` goes through `HaxeFolioApp.navigateTo` just like any other navigation; `Execute` runs an arbitrary function, which may itself call `navigateTo` if it needs to combine navigation with something `NavigateTo` alone doesn't cover (e.g. passing `state`). `Link` opens `url` in a new tab if `newTab` is `true`, or the current one otherwise - a shorthand for an `Execute` whose callback opens `url` via `window.open` with the respective target.
 - **`Widget(component, ?persistent)`** - a custom component wrapped in its own menu, e.g. the settings button shown in `Getting started`.
 
 Additionally, two components are always present as the menu bar's leftmost children, placed there by the framework itself rather than configured as `MenuBarItem`s: a hamburger button - hidden by default, shown once the menu bar collapses to its mobile layout (see `Responsivity`), at which point clicking it opens the side bar - followed by the site name label, showing `HaxeFolioConfig.siteName` (interpreted the same way any HaxeUI `.text` property is, see `LocaleUtils.resolveText` in `Page title and notifications`) and navigating to the default page when clicked.
