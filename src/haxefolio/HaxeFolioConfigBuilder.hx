@@ -99,9 +99,10 @@ class HaxeFolioConfigBuilder
         been added via `addLeftMenubarItem`/`addRightMenubarItem` - throws otherwise. See
         `MenuItemDefinition.defaultText` for `defaultText`.
     **/
-    public function addNormalMenuItem(menuSlug:String, itemSlug:String, action:MenuAction, ?icon:String, ?defaultText:String):HaxeFolioConfigBuilder
+    public function addNormalMenuItem(menuSlug:String, itemSlug:String, action:MenuAction, ?icon:String, ?defaultText:String,
+            ?hiddenByDefault:Bool):HaxeFolioConfigBuilder
     {
-        findNormalMenuItems(menuSlug).push({slug: itemSlug, action: action, icon: icon, defaultText: defaultText});
+        findNormalMenuItems(menuSlug).push({slug: itemSlug, action: action, icon: icon, defaultText: defaultText, hiddenByDefault: hiddenByDefault});
         return this;
     }
 
