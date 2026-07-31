@@ -11,10 +11,6 @@ class Main
 {
     public static function main():Void
     {
-        var settingsWidget:Label = new Label();
-        settingsWidget.text = "⚙";
-        settingsWidget.onClick = _ -> HaxeFolioApp.showPreferences();
-
         var config:HaxeFolioConfig = HaxeFolioConfigBuilder.init("my-app", Preferences)
             .setAppIcon("assets/favicons/normal.png")
             .setSiteName("My App")
@@ -22,11 +18,19 @@ class Main
             .addPage("user/{login}", params -> new UserPage(params["login"]))
             .addLeftMenubarItem(NormalMenu("navigation", []))
             .addNormalMenuItem("navigation", "home", NavigateTo(() -> "home"))
-            .addRightMenubarItem(Widget(settingsWidget, true))
+            .addRightMenubarItem(Widget(buildSettingsWidget, true))
             .setLanguagePreference(Preferences.language)
             .buildConfig();
 
         HaxeFolioApp.init(config);
+    }
+
+    private static function buildSettingsWidget():Component
+    {
+        var settingsWidget:Label = new Label();
+        settingsWidget.text = "⚙";
+        settingsWidget.onClick = _ -> HaxeFolioApp.showPreferences();
+        return settingsWidget;
     }
 }
 ```
@@ -148,7 +152,7 @@ The menu bar can hold two kinds of user-defined items, assembled into `left`/`ri
 enum MenuBarItem
 {
     NormalMenu(slug:String, items:Array<MenuItemDefinition>, ?defaultText:String);
-    Widget(component:Component, ?persistent:Bool);
+    Widget(componentFactory:Void->Component, ?persistent:Bool);
 }
 ```
 
@@ -164,7 +168,7 @@ enum MenuBarItem
   ```
 
   `NavigateTo` goes through `HaxeFolioApp.navigateTo` just like any other navigation; `Execute` runs an arbitrary function, which may itself call `navigateTo` if it needs to combine navigation with something `NavigateTo` alone doesn't cover (e.g. passing `state`). `Link` opens `url` in a new tab if `newTab` is `true`, or the current one otherwise - a shorthand for an `Execute` whose callback opens `url` via `window.open` with the respective target.
-- **`Widget(component, ?persistent)`** - a custom component wrapped in its own menu, e.g. the settings button shown in `Getting started`.
+- **`Widget(componentFactory, ?persistent)`** - a custom component, built by `componentFactory` and wrapped in its own menu, e.g. the settings button shown in `Getting started`. The factory is only invoked once the menu bar itself is being built (i.e. after `Toolkit.init()` has run as part of `HaxeFolioApp.init`), since HaxeUI components can't be constructed any earlier.
 
 `hiddenByDefault`, if `true`, starts a `MenuItemDefinition` hidden - in the menu bar and, for a `NormalMenu` item, its mirrored side bar entry too - until `MenuFacade.showMenuItem`/`showSidebarExtraGroupItem` (see `Showing and hiding menu items at runtime` below) makes it visible; omitted, it defaults to `false`.
 

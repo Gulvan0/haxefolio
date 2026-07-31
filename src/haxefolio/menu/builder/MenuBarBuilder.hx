@@ -77,7 +77,8 @@ class MenuBarBuilder
         {
             case NormalMenu(slug, items, defaultText):
                 return new NormalMenu(slug, items, defaultText);
-            case Widget(component, _):
+            case Widget(componentFactory, _):
+                var component:Component = componentFactory();
                 component.verticalAlign = "center";
                 return component;
         }

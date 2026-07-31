@@ -6,6 +6,8 @@ The library is written in **Haxe**, targeting **HTML5**.
 
 ANY AMBIGUITY OR MANUAL GAP SURFACING DURING IMPLEMENTATION SHOULD NOT BE RESOLVED SILENTLY. Instead, explicitly ask the question.
 
+If told to take a dubious or possibly suboptimal approach (whether from the UI/UX or technical standpoint), also ask a question, providing details on why you're uncertain about this and what are the better practices or better ways to solve the problem.
+
 To check whether the library compiles and test it, the sample project (located in @sample/, built via @sample/build.hxml) may be used.
 
 # Code style conventions

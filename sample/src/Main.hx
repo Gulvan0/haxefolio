@@ -1,6 +1,7 @@
 package;
 
 import haxe.ui.components.Label;
+import haxe.ui.core.Component;
 import haxefolio.HaxeFolioApp;
 import haxefolio.HaxeFolioConfig;
 import haxefolio.HaxeFolioConfigBuilder;
@@ -16,10 +17,6 @@ class Main
 {
     public static function main():Void
     {
-        var settingsWidget:Label = new Label();
-        settingsWidget.text = "⚙";
-        settingsWidget.onClick = _ -> HaxeFolioApp.showPreferences();
-
         var config:HaxeFolioConfig = HaxeFolioConfigBuilder.init("haxefolio-sample", SamplePreferences)
             .setAppIcon("haxefolio/images/close_btn_icon.svg")
             .setSiteName("HaxeFolio Sample")
@@ -41,11 +38,19 @@ class Main
             .addNormalMenuItem("overlay-demo", "no-close-button", Execute(showNoCloseButtonOverlay))
             .addNormalMenuItem("overlay-demo", "mobile-variant", Execute(showMobileVariantOverlay))
             .addNormalMenuItem("overlay-demo", "explicit-size", Execute(showExplicitSizeOverlay))
-            .addRightMenubarItem(Widget(settingsWidget, true))
+            .addRightMenubarItem(Widget(buildSettingsWidget, true))
             .setLanguagePreference(SamplePreferences.language)
             .buildConfig();
 
         HaxeFolioApp.init(config);
+    }
+
+    private static function buildSettingsWidget():Component
+    {
+        var settingsWidget:Label = new Label();
+        settingsWidget.text = "⚙";
+        settingsWidget.onClick = _ -> HaxeFolioApp.showPreferences();
+        return settingsWidget;
     }
 
     /*
