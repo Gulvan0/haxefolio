@@ -26,6 +26,11 @@ class StorageBackend
         Browser.window.localStorage.setItem(key(id), value);
     }
 
+    public function remove(id:String):Void
+    {
+        Browser.window.localStorage.removeItem(key(id));
+    }
+
     private function key(id:String):String
     {
         return '${Browser.window.location.hostname}.$appSlug.$id';
