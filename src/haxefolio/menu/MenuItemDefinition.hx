@@ -23,5 +23,12 @@ typedef MenuItemDefinition = {
         label defaults to the `<menu slug>.item.<slug>` locale key. Either way,
         `MenuFacade.updateMenuItemLabelText` can change it later.
     **/
-    ?defaultText:String
+    ?defaultText:String,
+
+    /**
+        If `true`, this item starts hidden - in the menu bar and, for a `NormalMenu` item, its
+        mirrored side bar entry too - until `MenuFacade.showMenuItem`/`showSidebarExtraGroupItem`
+        makes it visible. Defaults to `false`.
+    **/
+    ?hiddenByDefault:Bool
 }

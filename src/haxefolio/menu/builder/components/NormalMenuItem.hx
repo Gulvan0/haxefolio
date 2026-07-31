@@ -11,6 +11,7 @@ class NormalMenuItem extends MenuItem
         this.id = 'haxefolio-normal-menu-$menuSlug-item-${item.slug}';
         this.text = MenuBuilderHelpers.resolveLabelText(item.defaultText, 'haxefolio.menubar.menu.$menuSlug.item.${item.slug}');
         this.addClass('haxefolio-normal-menu-item');
+        this.hidden = item.hiddenByDefault == true;
 
         if (item.icon != null)
             this.icon = item.icon;

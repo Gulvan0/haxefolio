@@ -65,7 +65,7 @@ class SideBarBuilder
             group.addComponent(new SidebarGroupItem(slug, item.slug, text, () -> {
                 sideBar.hide();
                 MenuBuilderHelpers.invokeAction(item.action);
-            }));
+            }, item.hiddenByDefault == true));
         }
 
         return group;

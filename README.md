@@ -152,7 +152,7 @@ enum MenuBarItem
 }
 ```
 
-- **`NormalMenu(slug, items, ?defaultText)`** - an ordinary dropdown menu, identified by `slug` (also used to build its CSS id, and - absent `defaultText` - its locale key, see `Locale keys` in `Reference`). `defaultText`, if given, is used verbatim as the menu's initial label, interpreted the same way any HaxeUI `.text` property is; omitted, the label defaults to the derived locale key. Each `MenuItemDefinition` is `{slug, action, ?icon, ?defaultText}` (`defaultText` working the same way, per item), where `action` is:
+- **`NormalMenu(slug, items, ?defaultText)`** - an ordinary dropdown menu, identified by `slug` (also used to build its CSS id, and - absent `defaultText` - its locale key, see `Locale keys` in `Reference`). `defaultText`, if given, is used verbatim as the menu's initial label, interpreted the same way any HaxeUI `.text` property is; omitted, the label defaults to the derived locale key. Each `MenuItemDefinition` is `{slug, action, ?icon, ?defaultText, ?hiddenByDefault}` (`defaultText` working the same way, per item), where `action` is:
 
   ```haxe
   enum MenuAction
@@ -165,6 +165,8 @@ enum MenuBarItem
 
   `NavigateTo` goes through `HaxeFolioApp.navigateTo` just like any other navigation; `Execute` runs an arbitrary function, which may itself call `navigateTo` if it needs to combine navigation with something `NavigateTo` alone doesn't cover (e.g. passing `state`). `Link` opens `url` in a new tab if `newTab` is `true`, or the current one otherwise - a shorthand for an `Execute` whose callback opens `url` via `window.open` with the respective target.
 - **`Widget(component, ?persistent)`** - a custom component wrapped in its own menu, e.g. the settings button shown in `Getting started`.
+
+`hiddenByDefault`, if `true`, starts a `MenuItemDefinition` hidden - in the menu bar and, for a `NormalMenu` item, its mirrored side bar entry too - until `MenuFacade.showMenuItem`/`showSidebarExtraGroupItem` (see `Showing and hiding menu items at runtime` below) makes it visible; omitted, it defaults to `false`.
 
 Additionally, two components are always present as the menu bar's leftmost children, placed there by the framework itself rather than configured as `MenuBarItem`s: a hamburger button - hidden by default, shown once the menu bar collapses to its mobile layout (see `Responsivity`), at which point clicking it opens the side bar - followed by the site name label, showing `HaxeFolioConfig.siteName` (interpreted the same way any HaxeUI `.text` property is, see `LocaleUtils.resolveText` in `Page title and notifications`) and navigating to the default page when clicked.
 
@@ -179,6 +181,19 @@ public static function updateMenuItemLabelText(menuSlug:String, itemSlug:String,
 ```
 
 `updateSiteNameLabelText` changes the site name label; `updateMenuLabelText` changes the label of the `NormalMenu` identified by `slug`; `updateMenuItemLabelText` changes the label of one of its items, identified by `menuSlug`/`itemSlug`. Each of these updates both the menu bar's own label and its mobile side bar mirror (see `Side bar` below) together, in one call, so the two can never go out of sync through this API. `updateMenuLabelText`/`updateMenuItemLabelText` throw if no such `NormalMenu`/item is present in the menu bar; `updateSiteNameLabelText` never throws, since both the menu bar and the side bar always have a site name label. In every case, `text` is interpreted exactly like any other HaxeUI `.text` property: a literal label by default, or - enclosed in `{{}}`, e.g. `"{{haxefolio.menubar.menu.navigation}}"` - a locale key, re-resolved automatically on every locale change.
+
+### Showing and hiding menu items at runtime
+
+`MenuFacade` also exposes:
+
+```haxe
+public static function showMenuItem(menuSlug:String, itemSlug:String):Void
+public static function hideMenuItem(menuSlug:String, itemSlug:String):Void
+public static function showSidebarExtraGroupItem(groupSlug:String, itemSlug:String):Void
+public static function hideSidebarExtraGroupItem(groupSlug:String, itemSlug:String):Void
+```
+
+`showMenuItem`/`hideMenuItem` show/hide the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`, together with its mirrored side bar item, the same way `hiddenByDefault` above starts it hidden. `showSidebarExtraGroupItem`/`hideSidebarExtraGroupItem` do the same for an item within a `sidebarExtras` group (see `Side bar` below), which has no menu bar counterpart to keep in sync. All four throw if no such item is present in the menu bar/side bar, respectively.
 
 ### Side bar
 

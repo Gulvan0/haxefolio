@@ -116,4 +116,63 @@ class MenuFacade
         var mirrored:SidebarGroupItem = sideBar.findComponent('haxefolio-sidebar-group-item-$menuSlug-$itemSlug', SidebarGroupItem);
         mirrored.text = text;
     }
+
+    /**
+        Shows the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`,
+        and its mirrored side bar item, together. Throws if no such item is present in the menu bar.
+    **/
+    public static function showMenuItem(menuSlug:String, itemSlug:String):Void
+    {
+        setMenuItemHidden(menuSlug, itemSlug, false);
+    }
+
+    /**
+        Hides the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`,
+        and its mirrored side bar item, together. Throws if no such item is present in the menu bar.
+    **/
+    public static function hideMenuItem(menuSlug:String, itemSlug:String):Void
+    {
+        setMenuItemHidden(menuSlug, itemSlug, true);
+    }
+
+    private static function setMenuItemHidden(menuSlug:String, itemSlug:String, hidden:Bool):Void
+    {
+        var item:NormalMenuItem = menuBar.findComponent('haxefolio-normal-menu-$menuSlug-item-$itemSlug', NormalMenuItem);
+
+        if (item == null)
+            throw 'MenuFacade: no item "$itemSlug" found in NormalMenu "$menuSlug" in the menu bar.';
+
+        item.hidden = hidden;
+
+        var mirrored:SidebarGroupItem = sideBar.findComponent('haxefolio-sidebar-group-item-$menuSlug-$itemSlug', SidebarGroupItem);
+        mirrored.hidden = hidden;
+    }
+
+    /**
+        Shows the item identified by `itemSlug` within the `sidebarExtras` group identified by
+        `groupSlug`. Throws if no such item is present in the side bar.
+    **/
+    public static function showSidebarExtraGroupItem(groupSlug:String, itemSlug:String):Void
+    {
+        setSidebarExtraGroupItemHidden(groupSlug, itemSlug, false);
+    }
+
+    /**
+        Hides the item identified by `itemSlug` within the `sidebarExtras` group identified by
+        `groupSlug`. Throws if no such item is present in the side bar.
+    **/
+    public static function hideSidebarExtraGroupItem(groupSlug:String, itemSlug:String):Void
+    {
+        setSidebarExtraGroupItemHidden(groupSlug, itemSlug, true);
+    }
+
+    private static function setSidebarExtraGroupItemHidden(groupSlug:String, itemSlug:String, hidden:Bool):Void
+    {
+        var item:SidebarGroupItem = sideBar.findComponent('haxefolio-sidebar-group-item-$groupSlug-$itemSlug', SidebarGroupItem);
+
+        if (item == null)
+            throw 'MenuFacade: no item "$itemSlug" found in sidebar extra group "$groupSlug".';
+
+        item.hidden = hidden;
+    }
 }
