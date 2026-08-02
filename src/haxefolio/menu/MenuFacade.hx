@@ -118,6 +118,21 @@ class MenuFacade
     }
 
     /**
+        Updates the icon of the item identified by `itemSlug` within the `NormalMenu` identified by
+        `menuSlug`. The side bar has no icons to keep in sync, so only the menu bar item is touched.
+        Throws if no such item is present in the menu bar.
+    **/
+    public static function updateMenuItemIcon(menuSlug:String, itemSlug:String, icon:String):Void
+    {
+        var item:NormalMenuItem = menuBar.findComponent('haxefolio-normal-menu-$menuSlug-item-$itemSlug', NormalMenuItem);
+
+        if (item == null)
+            throw 'MenuFacade: no item "$itemSlug" found in NormalMenu "$menuSlug" in the menu bar.';
+
+        item.icon = icon;
+    }
+
+    /**
         Shows the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`,
         and its mirrored side bar item, together. Throws if no such item is present in the menu bar.
     **/
@@ -135,7 +150,11 @@ class MenuFacade
         setMenuItemHidden(menuSlug, itemSlug, true);
     }
 
-    private static function setMenuItemHidden(menuSlug:String, itemSlug:String, hidden:Bool):Void
+    /**
+        Shows/hides the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`,
+        and its mirrored side bar item, together. Throws if no such item is present in the menu bar.
+    **/
+    public static function setMenuItemHidden(menuSlug:String, itemSlug:String, hidden:Bool):Void
     {
         var item:NormalMenuItem = menuBar.findComponent('haxefolio-normal-menu-$menuSlug-item-$itemSlug', NormalMenuItem);
 
