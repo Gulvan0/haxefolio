@@ -117,18 +117,7 @@ private function startBlink(text:String, ?param0:Any, ?param1:Any, ?param2:Any, 
 private function stopBlink():Void
 ```
 
-`setTitle` assigns `document.title` to `LocaleUtils.resolveText(text, param0, param1, param2, param3)` (see `LocaleUtils.resolveText` below) and is callable from `init` or any later point (e.g. once data that only becomes available asynchronously has arrived). If a page's `init` completes without ever calling `setTitle`, the framework falls back to `HaxeFolioConfig.defaultTitleText` (resolved with no params), if given, or else `siteName`.
-
-`LocaleUtils.resolveText` is the one-shot counterpart to a HaxeUI `.text` property binding:
-
-```haxe
-class LocaleUtils
-{
-    public static function resolveText(text:String, ?param0:Any, ?param1:Any, ?param2:Any, ?param3:Any):String
-}
-```
-
-`text` is interpreted the same way any HaxeUI `.text` property is: a literal by default, or - if `text` is exactly one `{{key}}` binding (the whole string, not a literal prefix/suffix mixed with a binding) - a locale key, in which case `param0`-`param3` are substituted for `[0]`-`[3]` in the resolved locale string, per HaxeUI's own `LocaleManager.lookupString` convention. A `text` that's a plain literal, or that mixes literal text with a binding, is returned as-is - `param0`-`param3` are ignored in both cases.
+`setTitle` assigns `document.title` to `LocaleUtils.resolveText(text, param0, param1, param2, param3)` and is callable from `init` or any later point (e.g. once data that only becomes available asynchronously has arrived). If a page's `init` completes without ever calling `setTitle`, the framework falls back to `HaxeFolioConfig.defaultTitleText` (resolved with no params), if given, or else `siteName`. `text`/`param0`-`param3` are interpreted the same way any HaxeUI `.text` property is - see `Locale utilities` below for exactly how, and for the rest of what `LocaleUtils` offers directly to a framework user's own code.
 
 `startBlink` alternates the tab title between its current value and `LocaleUtils.resolveText(text, param0, param1, param2, param3)`, once every `intervalMs` (1000 by default). Passing `iconHref` swaps the favicon in lockstep - notification icon while showing the notification text, restored otherwise; omit it to blink only the title. It can only be called after `setTitle` (throws otherwise), and replaces any already-active blink for the page rather than stacking. `stopBlink` restores the pre-blink title/favicon; it's a no-op if nothing is blinking, and the framework also calls it automatically whenever a page is torn down, so forgetting to call it isn't a way to leak a blink into the next page:
 
@@ -139,6 +128,23 @@ simulateChallengeButton.onClick = _ -> startBlink("{{page.home.notification.chal
 If the app declares a language preference (see `Preferences`) and wires it into `HaxeFolioConfig.languagePreference`, a page's title/blink text stays in sync with it automatically, the same way `{{key}}`-bound component text elsewhere refreshes via HaxeUI's own locale-change mechanism - but only if that text is itself a `{{key}}` binding; a literal title/blink text has nothing to resync, so it's simply left as-is on a locale change. Apps that don't declare a language preference get no such refresh, since nothing else changes the active locale at runtime.
 
 The blinking itself (the timer, the title/favicon swap) is implemented by `haxefolio.browser.Blinker`/`Favicon`, bundled utilities with no dependency on the rest of HaxeFolio, HaxeUI, or locale - usable directly in any HTML5 Haxe app that already has HaxeFolio as a dependency. `PageBase.startBlink`/`stopBlink` are a thin, localization-aware convenience layer on top of them. Deciding *when* to call them (e.g. reacting to `document.visibilitychange`/`document.hidden` to detect the user being away from the tab) is left entirely to the framework user's own code.
+
+## Locale utilities
+
+`LocaleUtils` (`haxefolio.LocaleUtils`) is the framework's own convention for interpreting a string as either a literal or a `{{key}}`-bound locale key - the same interpretation every HaxeUI `.text` property already gives such a string when it's live-bound to a component, but available here as a plain, one-shot function of `String`s. It's what `PageBase.setTitle`/`startBlink` (see `Page title and notifications` above), `MenuFacade`'s label-updating methods (see `Updating menu bar labels at runtime` below), and the preference window are themselves built on - and, having no dependency on any particular page/menu/preference state, it's equally available for a framework user's own code wherever the same literal-or-locale-key convention is wanted, e.g. resolving a locale-aware label for a component built and populated by hand rather than through HaxeUI's own `.text` binding:
+
+```haxe
+class LocaleUtils
+{
+    public static function resolveText(text:String, ?param0:Any, ?param1:Any, ?param2:Any, ?param3:Any):String
+    public static function extractLocaleKey(text:String):Null<String>
+    public static function localeBinding(key:String, ?paramExpr0:String, ?paramExpr1:String, ?paramExpr2:String, ?paramExpr3:String):String
+}
+```
+
+- `resolveText` is the one-shot counterpart to a HaxeUI `.text` property binding: `text` is interpreted the same way any HaxeUI `.text` property is - a literal by default, or - if `text` is exactly one `{{key}}` binding (the whole string, not a literal prefix/suffix mixed with a binding) - a locale key, in which case `param0`-`param3` are substituted for `[0]`-`[3]` in the resolved locale string, per HaxeUI's own `LocaleManager.lookupString` convention. A `text` that's a plain literal, or that mixes literal text with a binding, is returned as-is - `param0`-`param3` are ignored in both cases. Unlike a live `.text` binding, the result is computed once at the call site and doesn't refresh itself on a later locale change - a caller that needs to stay in sync (as `setTitle`/`startBlink` and `MenuFacade` do) is responsible for re-resolving on its own, typically from a language preference's `onChange` handler (see `Reacting to changes`).
+- `extractLocaleKey` is what `resolveText` uses to tell the two cases apart, and is available on its own for code that needs to make that same distinction without also resolving the string: given `text` shaped as exactly one whole-string `{{key}}` binding, it returns `key`; given anything else (`null`, a plain literal, or a binding mixed with other text), it returns `null`.
+- `localeBinding` is the inverse of `extractLocaleKey` - it builds the `{{key}}` string (or `{{key, paramExpr0, paramExpr1, ...}}`, stopping at the first omitted `paramExpr`) from `key` and however many of `paramExpr0`-`paramExpr3` are given, for code that needs to construct such a binding rather than write it as a string literal, e.g. assembling a `.text` value from a locale key computed at runtime. `paramExpr0`-`paramExpr3` here are Haxe expression source embedded verbatim into the binding (e.g. `"someVar"` or `"1"`), the same way HaxeUI's own `{{key, someExpression}}` markup takes expressions - not values, unlike `resolveText`'s `param0`-`param3` above.
 
 ## Menu and side bar
 
@@ -172,7 +178,7 @@ enum MenuBarItem
 
 `hiddenByDefault`, if `true`, starts a `MenuItemDefinition` hidden - in the menu bar and, for a `NormalMenu` item, its mirrored side bar entry too - until `MenuFacade.showMenuItem`/`showSidebarExtraGroupItem` (see `Showing and hiding menu items at runtime` below) makes it visible; omitted, it defaults to `false`.
 
-Additionally, two components are always present as the menu bar's leftmost children, placed there by the framework itself rather than configured as `MenuBarItem`s: a hamburger button - hidden by default, shown once the menu bar collapses to its mobile layout (see `Responsivity`), at which point clicking it opens the side bar - followed by the site name label, showing `HaxeFolioConfig.siteName` (interpreted the same way any HaxeUI `.text` property is, see `LocaleUtils.resolveText` in `Page title and notifications`) and navigating to the default page when clicked.
+Additionally, two components are always present as the menu bar's leftmost children, placed there by the framework itself rather than configured as `MenuBarItem`s: a hamburger button - hidden by default, shown once the menu bar collapses to its mobile layout (see `Responsivity`), at which point clicking it opens the side bar - followed by the site name label, showing `HaxeFolioConfig.siteName` (interpreted the same way any HaxeUI `.text` property is, see `Locale utilities`) and navigating to the default page when clicked.
 
 ### Updating menu bar labels at runtime
 
@@ -186,6 +192,16 @@ public static function updateMenuItemLabelText(menuSlug:String, itemSlug:String,
 
 `updateSiteNameLabelText` changes the site name label; `updateMenuLabelText` changes the label of the `NormalMenu` identified by `slug`; `updateMenuItemLabelText` changes the label of one of its items, identified by `menuSlug`/`itemSlug`. Each of these updates both the menu bar's own label and its mobile side bar mirror (see `Side bar` below) together, in one call, so the two can never go out of sync through this API. `updateMenuLabelText`/`updateMenuItemLabelText` throw if no such `NormalMenu`/item is present in the menu bar; `updateSiteNameLabelText` never throws, since both the menu bar and the side bar always have a site name label. In every case, `text` is interpreted exactly like any other HaxeUI `.text` property: a literal label by default, or - enclosed in `{{}}`, e.g. `"{{haxefolio.menubar.menu.navigation}}"` - a locale key, re-resolved automatically on every locale change.
 
+### Updating menu bar item icons at runtime
+
+`MenuFacade` also exposes:
+
+```haxe
+public static function updateMenuItemIcon(menuSlug:String, itemSlug:String, icon:String):Void
+```
+
+Updates the icon of the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`. Unlike the label-updating methods above, this only touches the menu bar - the side bar has no icons of its own to keep in sync (see `Side bar` below). Throws if no such item is present in the menu bar.
+
 ### Showing and hiding menu items at runtime
 
 `MenuFacade` also exposes:
@@ -193,11 +209,12 @@ public static function updateMenuItemLabelText(menuSlug:String, itemSlug:String,
 ```haxe
 public static function showMenuItem(menuSlug:String, itemSlug:String):Void
 public static function hideMenuItem(menuSlug:String, itemSlug:String):Void
+public static function setMenuItemHidden(menuSlug:String, itemSlug:String, hidden:Bool):Void
 public static function showSidebarExtraGroupItem(groupSlug:String, itemSlug:String):Void
 public static function hideSidebarExtraGroupItem(groupSlug:String, itemSlug:String):Void
 ```
 
-`showMenuItem`/`hideMenuItem` show/hide the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`, together with its mirrored side bar item, the same way `hiddenByDefault` above starts it hidden. `showSidebarExtraGroupItem`/`hideSidebarExtraGroupItem` do the same for an item within a `sidebarExtras` group (see `Side bar` below), which has no menu bar counterpart to keep in sync. All four throw if no such item is present in the menu bar/side bar, respectively.
+`showMenuItem`/`hideMenuItem`/`setMenuItemHidden` show/hide the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`, together with its mirrored side bar item, the same way `hiddenByDefault` above starts it hidden. `showSidebarExtraGroupItem`/`hideSidebarExtraGroupItem` do the same for an item within a `sidebarExtras` group (see `Side bar` below), which has no menu bar counterpart to keep in sync. All four throw if no such item is present in the menu bar/side bar, respectively.
 
 ### Side bar
 
@@ -382,9 +399,11 @@ class GamePage extends PageBase
 }
 ```
 
+The same handlers also run when the preference's own LocalStorage entry changes from another same-origin tab or window - e.g. that tab's preference window, or its own app code calling `set`/`resetToDefault`/`setQuiet` - so a page reacting to `Preferences.language.onChange` stays in sync even when the change actually happened elsewhere. Per the DOM `storage` event this is built on, such reactions never fire for a change made by the current tab itself (browsers only dispatch the event to *other* browsing contexts) and never write back to LocalStorage, since the value already came from there - so no feedback loop is possible, same-tab or cross-tab.
+
 ### Preference storage
 
-Values are persisted to LocalStorage under `<hostname>.<appSlug>.<id>` - namespaced by hostname and `HaxeFolioConfig.appSlug` so multiple HaxeFolio-based sites on the same domain don't collide. On load, each preference takes the value stored under its id, or its declared default if none is stored yet.
+Values are persisted to LocalStorage under `<appSlug>.<id>` - namespaced by `HaxeFolioConfig.appSlug` so multiple HaxeFolio-based sites sharing the same origin (LocalStorage is scoped by origin, not by path, so this can happen even for unrelated sites on the same domain) don't collide. On load, each preference takes the value stored under its id, or its declared default if none is stored yet.
 
 Removing a preference from the declaration leaves its LocalStorage entry in place; renaming one is equivalent to removing the old id and adding a new one, so the old value isn't inherited. Preference values aren't readable or writable before `HaxeFolioApp.init` has provided the storage backend.
 
@@ -396,10 +415,14 @@ class StorageBackend
     public function has(id:String):Bool
     public function read(id:String):Null<String>
     public function write(id:String, value:String):Void
+    public function remove(id:String):Void
+    public function addExternalChangeHandler(id:String, callback:Null<String>->Void):Void
 }
 ```
 
-`has`/`read`/`write` all key into the same `<hostname>.<appSlug>.<id>` namespace described above - `id` should therefore be chosen to avoid colliding with any declared preference's own `id`, since a colliding pair reads/writes the very same LocalStorage entry. As with preference values, `valueStorage` isn't available before `HaxeFolioApp.init` has run.
+`has`/`read`/`write`/`remove` all key into the same `<appSlug>.<id>` namespace described above - `id` should therefore be chosen to avoid colliding with any declared preference's own `id`, since a colliding pair reads/writes the very same LocalStorage entry. As with preference values, `valueStorage` isn't available before `HaxeFolioApp.init` has run.
+
+`addExternalChangeHandler(id, callback)` registers `callback` to run whenever `id`'s LocalStorage entry changes from another same-origin tab/window - the same cross-tab mechanism preferences themselves react through (see `Reacting to changes` above). `callback` receives the new raw string value, or `null` if the key was removed; per the same DOM `storage` event semantics, it never fires for a change made by the current tab itself. Multiple callbacks may be registered for the same `id`, all run once per matching native event, in unspecified order.
 
 ### Preference window
 
