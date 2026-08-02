@@ -10,9 +10,15 @@ class LocaleUtils
         Wraps `key` as a `{{key}}` binding - the form a HaxeUI `.text` property resolves as a locale
         key rather than a literal.
     **/
-    public static function localeBinding(key:String):String
+    public static function localeBinding(key:String, ?paramExpr0:String, ?paramExpr1:String, ?paramExpr2:String, ?paramExpr3:String):String
     {
-        return '{{$key}}';
+        var wrapped:String = key;
+        for (expr in [paramExpr0, paramExpr1, paramExpr2, paramExpr3])
+            if (expr != null)
+                wrapped += ', $expr';
+            else
+                break;
+        return '{{$wrapped}}';
     }
 
     /**
