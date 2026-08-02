@@ -42,7 +42,7 @@
     color: $disabled-text-color;
 }
 
-.haxefolio-menubar > .icon {
+.haxefolio-normal-menu-item > .icon {
     width: 16px;
     height: 16px;
 }
