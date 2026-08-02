@@ -94,6 +94,22 @@ class Preference<T>
 
         var storedValue:Null<String> = backend.read(id);
         this.value = storedValue != null ? deserialize(storedValue) : defaultValue;
+
+        backend.addExternalChangeHandler(id, applyExternalChange);
+    }
+
+    /*
+        Reacts to this preference's own key changing in another same-origin tab: updates the in-memory
+        value and fires the same `onChange` hooks `set()` would (e.g. so an open preference window's
+        slider/button in this tab visually updates), but - unlike `set()` - does not write back to
+        `backend`, since the value already came from there.
+    */
+    private function applyExternalChange(newValue:Null<String>):Void
+    {
+        value = newValue != null ? deserialize(newValue) : defaultValue;
+
+        for (hook in hooks)
+            hook(value);
     }
 
     /*

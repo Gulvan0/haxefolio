@@ -42,7 +42,7 @@ class HaxeFolioApp
     public static var fragment(get, never):Null<String>;
 
     /**
-        App-and-hostname-scoped key-value storage. Built over the browser's LocalStorage
+        App-scoped key-value storage. Built over the browser's LocalStorage
     **/
     public static var valueStorage(default, null):StorageBackend;
 
