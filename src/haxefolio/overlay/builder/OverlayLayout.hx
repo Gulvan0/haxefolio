@@ -24,6 +24,19 @@ class OverlayLayout
     {
         container.validateNow();
 
+        /*
+            A second, immediate pass - not a stray leftover. Overlay content built around a
+            haxeui-core `TabView` can still have a stale `content.top` after the first
+            validateNow(): TabView.Layout.repositionChildren only offsets its content pane by
+            `tabs.height` `if (tabs.height != 0)`, and on this container's very first synchronous
+            validation the TabBar's own height hasn't resolved yet, so that offset gets skipped and
+            never revisited on its own. Re-validating here works around it without reaching into
+            haxeui-core's TabView itself; validateNow() is otherwise a no-op once a component is
+            already clean, so this costs nothing when content has no such not-yet-settled
+            descendant.
+        */
+        container.validateNow();
+
         closeButton.left = container.width - (insetX ?? content.left) - closeButton.width;
         closeButton.top = insetY ?? content.top;
     }
