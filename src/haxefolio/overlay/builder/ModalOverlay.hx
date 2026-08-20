@@ -51,6 +51,12 @@ class ModalOverlay
             just the actual hovered/pressed child. Disabling it here keeps the click-catching
             behavior while confining hover/press styling to the element the pointer is actually
             over, same fix HaxeUI's own Collapsible applies to its header for the same reason.
+
+            `pointer-events: true` also makes HaxeUI auto-assign `cursor: pointer` to the element
+            (Component.hx, only when no explicit `cursor` is set) - misleading here since the modal
+            box itself isn't clickable, it's just a click sink. `.haxefolio-overlay-modal` pins
+            `cursor: default` to suppress that; the explicit-cursor check means it doesn't affect
+            the click-catching itself, and real interactive children keep their own cursor.
         */
         modal.recursivePointerEvents = false;
 
