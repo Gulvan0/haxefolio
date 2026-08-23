@@ -3,6 +3,7 @@ package haxefolio;
 import haxe.ui.HaxeUIApp;
 import haxe.ui.Toolkit;
 import haxe.ui.locale.LocaleManager;
+import haxe.ui.focus.FocusManager;
 import haxe.ui.containers.Box;
 import haxe.ui.containers.SideBar;
 import haxe.ui.containers.VBox;
@@ -62,6 +63,7 @@ class HaxeFolioApp
     public static function init(config:HaxeFolioConfig):Void
     {
         Toolkit.init();
+        FocusManager.instance.enabled = false;
 
         var app:HaxeUIApp = new HaxeUIApp();
         app.icon = config.appIcon;
