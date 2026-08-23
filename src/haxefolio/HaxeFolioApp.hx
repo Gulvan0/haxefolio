@@ -64,6 +64,7 @@ class HaxeFolioApp
     {
         Toolkit.init();
         FocusManager.instance.enabled = false;
+        FocusManager.instance.autoFocus = false;
 
         var app:HaxeUIApp = new HaxeUIApp();
         app.icon = config.appIcon;
@@ -84,8 +85,7 @@ class HaxeFolioApp
         LocaleManager.instance.language = config.languagePreference != null ? config.languagePreference.get() : detectedLocale;
 
         if (config.languagePreference != null)
-            config.languagePreference.onChange(newLocale ->
-            {
+            config.languagePreference.onChange(newLocale -> {
                 LocaleManager.instance.language = newLocale;
 
                 if (currentPage != null)
@@ -118,8 +118,7 @@ class HaxeFolioApp
         var menuCollapseWidth:Int = config.menuCollapseWidth ?? 900;
         var debounceMs:Int = config.debounceMs ?? 500;
 
-        ResponsivityController.init(pageContainer, menuBarBuildResult.hamburgerButton, menuBarBuildResult.collapsibleComponents, menuCollapseWidth, debounceMs, (width, height) ->
-        {
+        ResponsivityController.init(pageContainer, menuBarBuildResult.hamburgerButton, menuBarBuildResult.collapsibleComponents, menuCollapseWidth, debounceMs, (width, height) -> {
             if (currentPage != null)
                 currentPage.onResize(width, height);
 
