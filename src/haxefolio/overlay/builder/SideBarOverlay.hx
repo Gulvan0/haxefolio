@@ -33,6 +33,19 @@ import js.Browser;
 */
 class SideBarOverlay
 {
+    /*
+        The presentation currently on screen, if any - tracked so `resize()` (called by
+        HaxeFolioApp off the same debounced viewport-resize signal ResponsivityController already
+        computes) has something to re-measure against. Cleared in the UIEvent.HIDDEN handler below,
+        the same point sideBar/backdrop are pruned from Screen.instance.
+    */
+    private static var activeSideBar:Null<SideBar> = null;
+    private static var activeBackdrop:Null<Component> = null;
+    private static var activeContent:Null<OverlayContent> = null;
+    private static var activeCloseButton:Null<OverlayCloseButton> = null;
+    private static var activeCloseButtonInsetX:Null<Int> = null;
+    private static var activeCloseButtonInsetY:Null<Int> = null;
+
     public static function show(slug:String, content:OverlayContent, showCloseButton:Bool, ?closeButtonSize:Int, ?closeButtonInsetX:Int, ?closeButtonInsetY:Int, onDismissed:Void->Void):Void->Void
     {
         /*
@@ -122,8 +135,21 @@ class SideBarOverlay
         {
             Screen.instance.removeComponent(backdrop, true);
             Screen.instance.removeComponent(sideBar, true);
+
+            activeSideBar = null;
+            activeBackdrop = null;
+            activeContent = null;
+            activeCloseButton = null;
+
             onDismissed();
         });
+
+        activeSideBar = sideBar;
+        activeBackdrop = backdrop;
+        activeContent = content;
+        activeCloseButton = closeButton;
+        activeCloseButtonInsetX = closeButtonInsetX;
+        activeCloseButtonInsetY = closeButtonInsetY;
 
         Screen.instance.addComponent(backdrop);
         sideBar.show();
@@ -153,5 +179,31 @@ class SideBarOverlay
             OverlayLayout.attachCloseButtonPositioning(sideBar, content, closeButton, closeButtonInsetX, closeButtonInsetY);
 
         return dismiss;
+    }
+
+    /**
+        Re-measures the viewport and re-applies it to the currently shown sidebar overlay - its
+        `width`/`height`, the backdrop's, and the close button's position - so a full-viewport
+        overlay tracks the real window size instead of staying pinned to whatever `show()` measured
+        it as. Meant to be called off the same debounced viewport-resize signal
+        `ResponsivityController` already computes (see `HaxeFolioApp.init`); a no-op when no sidebar
+        overlay is currently open (in particular, on the desktop `ModalOverlay` presentation, which
+        doesn't go through this class at all).
+    **/
+    public static function resize():Void
+    {
+        if (activeSideBar == null)
+            return;
+
+        var viewportWidth:Float = Browser.document.body.offsetWidth / Toolkit.scaleX;
+        var viewportHeight:Float = Browser.document.body.offsetHeight / Toolkit.scaleY;
+
+        activeSideBar.width = viewportWidth;
+        activeSideBar.height = viewportHeight;
+        activeBackdrop.width = viewportWidth;
+        activeBackdrop.height = viewportHeight;
+
+        if (activeCloseButton != null)
+            OverlayLayout.attachCloseButtonPositioning(activeSideBar, activeContent, activeCloseButton, activeCloseButtonInsetX, activeCloseButtonInsetY);
     }
 }

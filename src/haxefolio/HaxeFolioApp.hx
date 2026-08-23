@@ -120,6 +120,8 @@ class HaxeFolioApp
         {
             if (currentPage != null)
                 currentPage.onResize(width, height);
+
+            SideBarOverlay.resize();
         });
 
         Browser.window.addEventListener("popstate", _ -> openFromCurrentUrl());
