@@ -69,12 +69,17 @@
     color: #999999;
 }
 
+.haxefolio-preference-tab {
+    vertical-spacing: 10px;
+}
+
 .haxefolio-preference-row {
-    height: 40px;
+    min-height: 40px;
+    horizontal-spacing: 20px;
 }
 
 .haxefolio-preference-name-label {
-    width: 160px;
+    width: 200px;
 }
 
 .haxefolio-preference-autosave-notice {
@@ -115,8 +120,8 @@
 }
 
 #haxefolio-overlay-preference-modal {
-    width: 480px;
-    height: 360px;
+    width: 520px;
+    height: 400px;
 }
 
 #haxefolio-preference-tabview .icon {

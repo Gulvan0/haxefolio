@@ -22,7 +22,7 @@ class TogglePreferenceRow extends HBox
         nameLabel.id = 'haxefolio-preference-name-label-${preference.id}';
         nameLabel.text = LocaleUtils.localeBinding('haxefolio.preference.${preference.id}.name');
         nameLabel.addClass("haxefolio-preference-name-label");
-        nameLabel.textAlign = "center";
+        nameLabel.textAlign = "left";
         nameLabel.verticalAlign = "center";
         this.addComponent(nameLabel);
 
