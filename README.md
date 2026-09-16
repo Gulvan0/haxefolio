@@ -243,6 +243,20 @@ Below `HaxeFolioConfig.menuCollapseWidth` (an author-chosen width past which the
 
 Independently of that threshold, every time the page container is resized, the active page's `onResize(width, height)` is called with its new pixel dimensions (see `Pages`) - overriding it to react to size changes is the framework user's responsibility.
 
+### Reacting to the collapse threshold directly
+
+Beyond the menu bar itself, any component whose own layout should change at the same threshold - e.g. a row of controls that stacks vertically once space is tight - can read it directly, rather than inventing a second, competing breakpoint:
+
+```haxe
+class ResponsivityController
+{
+    public static var isCollapsed(default, null):Bool;
+    public static function onCollapseChange(listener:Bool->Void):Detachable
+}
+```
+
+`isCollapsed` is the current state, kept live by the same resize handling described above. `onCollapseChange` registers `listener` to run whenever it actually flips (not on every debounced resize) - calling `listener` immediately, once, with the current value first, so a component built after the initial layout still starts in sync. Detach the returned handle once the component is done with it (e.g. a page's `onClose`), the same `Detachable` convention preferences use (see `Reacting to changes`).
+
 ## Overlays
 
 HaxeFolio includes a generic, dismissible-overlay mechanism - the same responsive modal/sidebar
@@ -332,6 +346,163 @@ one overlay:
 ```
 
 See `Overlays` in `CSS classes and elements` for the full selector list and their defaults.
+
+## Form components
+
+`haxefolio.form` is a small, general-purpose library of form/data-entry components. None of
+them assume anything about their host - a page, a panel, a sidebar, or a `showOverlay` body
+(see `Overlays`) are all equally valid; a host only needs to give one a width to size its
+children's percentages against.
+
+The package splits into two layers, the same split `haxefolio.menu`/`.builder` and
+`haxefolio.preferences`/`.builder` already use elsewhere in the framework:
+
+- **`haxefolio.form`** - the components a framework user actually reaches for and composes a
+  form from: `ChoiceRow`, `FieldGroup`, `SwapSlot` below, and more as the library grows.
+- **`haxefolio.form.plumbing`** - the primitives those components are built from
+  (`FieldHeader`, `HintLine`, `ChoiceButton`) and the shared model types (`HintState`,
+  `EmphasisStyle`, `IconAlign`, `ChoiceOption<T>`, `FieldGroupDirection`, ...). Still public,
+  and still useful directly for a bespoke field the higher-level components don't cover - just
+  not the first thing to reach for.
+
+### FieldHeader (`haxefolio.form.plumbing`)
+
+A label on the left, an optional hint on the right, on one baseline-aligned row - the
+building block for naming a control and, on the same line, stating its constraint or current
+status:
+
+```haxe
+var header:FieldHeader = new FieldHeader("Initial time", "max 6:00:00");
+header.state = Error;     // colours the hint `danger`; `Normal`/`Muted` both read as `inkMuted`
+header.locked = true;     // greys the label only, independent of `state`
+```
+
+```haxe
+public function new(label:String, ?hint:String, state:HintState = Normal, locked:Bool = false)
+public var label(default, set):String;
+public var hint(default, set):Null<String>;
+public var state(default, set):HintState;
+public var locked(default, set):Bool;
+```
+
+`HintState` is `Normal`/`Muted`/`Error` - only `Error` changes the hint's colour (to `danger`);
+`Normal`/`Muted` both render `inkMuted`.
+
+### HintLine (`haxefolio.form.plumbing`)
+
+A fixed-height (16px) line of message text that's always present, whether or not `text` is
+empty - what keeps a validation message appearing/disappearing from moving anything below it:
+
+```haxe
+var hint:HintLine = new HintLine("Must be above 0.", Error);
+hint.text = "";   // still occupies its 16px line, just blank
+```
+
+```haxe
+public function new(text:String = "", state:HintState = Normal)
+public var state(default, set):HintState;
+```
+
+`text` is a plain HaxeUI `.text` property (inherited from `Label`), interpreted the same way
+any other one is (see `Locale utilities`).
+
+### ChoiceButton (`haxefolio.form.plumbing`)
+
+One selectable button - the atom of a row/grid of options. Built on HaxeUI's own toggle
+`Button` (`toggle = true`) rather than from scratch: `selected` is the toggled state, and
+`componentGroup` (inherited from `Button`) is what keeps only one button selected within a
+group - set the same `componentGroup` string on every button that should be mutually exclusive
+(see `ChoiceRow` below for the common case):
+
+```haxe
+public function new(label:String, onClick:Void->Void, ?icon:String, iconAlign:IconAlign = Leading, selected:Bool = false, enabled:Bool = true)
+```
+
+Its selected-state styling hooks off `:down` - the pseudo-class a toggle `Button` already
+applies for as long as `selected == true`, not just while the mouse is held - rather than a
+class this component would otherwise have to manage itself. Which visual treatment `:down`
+resolves to (`Filled`/`Outlined`) is not a constructor argument at all: it comes from the
+enclosing host via the `haxefolio-emphasis-outlined` class (absent it, `Filled` - a solid
+`accent` fill - is the default) on any ancestor, so every `ChoiceButton`/`ToggleButton` inside
+a host agrees on what "active" looks like. `IconAlign` is `Leading`/`Trailing`.
+
+### ChoiceRow
+
+An enumerable parameter as a row of equal-width `ChoiceButton`s under a `FieldHeader`.
+Single-select: every button shares one generated `componentGroup`, so HaxeUI's own toggle
+mechanism keeps exactly one selected - this component does no selection bookkeeping of its own:
+
+```haxe
+var row:ChoiceRow<String> = new ChoiceRow("Rated", [
+    { value: "rated", label: "Rated" },
+    { value: "unrated", label: "Unrated" }
+], "rated", value -> trace('selected: $value'));
+```
+
+```haxe
+public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, stackOnCollapse:Bool = false, locked:Bool = false, ?lockReason:String)
+public function dispose():Void
+```
+
+`ChoiceOption<T>` (`haxefolio.form.plumbing`) is `{value:T, label:String, ?icon:String}`.
+`stackOnCollapse`, if `true`, switches the row from horizontal to a full-width vertical stack
+whenever `ResponsivityController.isCollapsed` flips (see `Reacting to the collapse threshold
+directly`) - call `dispose()` once the row is done with (e.g. a page's `onClose`) to detach that
+listener; omit `stackOnCollapse` and there's nothing to detach. `locked`/`lockReason` disable
+every button in place - never hiding the row - and state the reason via the header's own hint,
+the same convention `FieldHeader.locked` already follows on its own.
+
+### SwapSlot<K\>
+
+A fixed-height region that shows one of several variants - built on HaxeUI's own `Stack`
+rather than from scratch: `Stack` already shows exactly one child at a time and, given an
+explicit height, already won't resize when the selection changes, since a hidden child is
+excluded from layout. What this adds over a bare `Stack`: selecting by an arbitrary key `K`
+(an enum, typically) instead of `Stack`'s own string id/int index, and a *required* `height`
+argument, so "constant height, never measured" is part of the type rather than a convention a
+bare `Stack` would let a caller forget:
+
+```haxe
+var slot:SwapSlot<ChallengeType> = new SwapSlot([
+    Direct => directTypeContent,
+    Open => openTypeContent
+], Direct, 76);
+
+slot.active = Open; // swaps content; height stays 76px
+```
+
+```haxe
+public function new(variants:Map<K, Component>, active:K, height:Int)
+public var active(default, set):K;
+```
+
+Setting `active` to a key that was never registered in `variants` throws - a mismatch there is
+a programming error, not a case to accommodate. If a variant's content doesn't fit `height`,
+fix the variant or the height; `SwapSlot` will not measure and resize around it - it also does
+not clip on its own, so its `.haxefolio-swap-slot` class carries `clip: true;` (HaxeUI's
+equivalent of CSS `overflow: hidden`); a variant taller than `height` is cut off cleanly rather
+than bleeding into whatever the slot's host renders next.
+
+### FieldGroup
+
+A `surfaceSunken` inset box that groups fields belonging to one parameter - a row or a stack
+depending on `direction`, optionally fixed-height whenever its contents can vary. A static
+factory rather than a class a caller instantiates with `new`, since it needs to return a
+genuine `HBox` or `VBox` depending on `direction` and Haxe has no way to extend either
+conditionally - a `Box` with `layout` swapped after construction measured its own `percentWidth`
+against its children's resolved size instead of the other way around, inflating the container
+far past its intended 100% whenever a child itself had a `percentWidth`:
+
+```haxe
+public static function create(children:Array<Component>, direction:FieldGroupDirection = Vertical, ?fixedHeight:Int):Component
+```
+
+`FieldGroupDirection` (`haxefolio.form.plumbing`) is `Horizontal`/`Vertical`. It's set once by
+the caller, not derived from `ResponsivityController.isCollapsed` - a layout choice, not a
+responsive behaviour (contrast `ChoiceRow.stackOnCollapse` above, which is the latter kind).
+Children top-align within `fixedHeight` by default, same as any other HaxeUI container - size
+`fixedHeight` to actually match the content (or accept the slack) rather than picking a round
+number, or unused space below top-aligned content can look like uneven padding.
 
 ## Preferences
 
@@ -462,6 +633,44 @@ A fluent, mutating alternative to writing the structure above by hand: `HaxeFoli
 
 `addNormalMenuItem(menuSlug, ...)` requires that `menuSlug`'s `NormalMenu` was already added via `addLeftMenubarItem`/`addRightMenubarItem` - it throws otherwise. `addSidebarExtraGroupItem`, by contrast, creates its target group on first use if it doesn't exist yet.
 
+## Typography
+
+HaxeFolio ships its own type rather than relying on a platform font stack - two self-hosted, Latin+Cyrillic WOFF2 families, exposed as theme vars: `uiFamily` (default **Source Sans 3**, weights 400/500/600) for all UI text, and `monoFamily` (default **IBM Plex Mono**, weights 400/500) for numeric values read digit-by-digit - clock readouts, ratings, notation strings - never for prose or labels, which would dilute that meaning.
+
+Since a HaxeUI `font-name` rule loads one font file per weight rather than resolving weight within a family the way a browser's own `@font-face` does, each weight is its own var:
+
+| Var | Default resource | Weight |
+|---|---|---|
+| `$ui-family-regular` | `haxefolio/fonts/SourceSans3-Regular.woff2` | 400 |
+| `$ui-family-medium` | `haxefolio/fonts/SourceSans3-Medium.woff2` | 500 |
+| `$ui-family-semibold` | `haxefolio/fonts/SourceSans3-SemiBold.woff2` | 600 |
+| `$mono-family-regular` | `haxefolio/fonts/IBMPlexMono-Regular.woff2` | 400 |
+| `$mono-family-medium` | `haxefolio/fonts/IBMPlexMono-Medium.woff2` | 500 |
+
+A component references one via `font-name: $ui-family-medium;` in its stylesheet, the same `$var` mechanism `$accent-color` and friends already use (see `Styling` below). A host substitutes a family by redeclaring the same var name(s), at whatever weights it uses, in its own `module.xml`:
+
+```xml
+<themes>
+    <default>
+        <var name="ui-family-medium" value="myapp/fonts/Archivo-Medium.woff2" />
+    </default>
+</themes>
+```
+
+An app's own module is processed after its library dependencies, so this overrides HaxeFolio's default with no further wiring - but a host must supply every weight it actually uses (substituting only `ui-family-medium` while leaving `ui-family-regular` at Source Sans 3 mixes two faces on one label scale). Changing either family also invalidates every character budget below - HaxeUI has neither `letter-spacing` nor `text-overflow: ellipsis`, so a label's fit is measured against a specific face's advance widths, not estimated.
+
+### Scale
+
+| Role | Family | Size | Weight | Colour |
+|---|---|---|---|---|
+| Dialog / section title | ui | 17px | 600 | `ink` |
+| Body text, button labels | ui | 13px | 500 | `ink` / `inkMuted` |
+| Field label | ui | 12px | 500 | `inkMuted` |
+| Numeric value | mono | 14px | 500 | `ink` |
+| Hint, status, validation | ui | 11px | 400 | `inkMuted` / `danger` |
+
+Field labels are sentence case, not mono uppercase - small mono caps read as administrative software, can't be tracked out without `letter-spacing`, and Cyrillic caps run particularly wide.
+
 ## Styling
 
 Every component HaxeFolio builds carries a `haxefolio-*` CSS class (and often an id) that a framework user's own stylesheet can target to override or complement the framework's defaults, shipped as part of the `haxefolio` module's own theme. A stylesheet registered by the app itself layers on top the same way any HaxeUI theme override does. For example, to recolor the site name label:
@@ -566,6 +775,19 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-overlay-sidebar` / `#haxefolio-overlay-<slug>-sidebar` | Mobile presentation's `SideBar`. |
 | `.haxefolio-overlay-close-button` / `#haxefolio-overlay-<slug>-close-button` | The close button, shared shape in both presentations. Defaults to `14px`/`14px` and the framework's own close icon (via CSS `resource`) - override either per-overlay via the id, or globally via the class. Omitted entirely (not just hidden) for an overlay shown with `showCloseButton: false`. |
 | `.haxefolio-overlay-content` / `#haxefolio-overlay-<slug>-content` | The `OverlayContent` itself, both presentations wrap. |
+
+#### Form components
+
+| Selector | Notes |
+|---|---|
+| `.haxefolio-field-header` | A `FieldHeader`'s row. |
+| `.haxefolio-field-header-label` / `.haxefolio-field-header-label-locked` | Its label; the `-locked` variant applies whenever `locked == true`. |
+| `.haxefolio-field-header-hint` / `.haxefolio-field-header-hint-error` | Its hint; the `-error` variant applies whenever `state == Error`. |
+| `.haxefolio-hint-line` / `.haxefolio-hint-line-error` | A `HintLine`; same `-error` convention. |
+| `.haxefolio-choice-button` / `:hover` / `:down` / `:disabled` | A `ChoiceButton`. `:down` is the selected state (see `ChoiceButton` above); `:disabled` wins over `:down` when both apply. |
+| `.haxefolio-emphasis-outlined` | Ancestor class switching every `ChoiceButton`/`ToggleButton` beneath it from `Filled` to `Outlined` (see `ChoiceButton`). |
+| `.haxefolio-choice-row` | A `ChoiceRow`'s own box. |
+| `.haxefolio-field-group` | A `FieldGroup`'s own box. `SwapSlot` carries no styling of its own - it's a bare `Stack`. |
 
 #### Preference window
 

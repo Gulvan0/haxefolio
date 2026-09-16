@@ -10,6 +10,7 @@ import haxefolio.menu.MenuBarItem;
 import haxefolio.menu.MenuFacade;
 import overlay.CustomOverlayContent;
 import pages.AboutPage;
+import pages.FormDemoPage;
 import pages.HomePage;
 import pages.TextDemoPage;
 
@@ -26,12 +27,15 @@ class Main
             .addPage("home", params -> new HomePage(), true)
             .addPage("about", params -> new AboutPage())
             .addPage("text-demo", params -> new TextDemoPage())
+            .addPage("form-demo", params -> new FormDemoPage())
             .addLeftMenubarItem(NormalMenu("navigation", []))
             .addNormalMenuItem("navigation", "home", NavigateTo(() -> "home"))
             .addNormalMenuItem("navigation", "about", NavigateTo(() -> "about"))
             .addLeftMenubarItem(NormalMenu("text-demo", [], "{{haxefolio.sample.menu_label_with_param, 2}}"))
             .addNormalMenuItem("text-demo", "open", NavigateTo(() -> "text-demo"), null, "Open")
             .addNormalMenuItem("text-demo", "reset-labels", Execute(resetLabels), null, "{{haxefolio.sample.reset_labels_label}}")
+            .addLeftMenubarItem(NormalMenu("form-demo", [], "Form demo"))
+            .addNormalMenuItem("form-demo", "open", NavigateTo(() -> "form-demo"))
             .addLeftMenubarItem(NormalMenu("overlay-demo", []))
             .addNormalMenuItem("overlay-demo", "plain", Execute(showPlainOverlay))
             .addNormalMenuItem("overlay-demo", "dismissible", Execute(showDismissibleOverlay))

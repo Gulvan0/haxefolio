@@ -143,3 +143,94 @@
         background-color: $selection-background-color;
     }
 }
+
+/*
+    haxefolio.form - colour values are the framework's own hue-neutral graphite defaults;
+    a host theme overrides them the same way it overrides any other haxefolio class.
+*/
+
+.haxefolio-field-header {
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.haxefolio-field-header-label {
+    font-name: $ui-family-medium;
+    font-size: 12px;
+    font-weight: 500;
+    color: #5f6168;
+}
+
+.haxefolio-field-header-label-locked {
+    color: #9a9ca2;
+}
+
+.haxefolio-field-header-hint {
+    font-name: $ui-family-regular;
+    font-size: 11px;
+    font-weight: 400;
+    color: #5f6168;
+}
+
+.haxefolio-field-header-hint-error {
+    color: #b3261e;
+}
+
+.haxefolio-hint-line {
+    height: 16px;
+    font-name: $ui-family-regular;
+    font-size: 11px;
+    font-weight: 400;
+    color: #5f6168;
+}
+
+.haxefolio-hint-line-error {
+    color: #b3261e;
+}
+
+.haxefolio-choice-button {
+    font-name: $ui-family-medium;
+    padding-top: 11px;
+    padding-bottom: 11px;
+    border-radius: 5px;
+    font-size: 13px;
+    text-align: center;
+    white-space: nowrap;
+    background-color: #f0f0f1;
+    border: 1px solid #d4d4d6;
+    color: #5f6168;
+}
+
+.haxefolio-choice-button:hover {
+    border-color: #b3b3b6;
+}
+
+.haxefolio-choice-button:down {
+    font-name: $ui-family-semibold;
+    background-color: #2f3540;
+    border: 1px solid #2f3540;
+    color: #ffffff;
+}
+
+.haxefolio-emphasis-outlined .haxefolio-choice-button:down {
+    background-color: #e7e9ee;
+    border: 1px solid #8d939e;
+    color: #2f3540;
+}
+
+.haxefolio-choice-button:disabled {
+    font-name: $ui-family-medium;
+    background-color: #f0f0f1;
+    border: 1px solid #e4e4e6;
+    color: #9a9ca2;
+}
+
+.haxefolio-field-group {
+    background-color: #f0f0f1;
+    border-radius: 6px;
+    padding: 12px 14px;
+}
+
+.haxefolio-swap-slot {
+    clip: true;
+}

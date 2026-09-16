@@ -9,7 +9,13 @@
     </resources>
     <themes>
         <default>
-            <style resource="haxefolio/styles/main.css" priority="-1" />
+            <var name="ui-family-regular" value="haxefolio/fonts/SourceSans3-Regular.woff2" />
+            <var name="ui-family-medium" value="haxefolio/fonts/SourceSans3-Medium.woff2" />
+            <var name="ui-family-semibold" value="haxefolio/fonts/SourceSans3-SemiBold.woff2" />
+            <var name="mono-family-regular" value="haxefolio/fonts/IBMPlexMono-Regular.woff2" />
+            <var name="mono-family-medium" value="haxefolio/fonts/IBMPlexMono-Medium.woff2" />
+
+            <style resource="haxefolio/styles/main.css" priority="0" />
         </default>
     </themes>
 </module>

@@ -2,6 +2,7 @@ package haxefolio;
 
 import haxe.ui.core.Component;
 import js.Browser;
+import morestd.Detachable;
 import morestd.RefreshableTimer;
 
 /*
@@ -29,6 +30,8 @@ class ResponsivityController
         the current layout mode without duplicating the menuCollapseWidth comparison.
     */
     public static var isCollapsed(default, null):Bool = false;
+
+    private static var collapseChangeListeners:Array<Bool->Void> = [];
 
     private static var pageContainer:Component;
     private static var hamburgerButton:Component;
@@ -85,11 +88,33 @@ class ResponsivityController
 
     private static function applyMenuCollapseState():Void
     {
-        isCollapsed = latestWidth < menuCollapseWidth;
+        var newCollapsed:Bool = latestWidth < menuCollapseWidth;
+        var changed:Bool = newCollapsed != isCollapsed;
+
+        isCollapsed = newCollapsed;
 
         for (component in collapsibleMenuBarComponents)
             component.hidden = isCollapsed;
 
         hamburgerButton.hidden = !isCollapsed;
+
+        if (changed)
+            for (listener in collapseChangeListeners)
+                listener(isCollapsed);
+    }
+
+    /*
+        Notifies `listener` whenever `isCollapsed` actually flips (not on every debounced resize),
+        immediately with the current value first - so a component built after the initial layout
+        still starts in sync rather than assuming the collapsed default. For any component whose
+        layout depends on `isCollapsed` beyond what the menu bar itself already reacts to (e.g. a
+        `ChoiceRow` stacking on mobile) - detach the returned handle once the component is disposed.
+    */
+    public static function onCollapseChange(listener:Bool->Void):Detachable
+    {
+        collapseChangeListeners.push(listener);
+        listener(isCollapsed);
+
+        return new Detachable(() -> collapseChangeListeners.remove(listener), false);
     }
 }

@@ -10,6 +10,8 @@ If told to take a dubious or possibly suboptimal approach (whether from the UI/U
 
 To check whether the library compiles and test it, the sample project (located in @sample/, built via @sample/build.hxml) may be used.
 
+@README.md must be updated with every code change that makes it outdated and/or introduces new features.
+
 # Code style conventions
 
 See `code_style.md`.
