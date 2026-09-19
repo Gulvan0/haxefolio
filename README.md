@@ -358,7 +358,7 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 `haxefolio.preferences`/`.builder` already use elsewhere in the framework:
 
 - **`haxefolio.form`** - the components a framework user actually reaches for and composes a
-  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SwapSlot`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `PreviewPane` below, and more as the library grows.
+  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SwapSlot`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `PreviewPane`, `FormSection` below, and more as the library grows.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
   `EmphasisStyle`, `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `ChoicesPerRow`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
@@ -714,6 +714,26 @@ public var content(get, set):Component;
   keep and reuse it. The area does not position or size the content: give it a
   `percentWidth`/`percentHeight` of 100 to fill the area.
 
+### FormSection
+
+An optional labelled header (a `FieldHeader`), the section's children, and the standard 18px
+bottom margin that keeps inter-section rhythm out of every caller's hands:
+
+```haxe
+public function new(?label:String, ?headerHint:String, children:Array<Component>, locked:Bool = false, ?lockReason:String)
+```
+
+- Children are stacked with an 8px gap. With no `label` there is no header row at all (and
+  `headerHint` is ignored).
+- **Locking** disables every child in place - never hides them - greys the label and states
+  `lockReason` in the header hint in place of `headerHint`. The children are disabled through
+  their shared content box, so this also covers components with no `locked` parameter of their
+  own. Locking is set at construction, like on `ChoiceRow`. Locking without a `label` throws:
+  there would be no header to state the reason in.
+- `FieldGroup` deliberately has no lock of its own - it has no header or reserved hint line to
+  state a reason in. Lock the fields inside it, and show the reason in a `HintLine` placed
+  beneath it.
+
 ## Preferences
 
 HaxeFolio comes with a preference system: a framework user declares named, typed preferences; their values persist to LocalStorage automatically, are editable by the website user through an auto-generated preference window, and are readable/writable from the app's own code with change notifications.
@@ -1002,6 +1022,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-stepper-input` / `-invalid` / `:disabled` | Its text input; `-invalid` applies whenever `invalid == true`. |
 | `.haxefolio-stepped-value-field` | A `SteppedValueField`'s own box (no default styling). |
 | `.haxefolio-field-group` | A `FieldGroup`'s own box. `SwapSlot` carries no styling of its own - it's a bare `Stack`. |
+| `.haxefolio-form-section` | A `FormSection`'s own box; carries the 18px bottom margin. |
 
 #### Preference window
 

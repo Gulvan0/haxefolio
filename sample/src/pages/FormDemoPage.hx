@@ -9,6 +9,7 @@ import haxefolio.form.ChoiceRow;
 import haxefolio.form.CommitTextField;
 import haxefolio.form.DurationField;
 import haxefolio.form.FieldGroup;
+import haxefolio.form.FormSection;
 import haxefolio.form.IntField;
 import haxefolio.form.PreviewPane;
 import haxefolio.form.SteppedValueField;
@@ -198,6 +199,22 @@ class FormDemoPage extends PageBase
         var captionless:Label = new Label();
         captionless.text = "No caption row at all";
         addComponent(new PreviewPane(200, 40, captionless));
+
+        addComponent(sectionLabel("FormSection (plain / locked - the raw Button and Label inside are disabled by the section, not by their own parameter)"));
+        addComponent(new FormSection("Plain section", "a hint", [
+            new ChoiceRow("Rated", [
+                { value: "rated", label: "Rated" },
+                { value: "unrated", label: "Unrated" }
+            ], "rated", value -> trace('selected: $value'))
+        ]));
+        var lockedButton:Button = new Button();
+        lockedButton.text = "Disabled by the section";
+        var lockedLabel:Label = new Label();
+        lockedLabel.text = "Section bottom margin follows.";
+        addComponent(new FormSection("Locked section", "not shown while locked", [lockedButton, lockedLabel], true, "Rated games fix this"));
+        var unlabelled:Label = new Label();
+        unlabelled.text = "Unlabelled section: no header row at all.";
+        addComponent(new FormSection(null, null, [unlabelled]));
     }
 
     private function sectionLabel(text:String):Label

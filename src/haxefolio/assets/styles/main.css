@@ -281,6 +281,10 @@
     padding: 12px 14px;
 }
 
+.haxefolio-form-section {
+    margin-bottom: 18px;
+}
+
 .haxefolio-swap-slot {
     clip: true;
 }
