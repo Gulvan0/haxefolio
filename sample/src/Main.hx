@@ -34,7 +34,7 @@ class Main
             .addLeftMenubarItem(NormalMenu("text-demo", [], "{{haxefolio.sample.menu_label_with_param, 2}}"))
             .addNormalMenuItem("text-demo", "open", NavigateTo(() -> "text-demo"), null, "Open")
             .addNormalMenuItem("text-demo", "reset-labels", Execute(resetLabels), null, "{{haxefolio.sample.reset_labels_label}}")
-            .addLeftMenubarItem(NormalMenu("form-demo", [], "Form demo"))
+            .addLeftMenubarItem(NormalMenu("form-demo", []))
             .addNormalMenuItem("form-demo", "open", NavigateTo(() -> "form-demo"))
             .addLeftMenubarItem(NormalMenu("overlay-demo", []))
             .addNormalMenuItem("overlay-demo", "plain", Execute(showPlainOverlay))
