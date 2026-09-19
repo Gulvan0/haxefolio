@@ -13,6 +13,10 @@ import haxe.ui.components.Button;
     class this component would otherwise have to toggle itself on every selection change. Which
     treatment (`Filled`/`Outlined`) `:down` resolves to is not a property here at all - see
     `EmphasisStyle`.
+
+    Disabled and selected at once (`:down:disabled`) gets its own muted look, so a locked row
+    still shows the value actually in effect. That chained selector needs a haxeui-core that keeps
+    every pseudo-class of a selector part (haxeui-core PR #713); stock versions read it as `:down`.
 */
 class ChoiceButton extends Button
 {

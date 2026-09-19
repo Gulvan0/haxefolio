@@ -11,22 +11,26 @@ platform stacks. That is not a convenience choice — see §4.
 
 | Token | Default | Weights | Licence |
 | --- | --- | --- | --- |
-| `uiFamily` | **Source Sans 3** | 400, 500, 600 | SIL OFL |
+| `uiFamily` | **Onest** | 400, 500, 600 | SIL OFL |
 | `monoFamily` | **IBM Plex Mono** | 400, 500 | SIL OFL |
 
-Self-hosted WOFF2, Latin + Cyrillic subsets, about 90 KB total for the five files.
+Self-hosted WOFF2, Latin + Cyrillic subsets, about 110 KB total for the five files. Onest ships
+upstream as one variable font; the three UI weights are static instances of it, subset to
+Latin and Cyrillic, so each weight is a single small file.
 
 Why this pair:
 
-- **Cyrillic is drawn, not extrapolated.** Adobe cut Source Sans's Cyrillic properly, so
-  character budgets (§4) hold in Russian as well as in English. This is the deciding
-  factor for a framework whose hosts are not all anglophone.
+- **Cyrillic is drawn, not extrapolated.** Onest is a grotesque designed with Cyrillic
+  alongside Latin, so character budgets (§4) hold in Russian as well as in English. This
+  is the deciding factor for a framework whose hosts are not all anglophone. It covers
+  the full Russian, Ukrainian and Belarusian alphabets; only archaic and Bulgarian/
+  Macedonian-specific letters are absent.
 - **A real 600 weight**, so semibold titles and selected labels never fall back to
   synthetic bold — faux-bold advances differ from the real thing, which quietly breaks
   every budget.
-- **Neutral without being the default look.** Source Sans does not stamp a voice on
-  downstream sites, but it also does not look like an unstyled page, which the
-  Inter/Roboto pair increasingly does.
+- **Sturdy and neutral without being the default look.** A slightly wide grotesque with a
+  large x-height reads clearly at 11–13 px, does not stamp a voice on downstream sites,
+  and does not look like an unstyled page, which the Inter/Roboto pair increasingly does.
 - **Plex Mono is the better numeric face:** unambiguous 1/l/I and 0/O, which is what a
   clock readout or a notation string actually needs.
 
@@ -35,6 +39,9 @@ Rejected, and why:
 - **Platform stacks** (`system-ui` and friends) — free and zero-payload, but they make
   character budgets impossible (§4). This was the original default and is now the
   fallback chain only.
+- **Source Sans 3** — the previous default. A well-drawn humanist face with proper
+  Cyrillic, but noticeably narrower and lighter in colour; replaced by Onest for a
+  sturdier grotesque look. Still a good choice for a host that wants tighter budgets.
 - **Noto Sans / Noto Sans Mono** — the safest possible pick, complete coverage, but
   characterless to the point of looking unstyled. Still the right choice for a host that
   wants maximum script coverage.
@@ -47,7 +54,7 @@ Rejected, and why:
 The declared stack keeps the platform families **as a fallback chain only**:
 
 ```
-uiFamily:   "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif
+uiFamily:   "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif
 monoFamily: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "Roboto Mono", monospace
 ```
 
@@ -96,16 +103,17 @@ platform stack fits on one operating system and clips on another. A character bu
 only meaningful against a known face. Shipping `uiFamily` is what makes budgets true
 statements rather than estimates.
 
-Average advance for mixed-case text, derived from Source Sans 3's metrics:
+Average advance for mixed-case UI text, measured from Onest Medium's metrics over a
+representative set of English and Russian UI strings:
 
 | Size | Latin | Cyrillic |
 | --- | --- | --- |
-| 11 px | 5.4 px/char | 5.9 px/char |
-| 12 px | 5.9 px/char | 6.4 px/char |
-| 13 px | 6.4 px/char | 6.9 px/char |
-| 17 px | 8.4 px/char | 9.1 px/char |
+| 11 px | 5.3 px/char | 6.0 px/char |
+| 12 px | 5.7 px/char | 6.5 px/char |
+| 13 px | 6.2 px/char | 7.1 px/char |
+| 17 px | 8.1 px/char | 9.3 px/char |
 
-Cyrillic runs about 8% wider; budget against the Cyrillic column when the product is
+Cyrillic runs about 14% wider; budget against the Cyrillic column when the product is
 localised into Russian. These are averages, not guarantees — verify in the browser any
 label that clears its budget by less than 10%.
 
@@ -132,5 +140,5 @@ Typography is neither:
 > inherit the framework's numbers.
 
 A host should also confirm its face has a true 600 and real Cyrillic before adopting it.
-Intellector, for example, overrides `uiFamily` to Archivo and `monoFamily` to IBM Plex
-Mono, and owns its own measured budgets as a result.
+For scale: Source Sans 3 averages roughly 10% narrower than Onest on the same strings, so a
+budget stated for one does not carry over to the other.

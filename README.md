@@ -358,10 +358,10 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 `haxefolio.preferences`/`.builder` already use elsewhere in the framework:
 
 - **`haxefolio.form`** - the components a framework user actually reaches for and composes a
-  form from: `ChoiceRow`, `FieldGroup`, `SwapSlot` below, and more as the library grows.
+  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SwapSlot`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `PreviewPane` below, and more as the library grows.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
-  (`FieldHeader`, `HintLine`, `ChoiceButton`) and the shared model types (`HintState`,
-  `EmphasisStyle`, `IconAlign`, `ChoiceOption<T>`, `FieldGroupDirection`, ...). Still public,
+  (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
+  `EmphasisStyle`, `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `ChoicesPerRow`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
   and still useful directly for a bespoke field the higher-level components don't cover - just
   not the first thing to reach for.
 
@@ -426,6 +426,31 @@ enclosing host via the `haxefolio-emphasis-outlined` class (absent it, `Filled` 
 `accent` fill - is the default) on any ancestor, so every `ChoiceButton`/`ToggleButton` inside
 a host agrees on what "active" looks like. `IconAlign` is `Leading`/`Trailing`.
 
+A disabled button that is also selected (a locked row showing the value actually in effect) has
+its own muted grey-blue look, `:down:disabled`: unmistakably "chosen", yet clearly inert, and
+the same under both emphasis styles. This is the one place the stylesheet uses a chained
+pseudo-class selector, which stock `haxeui-core` mis-parses (it drops all but the first
+pseudo-class, so the rule would mute *every* selected button) - it needs the fix in
+https://github.com/haxeui/haxeui-core/pull/713 (in the `Gulvan0/haxeui-core` fork's
+`fix/compound-pseudo-class-selector` branch).
+
+### Stepper (`haxefolio.form.plumbing`)
+
+The `−` / value / `+` triple, with no header and no hint and no value semantics of its own -
+the owning field (see `SteppedValueField`) parses, validates and applies steps. The buttons are
+fixed width and the input flexes (`percentWidth = 100`), never the other way round:
+
+```haxe
+public function new(displayedText:String, onText:String->Void, onStep:Int->Void, enabled:Bool = true, invalid:Bool = false, buttonWidth:Int = 26)
+public var displayedText(default, set):String;
+public var invalid(default, set):Bool;    // red input border
+public var enabled(default, set):Bool;    // disables both buttons and the input
+```
+
+`onText` fires only for genuine user edits, never as an echo of assigning `displayedText`;
+`onStep` receives `-1`/`+1`. The name is `displayedText`, not `text`, because HaxeUI's `Component`
+already owns `text`, `value` and `onChange` - a subclass can't redeclare them.
+
 ### ChoiceRow
 
 An enumerable parameter as a row of equal-width `ChoiceButton`s under a `FieldHeader`.
@@ -483,6 +508,58 @@ not clip on its own, so its `.haxefolio-swap-slot` class carries `clip: true;` (
 equivalent of CSS `overflow: hidden`); a variant taller than `height` is cut off cleanly rather
 than bleeding into whatever the slot's host renders next.
 
+### ChoiceGrid
+
+The same selection semantics as `ChoiceRow`, but wrapping, for 6-20 curated options: rows of
+`perRow.expanded` cells, or `perRow.collapsed` while `ResponsivityController.isCollapsed` (the
+framework's one app-wide breakpoint - no component-local pixel threshold). Cell width is a
+percentage of the row, and a short final row is padded with empty placeholders so its cells match
+the full rows' width exactly. Whether it selects one option or several is chosen per instance by
+a `ChoiceGridSelection<T>`:
+
+```haxe
+var grid:ChoiceGrid<Int> = new ChoiceGrid("Bonus preset", options, Single(currentBonus, value -> bonusField.currentValue = value), {expanded: 5, collapsed: 3});
+var multi:ChoiceGrid<String> = new ChoiceGrid("Time controls", stringOptions, Multi(["Blitz"], (value, nowSelected) -> trace('$value: $nowSelected')), {expanded: 4, collapsed: 2});
+```
+
+```haxe
+public function new(label:String, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ChoicesPerRow, gap:Int = 6, locked:Bool = false, ?lockReason:String)
+public function selectSingle(value:Null<T>):Void
+public function selectMulti(values:Array<T>):Void
+public function dispose():Void
+```
+
+`Single`'s `selected` is nullable, and that is the point: a grid of presets is a shortcut *into* a
+value, not the value itself. The grid highlights what `selectSingle` last set, not merely which
+cell was clicked, so a host that also has a "custom" editor for the same value (an `IntField`, say)
+calls `selectSingle(value)` from that editor's `onChange` - a value no preset matches clears the
+highlight, and a click on a preset fills the editor: one value, two editors, no sync state. (A
+click still highlights its own cell at once, so the grid also works unbound.) `selectSingle` and
+`selectMulti` do not call `onSelect`/`onToggle`, and throw when called on the other mode's grid.
+Selection is tracked by the grid, not HaxeUI's `componentGroup`, which cannot express "none
+selected". `dispose()` detaches the collapse listener - call it once the grid is done with.
+`locked`/`lockReason` behave as on `ChoiceRow`.
+
+### ToggleButton
+
+A boolean as one full-width button that reads as a mode rather than a checkbox - for when "off"
+is the normal state and "on" a distinct mode ("No time control"). It is a `ChoiceButton`, so
+`EmphasisStyle` styles its on-state exactly as it does a selected choice:
+
+```haxe
+var noTimeControl:ToggleButton = new ToggleButton("No time control", on -> trace('on: $on'));
+```
+
+```haxe
+public function new(caption:String, onToggle:Bool->Void, ?glyph:String, initiallyOn:Bool = false, initiallyEnabled:Bool = true)
+public var on:Bool      // assigning renders without calling onToggle
+public var enabled:Bool
+```
+
+Use a checkbox instead when the boolean is an attribute rather than a mode, and a two-option
+`ChoiceRow` when both states deserve equal visual weight (rated/unrated). A disabled toggle shows
+the disabled look when off and the muted locked-selected look (see `ChoiceButton`) when on.
+
 ### FieldGroup
 
 A `surfaceSunken` inset box that groups fields belonging to one parameter - a row or a stack
@@ -503,6 +580,139 @@ responsive behaviour (contrast `ChoiceRow.stackOnCollapse` above, which is the l
 Children top-align within `fixedHeight` by default, same as any other HaxeUI container - size
 `fixedHeight` to actually match the content (or accept the slack) rather than picking a round
 number, or unused space below top-aligned content can look like uneven padding.
+
+### SteppedValueField<T\>
+
+A `Stepper` under a `FieldHeader`, generic over the value type via a `parse`/`format` pair. The
+header's right-aligned hint shows the constraint while the field is valid and swaps to the
+failure reason, in red, when it isn't - the same reserved line either way, so validation
+appearing is a colour change, not a layout change. Prefer the ready-made `IntField` and
+`DurationField` below unless the value is neither a whole number nor a duration:
+
+```haxe
+public function new(
+    label:String, value:T, onChange:T->Void, parse:String->Null<T>, format:T->String,
+    step:T->Int->T, validate:T->FieldState<T>, hint:String, invalidFormatMessage:String,
+    enabled:Bool = true, ?onValidityChange:Bool->Void
+)
+public var state(default, null):FieldState<T>;
+public var currentValue(get, set):T;
+public var valid(get, never):Bool;
+public var enabled(default, set):Bool;
+```
+
+- **Invalid input is never reverted or clamped** - the user's keystrokes are theirs. The field
+  marks itself and reports upward. `onChange` fires only for values that parsed *and*
+  validated, so a host holding the last `onChange` value never holds an invalid one; a change in
+  validity is reported through `onValidityChange` (and readable any time via `valid`/`state`),
+  which is what a form uses to disable its primary action.
+- **Errors show only after the field is touched** (edited or stepped by the user). A field that
+  starts out invalid opens showing only its neutral `hint`.
+- `validate` returns a whole `FieldState` for the signature's sake, but only `valid` and
+  `message` matter: the field fills in `value` and `touched` itself, and `message` is shown only
+  while invalid. Unparseable text shows `invalidFormatMessage`. Both must fit the header line -
+  there is no `text-overflow: ellipsis` - roughly 22 label plus 14 hint/message characters in a
+  288px half-width column.
+- `step` gets the last known value and ±1 per button press and should keep its result in bounds
+  itself: a button press has no "unparseable" case, so clamping there is unsurprising.
+- Assigning `currentValue` re-renders and re-validates without calling `onChange`, but does
+  call `onValidityChange` if validity flips - the hook for "presets plus custom" bindings where a
+  neighbouring control drives the field. `percentWidth` defaults to 100; set it to place two
+  fields side by side in a horizontal `FieldGroup`.
+
+### IntField and DurationField
+
+Ready-made `SteppedValueField<Int>`s, as static factories (`IntField.create(...)`,
+`DurationField.create(...)`) rather than subclasses - HaxeUI's component macro rejects a
+subclass whose constructor repeats its component superclass's parameter names:
+
+```haxe
+var bonus:SteppedValueField<Int> = IntField.create(
+    "Bonus secs / turn", 5, value -> trace(value), 0, 120,
+    "max 120", "not a number", "out of range"
+);
+var initial:SteppedValueField<Int> = DurationField.create(
+    "Initial time", 300, seconds -> trace(seconds), 0, 21600,
+    "max 6:00:00", "use m:ss", "out of range"
+);
+```
+
+Both take `(label, value, onChange, min, max, hint, invalidFormatMessage, outOfRangeMessage,
+enabled = true, ?onValidityChange)`; out-of-range typed input is marked with
+`outOfRangeMessage`, never clamped, while the -/+ buttons clamp to `min`..`max`. `IntField`
+accepts a decimal integer (optional leading `-`) and steps by 1. `DurationField` holds whole
+seconds, accepts exactly `m:ss` (minutes unbounded) or `h:mm:ss` (two-digit minutes/seconds
+below 60) and steps by 60 seconds; state the format in the label or hint, it is never inferred.
+The parse/format pair is public as `haxefolio.form.plumbing.DurationFormat.parse`/`.format`.
+
+### CommitTextField
+
+A text input whose value applies on an explicit action - for inputs too expensive or too
+error-prone to validate per keystroke. The one form component that defers its effect, and it
+says so: its `HintLine` cycles through the idle instruction, the success confirmation and the
+rejection reason (which also turns the input's border red):
+
+```haxe
+var position:CommitTextField = new CommitTextField(
+    "Starting position", "", text -> trace('typed: $text'),
+    text -> isValid(text) ? Applied : Rejected('Not a valid position'),
+    "Apply", "Edit the value, then press Apply", "Position applied"
+);
+```
+
+```haxe
+public function new(
+    label:String, initialText:String, onText:String->Void, onCommit:String->CommitResult,
+    commitLabel:String, idleHint:String, appliedHint:String,
+    commitTrigger:CommitTrigger = ButtonAndEnter, enabled:Bool = true
+)
+public var currentText(get, set):String;
+public var enabled(default, set):Bool;
+```
+
+- `onCommit` *returns* `Applied` or `Rejected(message)` rather than throwing, so a host's
+  validator stays a pure function. Keep `message` short - the hint line has no
+  `text-overflow: ellipsis`.
+- `onText` reports genuine user edits only, never an echo of assigning `currentText`; any edit
+  also returns the hint line to `idleHint`, since the applied/rejected message described a value
+  the field no longer holds. Assigning `currentText` renders without calling `onText` and resets
+  the hint line the same way.
+- `CommitTrigger` is `Button`, `Enter` or `ButtonAndEnter` (the default). With `Enter` the
+  button is hidden and `commitLabel` unused - say so in `idleHint`. There is deliberately no
+  blur trigger: HaxeFolio disables HaxeUI's `FocusManager`, so no focus-out is delivered, and a
+  blur-commit would fire before the click on the button and commit twice.
+- `enabled = false` disables the input and button and greys the label.
+- The button follows `EmphasisStyle` like `ChoiceButton` does (solid fill by default,
+  `haxefolio-emphasis-outlined` on an ancestor for the tinted-and-bordered look).
+
+### PreviewPane
+
+A caption row plus a fixed-size preview area for arbitrary host content - a rendered position, a
+colour swatch, a generated image:
+
+```haxe
+var pane:PreviewPane = new PreviewPane(200, 200, boardWidget, "White to move");
+pane.content = otherBoardWidget;
+pane.caption = "Black to move";
+```
+
+```haxe
+public function new(previewWidth:Int, previewHeight:Int, content:Component, ?caption:String, ?captionIcon:String)
+public var caption(get, set):String;
+public var content(get, set):Component;
+```
+
+- The area is always rendered at exactly `previewWidth` x `previewHeight` and clips
+  (`clip: true`) rather than measuring around its content: content that doesn't fit is a design
+  error to fix. **Don't add/remove the pane with a mode toggle** - it should show the effective
+  value in every mode, including the default one; swap `content` instead. The pane itself
+  is `previewWidth` wide, so a longer caption is cut off rather than widening it.
+- The caption row (16px, then a 6px gap) is reserved whenever the pane is constructed with a
+  `caption` or a `captionIcon`, even if the caption is later set to `""`, so changing it never
+  moves the area. Constructed with neither, there is no caption row and using `caption` throws.
+- Assigning `content` detaches the previous component *without disposing it*, so the host may
+  keep and reuse it. The area does not position or size the content: give it a
+  `percentWidth`/`percentHeight` of 100 to fill the area.
 
 ## Preferences
 
@@ -635,15 +845,15 @@ A fluent, mutating alternative to writing the structure above by hand: `HaxeFoli
 
 ## Typography
 
-HaxeFolio ships its own type rather than relying on a platform font stack - two self-hosted, Latin+Cyrillic WOFF2 families, exposed as theme vars: `uiFamily` (default **Source Sans 3**, weights 400/500/600) for all UI text, and `monoFamily` (default **IBM Plex Mono**, weights 400/500) for numeric values read digit-by-digit - clock readouts, ratings, notation strings - never for prose or labels, which would dilute that meaning.
+HaxeFolio ships its own type rather than relying on a platform font stack - two self-hosted, Latin+Cyrillic WOFF2 families, exposed as theme vars: `uiFamily` (default **Onest**, weights 400/500/600) for all UI text, and `monoFamily` (default **IBM Plex Mono**, weights 400/500) for numeric values read digit-by-digit - clock readouts, ratings, notation strings - never for prose or labels, which would dilute that meaning.
 
 Since a HaxeUI `font-name` rule loads one font file per weight rather than resolving weight within a family the way a browser's own `@font-face` does, each weight is its own var:
 
 | Var | Default resource | Weight |
 |---|---|---|
-| `$ui-family-regular` | `haxefolio/fonts/SourceSans3-Regular.woff2` | 400 |
-| `$ui-family-medium` | `haxefolio/fonts/SourceSans3-Medium.woff2` | 500 |
-| `$ui-family-semibold` | `haxefolio/fonts/SourceSans3-SemiBold.woff2` | 600 |
+| `$ui-family-regular` | `haxefolio/fonts/Onest-Regular.woff2` | 400 |
+| `$ui-family-medium` | `haxefolio/fonts/Onest-Medium.woff2` | 500 |
+| `$ui-family-semibold` | `haxefolio/fonts/Onest-SemiBold.woff2` | 600 |
 | `$mono-family-regular` | `haxefolio/fonts/IBMPlexMono-Regular.woff2` | 400 |
 | `$mono-family-medium` | `haxefolio/fonts/IBMPlexMono-Medium.woff2` | 500 |
 
@@ -657,7 +867,7 @@ A component references one via `font-name: $ui-family-medium;` in its stylesheet
 </themes>
 ```
 
-An app's own module is processed after its library dependencies, so this overrides HaxeFolio's default with no further wiring - but a host must supply every weight it actually uses (substituting only `ui-family-medium` while leaving `ui-family-regular` at Source Sans 3 mixes two faces on one label scale). Changing either family also invalidates every character budget below - HaxeUI has neither `letter-spacing` nor `text-overflow: ellipsis`, so a label's fit is measured against a specific face's advance widths, not estimated.
+An app's own module is processed after its library dependencies, so this overrides HaxeFolio's default with no further wiring - but a host must supply every weight it actually uses (substituting only `ui-family-medium` while leaving `ui-family-regular` at Onest mixes two faces on one label scale). Changing either family also invalidates every character budget below - HaxeUI has neither `letter-spacing` nor `text-overflow: ellipsis`, so a label's fit is measured against a specific face's advance widths, not estimated.
 
 ### Scale
 
@@ -784,9 +994,13 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-field-header-label` / `.haxefolio-field-header-label-locked` | Its label; the `-locked` variant applies whenever `locked == true`. |
 | `.haxefolio-field-header-hint` / `.haxefolio-field-header-hint-error` | Its hint; the `-error` variant applies whenever `state == Error`. |
 | `.haxefolio-hint-line` / `.haxefolio-hint-line-error` | A `HintLine`; same `-error` convention. |
-| `.haxefolio-choice-button` / `:hover` / `:down` / `:disabled` | A `ChoiceButton`. `:down` is the selected state (see `ChoiceButton` above); `:disabled` wins over `:down` when both apply. |
+| `.haxefolio-choice-button` / `:hover` / `:down` / `:disabled` | A `ChoiceButton`. `:down` is the selected state, `:disabled` the disabled one, `:down:disabled` a locked-but-selected one (see `ChoiceButton` above). |
 | `.haxefolio-emphasis-outlined` | Ancestor class switching every `ChoiceButton`/`ToggleButton` beneath it from `Filled` to `Outlined` (see `ChoiceButton`). |
 | `.haxefolio-choice-row` | A `ChoiceRow`'s own box. |
+| `.haxefolio-stepper` | A `Stepper`'s row. |
+| `.haxefolio-stepper-button` / `:hover` / `:disabled` | Its `-`/`+` buttons. |
+| `.haxefolio-stepper-input` / `-invalid` / `:disabled` | Its text input; `-invalid` applies whenever `invalid == true`. |
+| `.haxefolio-stepped-value-field` | A `SteppedValueField`'s own box (no default styling). |
 | `.haxefolio-field-group` | A `FieldGroup`'s own box. `SwapSlot` carries no styling of its own - it's a bare `Stack`. |
 
 #### Preference window

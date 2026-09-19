@@ -9,9 +9,9 @@
     </resources>
     <themes>
         <default>
-            <var name="ui-family-regular" value="haxefolio/fonts/SourceSans3-Regular.woff2" />
-            <var name="ui-family-medium" value="haxefolio/fonts/SourceSans3-Medium.woff2" />
-            <var name="ui-family-semibold" value="haxefolio/fonts/SourceSans3-SemiBold.woff2" />
+            <var name="ui-family-regular" value="haxefolio/fonts/Onest-Regular.woff2" />
+            <var name="ui-family-medium" value="haxefolio/fonts/Onest-Medium.woff2" />
+            <var name="ui-family-semibold" value="haxefolio/fonts/Onest-SemiBold.woff2" />
             <var name="mono-family-regular" value="haxefolio/fonts/IBMPlexMono-Regular.woff2" />
             <var name="mono-family-medium" value="haxefolio/fonts/IBMPlexMono-Medium.woff2" />
 
