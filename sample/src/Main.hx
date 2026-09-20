@@ -8,6 +8,7 @@ import haxefolio.HaxeFolioConfigBuilder;
 import haxefolio.menu.MenuAction;
 import haxefolio.menu.MenuBarItem;
 import haxefolio.menu.MenuFacade;
+import js.Browser;
 import overlay.CustomOverlayContent;
 import pages.AboutPage;
 import pages.FormDemoPage;
@@ -43,9 +44,9 @@ class Main
             .addLeftMenubarItem(NormalMenu("overlay-demo", []))
             .addNormalMenuItem("overlay-demo", "plain", Execute(showPlainOverlay))
             .addNormalMenuItem("overlay-demo", "dismissible", Execute(showDismissibleOverlay))
-            .addNormalMenuItem("overlay-demo", "no-close-button", Execute(showNoCloseButtonOverlay))
             .addNormalMenuItem("overlay-demo", "mobile-variant", Execute(showMobileVariantOverlay))
-            .addNormalMenuItem("overlay-demo", "explicit-size", Execute(showExplicitSizeOverlay))
+            .addNormalMenuItem("overlay-demo", "long", Execute(showLongOverlay))
+            .addNormalMenuItem("overlay-demo", "appearance", Execute(showAppearanceOverlay))
             .addRightMenubarItem(Widget(buildSettingsWidget, true))
             .setLanguagePreference(SamplePreferences.language)
             .buildConfig();
@@ -73,39 +74,35 @@ class Main
     }
 
     /*
-        A plain custom overlay - the core claim this sample exists to verify: arbitrary
-        framework-user content works through the same modal/sidebar mechanism the preference
-        window uses, entirely CSS-defaulted (no width/height/closeButtonSize given).
+        The simplest overlay: one Scroll region, everything else left to the presentation.
     */
     private static function showPlainOverlay():Void
-        HaxeFolioApp.showOverlay("custom-plain", _ -> CustomOverlayContent.buildPlain());
+        HaxeFolioApp.present("custom-plain", _ -> CustomOverlayContent.buildPlain());
 
     /*
-        Its own "Save & Close" button closes it via the dismiss callback its factory received,
-        alongside the regular close button.
+        Its own footer button closes it via the dismiss handle its factory received.
     */
     private static function showDismissibleOverlay():Void
-        HaxeFolioApp.showOverlay("custom-dismissible", CustomOverlayContent.buildDismissible);
+        HaxeFolioApp.present("custom-dismissible", CustomOverlayContent.buildDismissible);
 
     /*
-        showCloseButton: false - the content's own Close button (wired to the same dismiss
-        callback) is the only way to close this one.
-    */
-    private static function showNoCloseButtonOverlay():Void
-        HaxeFolioApp.showOverlay("custom-no-close-button", CustomOverlayContent.buildNoCloseButton, null, null, null, null, null, false);
-
-    /*
-        mobileContentFactory renders a genuinely different component tree on the mobile sidebar
-        presentation than contentFactory renders on the desktop modal - resize across
-        menuCollapseWidth with this overlay open to see both.
+        mobileContentFactory renders a genuinely different component tree while the breakpoint is
+        collapsed than contentFactory does while expanded - the choice is made once, when the
+        overlay is presented.
     */
     private static function showMobileVariantOverlay():Void
-        HaxeFolioApp.showOverlay("custom-mobile-variant", _ -> CustomOverlayContent.buildDesktopVariant(), null, null, null, null, null, true, _ -> CustomOverlayContent.buildMobileVariant());
+        HaxeFolioApp.present("custom-mobile-variant", _ -> CustomOverlayContent.buildDesktopVariant(), _ -> CustomOverlayContent.buildMobileVariant());
 
     /*
-        Explicit width/height/closeButtonSize/insets, overriding whatever CSS would otherwise
-        apply to this overlay's modal presentation.
+        Tall content plus a footer; also passes the host-side onDismissed callback, which must run
+        after the content's own.
     */
-    private static function showExplicitSizeOverlay():Void
-        HaxeFolioApp.showOverlay("custom-explicit-size", _ -> CustomOverlayContent.buildExplicitSize(), 320, 220, 24, 16, 16);
+    private static function showLongOverlay():Void
+        HaxeFolioApp.present("custom-long", CustomOverlayContent.buildLong, null, null, () -> Browser.console.log("[overlay-demo] present.onDismissed"));
+
+    /*
+        Per-overlay appearance: Outlined emphasis and a style class.
+    */
+    private static function showAppearanceOverlay():Void
+        HaxeFolioApp.present("custom-appearance", _ -> CustomOverlayContent.buildAppearance(), null, {emphasis: Outlined, styleClass: "sample-overlay-variant"});
 }

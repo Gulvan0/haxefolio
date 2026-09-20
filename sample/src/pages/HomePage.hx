@@ -13,7 +13,7 @@ class HomePage extends PageBase
     private override function init():Void
     {
         var label:Label = new Label();
-        label.text = "Home page. Use the menu above to try the overlay demos, or navigate to About while one is open to see the navigation guard force-close it.";
+        label.text = "Home page. Use the menu above to try the overlay demos (Esc closes one; browser back/forward force-closes it).";
         addComponent(label);
     }
 }

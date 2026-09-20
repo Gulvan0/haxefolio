@@ -276,98 +276,67 @@ Enum constructors inside a `ByWidth` argument resolve unqualified where the expe
 
 ## Overlays
 
-HaxeFolio includes a generic, dismissible-overlay mechanism - the same responsive modal/sidebar
-presentation the preference window uses (see `Preference window` below), available for a framework
-user's own arbitrary HaxeUI content too. Which presentation appears is picked the same way
-responsivity elsewhere is - a bottom `SideBar` covering the entire viewport while the menu bar is
-collapsed (mobile), a centered modal over the page container otherwise (desktop), based on
-`menuCollapseWidth`.
+HaxeFolio presents dismissible overlays: a fixed-size frame of `Region`s (see `Region stacks`) over a scrim. Which of two presentations appears is decided internally, by the same breakpoint everything else responds to (`menuCollapseWidth`, see `Responsivity`) - a **dialog** while expanded, a **sheet** while collapsed. A host never names a presentation: it supplies content that is valid in both states, and may branch on the breakpoint state (through `mobileContentFactory`, or a `ByWidth` value), never on the presentation itself.
 
-The two presentations deliberately differ in how much of the app they block, and this isn't
-incidental:
+- The **dialog** is a centred window, 620px wide and at most 720px tall. The frame tracks the viewport: a short or narrow window shrinks it - the height down to a 420px floor - and only the scrolling region notices.
+- The **sheet** is a bottom `SideBar` covering the entire viewport, menu bar included, sliding up from the bottom edge.
 
-- The **desktop modal is non-blocking** - the rest of the app, menu bar included, stays fully
-  interactive while it's open; the modal only ever captures clicks landing on its own box.
-  Closeable via its close button, a `dismiss()` call from its own content, or by navigating away
-  (which force-closes it rather than leaving it stranded over an unrelated page) - there is no
-  click-outside-to-dismiss.
-- The **mobile sidebar is fully exclusive** - the entire rest of the app is inert for as long as
-  it's open, opening, or closing, with no gap even mid-slide-animation; nothing beneath it is
-  reachable until it's completely gone.
+Both are **modal** and neither is draggable: the whole rest of the app - menu bar included - is unreachable by pointer, keyboard or assistive technology (it is marked `inert`) for as long as the overlay is open, opening or closing. An overlay is dismissed by **Esc**, by the `dismiss` handle its factory receives (typically from a footer button), or by navigating away (see `Navigation`), which closes it first rather than leaving it stranded over an unrelated page - nothing else: there is no click-outside-to-dismiss. There is no close control yet: it arrives with the `Header` region, so until then an overlay without a footer button relies on Esc.
+
+The presentation is fixed for the lifetime of each overlay: if the viewport crosses the breakpoint while it is open, the dialog does not turn into a sheet or vice versa - the frame keeps tracking the viewport within its presentation, and breakpoint-aware components inside it (see `Reacting to the collapse threshold directly`) still reflow live.
 
 ### Overlay content
 
-`OverlayContent` is a plain `VBox` a framework user instantiates directly and populates:
+An overlay's content is a plain structure, built by the factory given to `present`:
 
 ```haxe
-var content:OverlayContent = new OverlayContent();
-content.addComponent(new Label("Hello!"));
-```
-
-`addDetachable(detachable:Detachable):Void` registers a `Detachable` (e.g. a `Preference.onChange`
-handle) to be detached automatically once the overlay is dismissed - the same contract
-`PreferenceWindowBuilder` relies on for the preference window's own rows.
-
-### Showing an overlay
-
-```haxe
-HaxeFolioApp.showOverlay(slug:String, contentFactory:(Void->Void)->OverlayContent, ?width:Int, ?height:Int, ?closeButtonSize:Int, ?closeButtonInsetX:Int, ?closeButtonInsetY:Int, showCloseButton:Bool = true, ?mobileContentFactory:(Void->Void)->OverlayContent, ?onDismissed:Void->Void):Void
-```
-
-- `slug` identifies the overlay for CSS purposes (see `Overlay styling` below) - must be unique
-  across every `showOverlay` call site in the app, including the built-in preference window's own
-  `"preference"`.
-- `contentFactory` is only invoked if the call isn't a no-op (see below), and receives a `dismiss`
-  callback the built content can call to close the overlay itself - e.g. wiring it into a "Save &
-  Close" button:
-
-  ```haxe
-  HaxeFolioApp.showOverlay("my-overlay", dismiss ->
-  {
-      var content:OverlayContent = new OverlayContent();
-      var saveButton:Button = new Button();
-      saveButton.text = "Save & Close";
-      saveButton.onClick = _ -> dismiss();
-      content.addComponent(saveButton);
-      return content;
-  });
-  ```
-- `width`/`height` apply to the modal presentation only, ignored for the mobile sidebar which is
-  always full-viewport; both default to CSS (see `Overlay styling`) when omitted.
-- `closeButtonSize`/`closeButtonInsetX`/`closeButtonInsetY` likewise default to CSS/the overlay's
-  own live padding rather than a hardcoded value when omitted.
-- `showCloseButton: false` omits the close button entirely - the content's own `dismiss` callback
-  (above) becomes the only way to close such an overlay, so a custom close affordance is the
-  caller's responsibility in that case.
-- `mobileContentFactory`, optional - when given, used instead of `contentFactory` for the mobile
-  sidebar presentation, letting a framework user supply genuinely different component trees for the
-  two presentations; omitted, `contentFactory` is reused for both (the common case, and what the
-  preference window itself does).
-
-Only one overlay - built-in or custom - may be open at a time: calling `showOverlay` again while
-one is already open (or mid-close) is a no-op, and any navigation away while an overlay is open
-closes it first (see `Navigation`).
-
-### Overlay styling
-
-Every default this section covers - size, close button icon, close button size - is overridable
-purely via CSS, following the same class-vs-id cascade as the rest of HaxeFolio's chrome (see
-`Styling`): target the generic class for a blanket change across every overlay, or
-`#haxefolio-overlay-<slug>-*` for a single one. For example, to use a different close icon just for
-one overlay:
-
-```css
-#haxefolio-overlay-my-overlay-close-button {
-    resource: 'assets/my-close-icon.svg';
+typedef OverlayContent = {
+    title:String,
+    regions:Array<Region>,
+    ?onDismissed:Void->Void
 }
 ```
 
-See `Overlays` in `CSS classes and elements` for the full selector list and their defaults.
+- `regions` are laid out top to bottom in the frame, with at most one `Scroll` region (see `Region stacks` for the height arithmetic). The frame's size is not the host's to set - it comes from the presentation.
+- `title` is the overlay's title. Nothing displays it yet; the `Header` region will.
+- `onDismissed` is the content's own teardown hook - release here whatever the content registered while it was built (a `Preference.onChange` handle, a `ChoiceGrid`/`ChoiceRow`/`FieldGroup` `dispose()`). It is called exactly once, when the overlay is entirely gone, before the `onDismissed` argument of `present`.
+
+### Presenting an overlay
+
+```haxe
+HaxeFolioApp.present(slug:String, contentFactory:(Void->Void)->OverlayContent, ?mobileContentFactory:(Void->Void)->OverlayContent, ?appearance:AppearanceOverrides, ?onDismissed:Void->Void):Void
+```
+
+```haxe
+HaxeFolioApp.present("my-overlay", dismiss -> {
+    var closeButton:Button = new Button();
+    closeButton.text = "Save & Close";
+    closeButton.addClass("haxefolio-button");
+    closeButton.onClick = _ -> dismiss();
+
+    return {
+        title: "My overlay",
+        regions: [Scroll(bodyContent), Custom(68, closeButton)]
+    };
+});
+```
+
+- `slug` identifies the overlay for CSS (see `Overlay styling`) and must be unique per call site.
+- `contentFactory` builds the content, and receives a `dismiss` handle for closing the overlay from within it.
+- `mobileContentFactory`, optional - used instead of `contentFactory` while the breakpoint is collapsed, for a genuinely different component tree. The choice is made once, when `present` is called.
+- `appearance`, optional - an `AppearanceOverrides` (see `Appearance`) applying to this overlay only: its geometry and emphasis are in effect while the content is built, so every component the factory constructs reads them; its `styleClass` is added to the overlay's frame, for a colour variant shared by several overlays.
+- `onDismissed`, optional - runs once the overlay is entirely gone (for the sheet, after its slide-out has finished), after the content's own `onDismissed`. It belongs to the host that called `present`.
+
+Only one overlay may be open at a time: calling `present` while one is open (or closing) is a no-op.
+
+### Overlay styling
+
+Colour and type are the stylesheet's business, following the same class-vs-id cascade as the rest of HaxeFolio's chrome (see `Styling`): target the generic class for a blanket change across every overlay, or `#haxefolio-overlay-<slug>-*` for a single one. Geometry is not settable from CSS - it goes through `AppearanceOverrides` (see `Appearance`). See `Overlays` in `CSS classes and elements` for the selector list.
 
 ## Form components
 
 `haxefolio.form` is a small, general-purpose library of form/data-entry components. None of
-them assume anything about their host - a page, a panel, a sidebar, or a `showOverlay` body
+them assume anything about their host - a page, a panel, a sidebar, or an overlay body
 (see `Overlays`) are all equally valid; a host only needs to give one a width to size its
 children's percentages against.
 
@@ -929,15 +898,7 @@ class StorageBackend
 
 ### Preference window
 
-The preference window's content - tabs and controls - is generated at runtime from what `Preferences` declared, organized as one `TabView` tab per `tabId`, each optionally iconed via `HaxeFolioConfig.preferenceTabIcons` (mapping `tabId` to an icon asset path). Each tab contains a control per preference assigned to it, in declaration order: a slider for `toggle`, a row of buttons (one per admissible value, current one marked active) for `option`/`locale`. Below the tabs, a footer holds a reset button (`PreferenceRegistry.resetAll()`) and a label noting that changes save automatically - there's no separate "OK"/"Apply" step.
-
-A framework user opens the window by calling `HaxeFolioApp.showPreferences()` - typically from a menu bar `Widget`'s `onClick`, or an `Execute` menu action (as in `Getting started` above). This is built directly on the generic `showOverlay` mechanism described in `Overlays` above, with slug `"preference"`, and inherits its presentation/dismissal/no-op rules from there rather than having its own; its desktop modal size (480x360) comes from the `#haxefolio-overlay-preference-modal` CSS default (see `Overlay styling`), not a hardcoded value.
-
-Every displayed string is localized; see `Locale keys` in `Reference`.
-
-## Configuration
-
-`HaxeFolioApp.init(config:HaxeFolioConfig)` wires up everything described above. `config` can be built either as a plain anonymous structure, or via the fluent `HaxeFolioConfigBuilder` shown in `Getting started` - both produce the same `HaxeFolioConfig`.
+**Temporarily unavailable.** The preference window is being rebuilt on the new overlay system (see `Overlays`); until that lands, `HaxeFolioApp.showPreferences()` throws. Preferences themselves - declaring, reading, writing, reacting, storage - are unaffected, as are `HaxeFolioConfig.preferenceTabIcons` (kept, currently unused) and the `PreferenceRegistry.resetAll()` the window's reset button will call.
 
 ### HaxeFolioConfig
 
@@ -1054,7 +1015,7 @@ label.addClass("haxefolio-label");
 
 Nothing else is affected: components HaxeFolio or HaxeUI build themselves (menu bar items, switch thumbs, steppers, ...) never carry these classes, so they keep their own styling. In XML markup, use `styleName="haxefolio-button"`. HaxeUI stylesheets have no specificity - among matching rules the last one wins - so an app's own rule for the same component overrides these defaults simply by being registered later.
 
-`MenuFacade.menuBar`/`sideBar` are also exposed as static members, letting a framework user reach into either component and adjust properties directly - once, right after `HaxeFolioApp.init` returns (there's no need to account for redraws, since this only runs once at startup). No overlay - the built-in preference window included - has an equivalent static member: unlike the menu bar/side bar, an overlay isn't built once at startup - a fresh instance is built on every `showOverlay`/`showPreferences()` call instead, since it must pick one of its two presentations depending on the current layout mode (see `Overlays`). The preference window's supported customization points are instead `HaxeFolioConfig.preferenceTabIcons` and CSS.
+`MenuFacade.menuBar`/`sideBar` are also exposed as static members, letting a framework user reach into either component and adjust properties directly - once, right after `HaxeFolioApp.init` returns (there's no need to account for redraws, since this only runs once at startup). No overlay has an equivalent static member: unlike the menu bar/side bar, an overlay isn't built once at startup - a fresh instance is built on every `present` call instead, since it must pick one of its two presentations depending on the current layout mode (see `Overlays`). An overlay is customized through `present`'s `appearance` argument and CSS.
 
 See `CSS classes and elements` in `Reference` for the full list of selectors HaxeFolio's own components carry.
 
@@ -1144,11 +1105,10 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 
 | Selector | Notes |
 |---|---|
-| `.haxefolio-overlay-modal` / `#haxefolio-overlay-<slug>-modal` | Desktop presentation's modal box. Deliberately non-blocking - captures clicks landing on itself only, never the rest of the app (see `Overlays` above). No default `width`/`height` (auto-sized to content) unless a specific overlay's id sets one or `showOverlay` is given an explicit value - see `#haxefolio-overlay-preference-modal` below for the built-in example. |
-| `.haxefolio-overlay-backdrop` / `#haxefolio-overlay-<slug>-backdrop` | Mobile sidebar presentation only - a full-screen input blocker present for the entire time the sidebar is open, opening, or closing (see `Overlays` above), with no click-to-dismiss. The desktop modal has no backdrop at all. |
-| `.haxefolio-overlay-sidebar` / `#haxefolio-overlay-<slug>-sidebar` | Mobile presentation's `SideBar`. |
-| `.haxefolio-overlay-close-button` / `#haxefolio-overlay-<slug>-close-button` | The close button, shared shape in both presentations. Defaults to `14px`/`14px` and the framework's own close icon (via CSS `resource`) - override either per-overlay via the id, or globally via the class. Omitted entirely (not just hidden) for an overlay shown with `showCloseButton: false`. |
-| `.haxefolio-overlay-content` / `#haxefolio-overlay-<slug>-content` | The `OverlayContent` itself, both presentations wrap. |
+| `.haxefolio-overlay-scrim` / `#haxefolio-overlay-<slug>-scrim` | The full-screen scrim behind the frame, in both presentations (`.haxefolio-overlay-dialog-scrim` / `.haxefolio-overlay-sheet-scrim` narrow it to one). Carries the scrim colour; for the sheet it is also the input blocker present for the whole show-to-gone window. |
+| `.haxefolio-overlay-frame` / `#haxefolio-overlay-<slug>-frame` | The frame itself, in both presentations: fill, border, no padding. Also carries the overlay's `styleClass`, if it was given one. Its clipping and elevation shadow are set on the DOM element by the framework. |
+| `.haxefolio-overlay-dialog` | Additionally on the frame of the dialog presentation (corner radius). |
+| `.haxefolio-overlay-sheet` | Additionally on the frame of the sheet presentation (top corner radii). |
 
 #### Form components
 
@@ -1175,23 +1135,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 
 #### Preference window
 
-The preference window is itself an overlay, slug `"preference"` - see `Overlays` above for its
-modal/backdrop/sidebar/close-button/content chrome selectors. Its own selector is just its default
-desktop modal size:
-
-| Selector | Notes |
-|---|---|
-| `#haxefolio-overlay-preference-modal` | `width: 480px; height: 360px;` - the preference window's own default modal size (see `Overlay styling`). |
-| `#haxefolio-preference-tabview` | The `TabView`; icons within it (from `preferenceTabIcons`) default to 16x16 via `#haxefolio-preference-tabview .icon`. |
-| `.haxefolio-preference-tab` / `#haxefolio-preference-tab-<tabId>` | A single tab page. |
-| `.haxefolio-preference-row` / `#haxefolio-preference-row-<id>` | A preference's row (toggle or option alike). |
-| `.haxefolio-preference-name-label` / `#haxefolio-preference-name-label-<id>` | A preference row's name label. |
-| `.haxefolio-preference-option-row` / `#haxefolio-preference-option-row-<id>` | An option (or `locale`) preference's button row. |
-| `.haxefolio-preference-option-button` / `#haxefolio-preference-option-button-<id>-<value>` | An option (or `locale`) preference's value button. |
-| `.haxefolio-preference-toggle` / `#haxefolio-preference-switch-<id>` | A toggle preference's switch; also carries HaxeUI's own `pill-switch` class. |
-| `.haxefolio-preference-footer` / `#haxefolio-preference-footer` | The footer row (reset button + autosave notice). |
-| `.haxefolio-preference-reset-button` / `#haxefolio-preference-reset-button` | The reset button. |
-| `.haxefolio-preference-autosave-notice` / `#haxefolio-preference-autosave-notice` | The autosave notice label. |
+Unavailable for the moment (see `Preference window`); its selectors return when it is rebuilt.
 
 ### Locale keys
 

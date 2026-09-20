@@ -1,13 +1,16 @@
-.haxefolio-overlay-close-button {
-    resource: 'haxefolio-sample/images/alt_close_icon.svg';
-    width: 20px;
-    height: 20px;
+.sample-overlay-body {
+    padding: 18px 22px;
+    vertical-spacing: 10px;
 }
 
-#haxefolio-overlay-custom-dismissible-close-button {
-    resource: 'haxefolio/images/close_btn_icon.svg';
-    width: 14px;
-    height: 14px;
+.sample-overlay-footer {
+    padding: 14px 22px;
+    background-color: #fafafa;
+    border-top: 1px solid #e4e4e6;
+}
+
+.sample-overlay-variant {
+    background-color: #f3f6fb;
 }
 
 .sample-section-header {

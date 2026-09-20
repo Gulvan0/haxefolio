@@ -1,9 +1,10 @@
 package haxefolio.appearance;
 
 /**
-    Holds the `Appearance` components read when they are built. Currently only the theme-wide one
-    exists: it is the built-in default with `HaxeFolioConfig.appearance` applied over it by
-    `HaxeFolioApp.init`. Reading it before that yields the built-in default.
+    Holds the `Appearance` components read when they are built: the theme-wide one - the built-in
+    default with `HaxeFolioConfig.appearance` applied over it by `HaxeFolioApp.init` - or, while an
+    overlay's content is being built, that overlay's own (see `runWith`). Reading it before `init`
+    yields the built-in default.
 **/
 class AppearanceContext
 {
@@ -18,13 +19,37 @@ class AppearanceContext
     **/
     public static function init(?overrides:AppearanceOverrides):Void
     {
-        var base:Appearance = defaultAppearance();
+        current = merge(defaultAppearance(), overrides);
+    }
 
-        if (overrides == null)
+    /**
+        Runs `build` with `current` temporarily replaced by the appearance in effect overridden by
+        `overrides`, so every component `build` constructs reads that appearance. Used to give one
+        overlay its own geometry/emphasis while its content is built; `current` is restored
+        afterwards, even if `build` throws.
+    **/
+    public static function runWith<T>(?overrides:AppearanceOverrides, build:Void->T):T
+    {
+        var previous:Appearance = current;
+        current = merge(previous, overrides);
+
+        try
         {
-            current = base;
-            return;
+            var result:T = build();
+            current = previous;
+            return result;
         }
+        catch (e:Dynamic)
+        {
+            current = previous;
+            throw e;
+        }
+    }
+
+    private static function merge(base:Appearance, ?overrides:AppearanceOverrides):Appearance
+    {
+        if (overrides == null)
+            return base;
 
         var geometry:GeometryTokens = base.geometry;
         var geometryOverrides:Null<PartialGeometryTokens> = overrides.geometry;
@@ -41,7 +66,7 @@ class AppearanceContext
                 padding: geometryOverrides.padding ?? geometry.padding
             };
 
-        current = {
+        return {
             geometry: geometry,
             emphasis: overrides.emphasis ?? base.emphasis
         };

@@ -10,17 +10,16 @@ import haxe.ui.containers.VBox;
 import haxe.ui.containers.menus.MenuBar;
 import haxe.ui.core.Screen;
 import haxefolio.appearance.AppearanceContext;
+import haxefolio.appearance.AppearanceOverrides;
 import js.Browser;
 import haxefolio.menu.MenuFacade;
 import haxefolio.menu.builder.MenuBarBuilder;
 import haxefolio.menu.builder.MenuBarBuilder.MenuBarBuildResult;
 import haxefolio.menu.builder.SideBarBuilder;
 import haxefolio.overlay.OverlayContent;
-import haxefolio.overlay.builder.ModalOverlay;
-import haxefolio.overlay.builder.SideBarOverlay;
+import haxefolio.overlay.OverlayController;
 import haxefolio.preferences.PreferenceRegistry;
 import haxefolio.preferences.StorageBackend;
-import haxefolio.preferences.builder.PreferenceWindowBuilder;
 import haxefolio.structure.ScrollArea;
 import haxefolio.PageRouter.PageResolution;
 
@@ -119,6 +118,8 @@ class HaxeFolioApp
         Screen.instance.addComponent(root);
         Screen.instance.addComponent(sideBar);
 
+        OverlayController.init([root, sideBar]);
+
         var menuCollapseWidth:Int = config.menuCollapseWidth ?? 900;
         var debounceMs:Int = config.debounceMs ?? 500;
 
@@ -126,7 +127,7 @@ class HaxeFolioApp
             if (currentPage != null)
                 currentPage.onResize(currentPageScrollArea.element.clientWidth, currentPageScrollArea.element.clientHeight);
 
-            SideBarOverlay.resize();
+            OverlayController.resize();
         });
 
         Browser.window.addEventListener("popstate", _ -> openFromCurrentUrl());
@@ -154,88 +155,35 @@ class HaxeFolioApp
         openDefaultPage(true);
     }
 
-    /*
-        Whether an overlay (built-in preference window or a framework user's own, either
-        presentation) is currently open, guarding `showOverlay` against re-entrant calls - e.g. a
-        user double-pressing the button that triggers one - which would otherwise build a second
-        overlay before the first one is gone.
-    */
-    private static var overlayOpen:Bool = false;
-
-    /*
-        The dismiss closure returned by whichever presentation (ModalOverlay/SideBarOverlay) is
-        currently showing the open overlay, if any - null whenever overlayOpen is false. Held here
-        so switchToPage's navigation guard, and a factory's own `dismiss` callback argument (see
-        showOverlay), both have a way to close the current overlay without knowing which
-        presentation built it.
-    */
-    private static var currentOverlayDismiss:Null<Void->Void> = null;
-
     /**
-        Shows an overlay - the generic, dismissible modal/sidebar mechanism the built-in preference
-        window (`showPreferences`) is itself the first consumer of. Picks a presentation
-        appropriate to the current layout mode: a bottom `SideBar` overlay covering the whole
-        viewport while the menu bar is collapsed (mobile, fully exclusive - nothing beneath it is
-        reachable while it's open, opening or closing), or a centered, non-blocking modal scoped to
-        the page container otherwise (desktop - the rest of the app, menu bar included, stays fully
-        interactive). Neither touches the current page. A no-op while an overlay - built-in or
-        custom - is already open or in the middle of closing; navigating away while one is open
-        force-closes it first (see `switchToPage`).
+        Presents an overlay: a frame holding the regions of the `OverlayContent` that
+        `contentFactory` builds, over a scrim covering the whole screen - a centred dialog while
+        the breakpoint is expanded, a bottom sheet while it is collapsed. Which one is decided
+        internally, once, when `present` is called, and stays fixed for that overlay's lifetime;
+        there is deliberately no presentation argument (see `Overlays` in the manual).
 
-        `slug` identifies this overlay for CSS purposes (`#haxefolio-overlay-<slug>-*`, see
-        `Styling` in the manual) and must be unique across every `showOverlay` call site in the
-        app, including the built-in preference window's own `"preference"`.
+        Both presentations are modal: nothing beneath is reachable - by pointer, keyboard or
+        assistive technology - until the overlay is gone. It is dismissed by Esc, by the `dismiss`
+        handle its factory receives, or by navigating away (which closes it first); nothing else.
 
-        `contentFactory` is only invoked if the call isn't a no-op, and receives a `dismiss`
-        callback the built content can call to close the overlay itself (e.g. a "Save & Close"
-        button) - this is the only way to close an overlay shown with `showCloseButton: false`.
-        `mobileContentFactory`, if given, is used instead of `contentFactory` for the mobile
-        `SideBar` presentation specifically, letting a framework user supply genuinely different
-        component trees for the two presentations; omitted, `contentFactory` is reused for both,
-        which is what `showPreferences` itself does.
-
-        `width`/`height` apply to the desktop modal presentation only (ignored for the mobile
-        sidebar, which is always full-viewport); together with `closeButtonSize`/
-        `closeButtonInsetX`/`closeButtonInsetY`, they're inline overrides applied on top of
-        whatever the shipped/framework-user CSS defaults for this overlay are (see `Styling`) -
-        omit any of them (`null`) to leave that value to CSS entirely. `showCloseButton: false`
-        omits the close button entirely (not just hides it) from whichever presentation is shown.
+        `slug` identifies the overlay for CSS (`#haxefolio-overlay-<slug>-*`) and must be unique
+        per call site. `mobileContentFactory`, if given, is used instead of `contentFactory` while
+        the breakpoint is collapsed. `appearance` overrides the geometry/emphasis - and adds a
+        style class - for this overlay only. `onDismissed` runs once the overlay is entirely gone,
+        after the content's own `onDismissed`. A no-op while an overlay is already open or closing.
     **/
-    public static function showOverlay(slug:String, contentFactory:(Void->Void)->OverlayContent, ?width:Int, ?height:Int, ?closeButtonSize:Int, ?closeButtonInsetX:Int, ?closeButtonInsetY:Int, showCloseButton:Bool = true, ?mobileContentFactory:(Void->Void)->OverlayContent, ?onDismissed:Void->Void):Void
+    public static function present(slug:String, contentFactory:(Void->Void)->OverlayContent, ?mobileContentFactory:(Void->Void)->OverlayContent, ?appearance:AppearanceOverrides, ?onDismissed:Void->Void):Void
     {
-        if (overlayOpen)
-            return;
-
-        overlayOpen = true;
-
-        function onOverlayDismissed():Void
-        {
-            overlayOpen = false;
-            currentOverlayDismiss = null;
-
-            if (onDismissed != null)
-                onDismissed();
-        }
-
-        var activeFactory:(Void->Void)->OverlayContent = (ResponsivityController.isCollapsed && mobileContentFactory != null) ? mobileContentFactory : contentFactory;
-        var content:OverlayContent = activeFactory(() -> currentOverlayDismiss());
-
-        if (ResponsivityController.isCollapsed)
-            currentOverlayDismiss = SideBarOverlay.show(slug, content, showCloseButton, closeButtonSize, closeButtonInsetX, closeButtonInsetY, onOverlayDismissed);
-        else
-            currentOverlayDismiss = ModalOverlay.show(slug, pageContainer, content, width, height, showCloseButton, closeButtonSize, closeButtonInsetX, closeButtonInsetY, onOverlayDismissed);
+        OverlayController.present(slug, contentFactory, mobileContentFactory, appearance, onDismissed);
     }
 
     /**
-        Opens the built-in preference panel. Built on `showOverlay` with slug `"preference"` - see
-        its doc comment for the presentation/dismissal/no-op behavior this inherits, including that
-        navigating away while the panel is open closes it first.
+        Opens the built-in preference panel. Not available at the moment: the panel is being
+        rebuilt on `present`, and until that lands this throws.
     **/
     public static function showPreferences():Void
     {
-        var tabIcons:Map<String, String> = config.preferenceTabIcons ?? [];
-
-        showOverlay("preference", _ -> PreferenceWindowBuilder.build(tabIcons));
+        throw "HaxeFolioApp.showPreferences: the preference window is being rebuilt on `present` and is temporarily unavailable.";
     }
 
     /**
@@ -339,14 +287,8 @@ class HaxeFolioApp
 
     private static function switchToPage(definition:PageDefinition, params:Map<String, String>):Void
     {
-        /*
-            The desktop modal presentation is deliberately non-blocking (see ModalOverlay), so menu
-            bar navigation genuinely works while one is open - without this, a modal (or the mobile
-            sidebar) would otherwise be left dangling over whatever new page gets swapped in below.
-            Force-dismissing first keeps an open overlay and a navigation from silently coexisting.
-        */
-        if (overlayOpen)
-            currentOverlayDismiss();
+        // an open overlay belongs to the page it was opened over; don't leave it dangling over the next one
+        OverlayController.dismissIfOpen();
 
         var page:PageBase = definition.factory(params);
 
@@ -361,8 +303,7 @@ class HaxeFolioApp
         /*
             Every page scrolls vertically inside its own ScrollArea (a fresh one per navigation,
             since pages are never reused), so a page taller than the container scrolls while the
-            menu bar stays put. The area is the container's child, not the page's parent chain's
-            problem: overlays are added to the container directly and so never scroll with a page.
+            menu bar stays put.
         */
         page.percentHeight = null;
 

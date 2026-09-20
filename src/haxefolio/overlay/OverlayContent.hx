@@ -1,45 +1,27 @@
 package haxefolio.overlay;
 
-import haxe.ui.containers.VBox;
-import morestd.Detachable;
+import haxefolio.structure.Region;
 
-/*
-    The shared, presentation-agnostic body of an overlay. A framework user builds their own by
-    instantiating this directly (the same way PreferenceWindowBuilder.build does for the built-in
-    preference window); whichever presentation tears the overlay down is responsible for calling
-    dispose(), so detachables registered by the content don't outlive the overlay they were built
-    for.
-*/
-class OverlayContent extends VBox
-{
-    private final detachables:Array<Detachable> = [];
+/**
+    What an overlay is made of: a title and the ordered regions the overlay's frame holds (see
+    `RegionStack`). Built by the content factories given to `HaxeFolioApp.present`.
+**/
+typedef OverlayContent = {
+    /**
+        The overlay's title. Shown by the `Header` region once it exists; until then, no region reads it.
+    **/
+    title:String,
 
     /**
-        Registers `detachable` to be detached when this content's overlay is dismissed - typically
-        a `Preference.onChange` handle or similar hook a piece of content's own setup registered.
+        The regions the frame holds, top to bottom. At most one may be a `Scroll` region.
     **/
-    public function addDetachable(detachable:Detachable):Void
-    {
-        detachables.push(detachable);
-    }
+    regions:Array<Region>,
 
     /**
-        Detaches every `Detachable` registered via `addDetachable`. Called by the framework once
-        this content's overlay is dismissed - not intended to be called directly by a framework
-        user.
+        The content's own teardown hook: whatever the content registered while it was built - a
+        `Preference.onChange` handle, a `ChoiceGrid` breakpoint binding - is released here. Called
+        exactly once, when the overlay is gone, before the `onDismissed` argument of `present`
+        (which belongs to the host that called `present`, not to the content).
     **/
-    public function dispose():Void
-    {
-        for (detachable in detachables)
-            detachable.detach();
-
-        detachables.resize(0);
-    }
-
-    public function new()
-    {
-        super();
-        percentWidth = 100;
-        percentHeight = 100;
-    }
+    ?onDismissed:Void->Void
 }
