@@ -245,17 +245,26 @@ Independently of that threshold, every time the page container is resized, the a
 
 ### Reacting to the collapse threshold directly
 
-Beyond the menu bar itself, any component whose own layout should change at the same threshold - e.g. a row of controls that stacks vertically once space is tight - can read it directly, rather than inventing a second, competing breakpoint:
+Beyond the menu bar itself, any component whose own layout should change at the same threshold - e.g. a row of controls that stacks vertically once space is tight - can react to it directly, rather than inventing a second, competing breakpoint. A value that differs between the two states is a `ByWidth<T>` (`haxefolio.ByWidth`): either one value, used in both, or an `{expanded:T, collapsed:T}` pair, both converting implicitly:
+
+```haxe
+var perRow:ByWidth<Int> = 4;
+var perRow:ByWidth<Int> = {expanded: 5, collapsed: 3};
+```
 
 ```haxe
 class ResponsivityController
 {
     public static var isCollapsed(default, null):Bool;
-    public static function onCollapseChange(listener:Bool->Void):Detachable
+    public static function bind<T>(value:ByWidth<T>, apply:T->Void):Detachable
 }
 ```
 
-`isCollapsed` is the current state, kept live by the same resize handling described above. `onCollapseChange` registers `listener` to run whenever it actually flips (not on every debounced resize) - calling `listener` immediately, once, with the current value first, so a component built after the initial layout still starts in sync. Detach the returned handle once the component is done with it (e.g. a page's `onClose`), the same `Detachable` convention preferences use (see `Reacting to changes`).
+`isCollapsed` is the current state, kept live by the same resize handling described above. `bind` is the framework's only breakpoint subscription: it calls `apply` immediately, once, with `value` for the current state - so a component built after the initial layout still starts in sync - and again whenever `isCollapsed` actually flips (not on every debounced resize). Detach the returned handle once the component is done with it (e.g. a page's `onClose`), the same `Detachable` convention preferences use (see `Reacting to changes`). A `value` given as a single value rather than a pair never changes, so it isn't subscribed at all and its handle is a no-op.
+
+Every form component that reflows at the breakpoint (`ChoiceRow`, `ChoiceGrid`, `FieldGroup`) takes a `ByWidth` and passes it through `bind` this way, so a host only says *what* differs, never *when*.
+
+Enum constructors inside a `ByWidth` argument resolve unqualified where the expected type is known (`{expanded: Horizontal, collapsed: Vertical}`), but a default argument value can't do this - which is why the `direction` parameters below are optional rather than defaulted.
 
 ## Overlays
 
@@ -362,7 +371,7 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 - **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on. Currently `SwapSlot` (below), which forms use directly; a form imports it from here, not from `haxefolio.form`.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
-  `EmphasisStyle`, `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `ChoicesPerRow`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
+  `EmphasisStyle`, `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
   and still useful directly for a bespoke field the higher-level components don't cover - just
   not the first thing to reach for.
 
@@ -466,15 +475,17 @@ var row:ChoiceRow<String> = new ChoiceRow("Rated", [
 ```
 
 ```haxe
-public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, stackOnCollapse:Bool = false, locked:Bool = false, ?lockReason:String)
+public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByWidth<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
 public function dispose():Void
 ```
 
 `ChoiceOption<T>` (`haxefolio.form.plumbing`) is `{value:T, label:String, ?icon:String}`.
-`stackOnCollapse`, if `true`, switches the row from horizontal to a full-width vertical stack
-whenever `ResponsivityController.isCollapsed` flips (see `Reacting to the collapse threshold
-directly`) - call `dispose()` once the row is done with (e.g. a page's `onClose`) to detach that
-listener; omit `stackOnCollapse` and there's nothing to detach. `locked`/`lockReason` disable
+`direction` (`Horizontal` when omitted) is `Horizontal` for a row of equal-width buttons or
+`Vertical` for a full-width stack; given as `{expanded: Horizontal, collapsed: Vertical}` the row
+stacks whenever `ResponsivityController.isCollapsed` flips (see `Reacting to the collapse
+threshold directly`) - call `dispose()` once the row is done with (e.g. a page's `onClose`) to
+detach that subscription; with a `direction` that doesn't differ between the two states there's
+nothing to detach. `locked`/`lockReason` disable
 every button in place - never hiding the row - and state the reason via the header's own hint,
 the same convention `FieldHeader.locked` already follows on its own.
 
@@ -512,8 +523,9 @@ than bleeding into whatever the slot's host renders next.
 ### ChoiceGrid
 
 The same selection semantics as `ChoiceRow`, but wrapping, for 6-20 curated options: rows of
-`perRow.expanded` cells, or `perRow.collapsed` while `ResponsivityController.isCollapsed` (the
-framework's one app-wide breakpoint - no component-local pixel threshold). Cell width is a
+`perRow` cells - a `ByWidth<Int>`, so `{expanded: 5, collapsed: 3}` picks by
+`ResponsivityController.isCollapsed` (the framework's one app-wide breakpoint - no
+component-local pixel threshold) and a plain `4` is the same in both. Cell width is a
 percentage of the row, and a short final row is padded with empty placeholders so its cells match
 the full rows' width exactly. Whether it selects one option or several is chosen per instance by
 a `ChoiceGridSelection<T>`:
@@ -524,7 +536,7 @@ var multi:ChoiceGrid<String> = new ChoiceGrid("Time controls", stringOptions, Mu
 ```
 
 ```haxe
-public function new(label:String, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ChoicesPerRow, gap:Int = 6, locked:Bool = false, ?lockReason:String)
+public function new(label:String, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ByWidth<Int>, gap:Int = 6, locked:Bool = false, ?lockReason:String)
 public function selectSingle(value:Null<T>):Void
 public function selectMulti(values:Array<T>):Void
 public function dispose():Void
@@ -538,7 +550,7 @@ highlight, and a click on a preset fills the editor: one value, two editors, no 
 click still highlights its own cell at once, so the grid also works unbound.) `selectSingle` and
 `selectMulti` do not call `onSelect`/`onToggle`, and throw when called on the other mode's grid.
 Selection is tracked by the grid, not HaxeUI's `componentGroup`, which cannot express "none
-selected". `dispose()` detaches the collapse listener - call it once the grid is done with.
+selected". `dispose()` detaches the breakpoint subscription - call it once the grid is done with.
 `locked`/`lockReason` behave as on `ChoiceRow`.
 
 ### ToggleButton
@@ -564,23 +576,41 @@ the disabled look when off and the muted locked-selected look (see `ChoiceButton
 ### FieldGroup
 
 A `surfaceSunken` inset box that groups fields belonging to one parameter - a row or a stack
-depending on `direction`, optionally fixed-height whenever its contents can vary. A static
-factory rather than a class a caller instantiates with `new`, since it needs to return a
-genuine `HBox` or `VBox` depending on `direction` and Haxe has no way to extend either
-conditionally - a `Box` with `layout` swapped after construction measured its own `percentWidth`
-against its children's resolved size instead of the other way around, inflating the container
-far past its intended 100% whenever a child itself had a `percentWidth`:
+depending on `direction`, optionally fixed-height whenever its contents can vary. It is the
+framework's reflowing container: `direction` and `fixedHeight` are `ByWidth`s (see `Reacting to
+the collapse threshold directly`), so one group declared as
+`{expanded: Horizontal, collapsed: Vertical}` lays its fields side by side while expanded and
+stacks them while collapsed, with the host never branching on the breakpoint:
 
 ```haxe
-public static function create(children:Array<Component>, direction:FieldGroupDirection = Vertical, ?fixedHeight:Int):Component
+var group:FieldGroup = new FieldGroup(
+    [initialField, bonusField],
+    {expanded: Horizontal, collapsed: Vertical},
+    {expanded: 90, collapsed: 170}
+);
 ```
 
-`FieldGroupDirection` (`haxefolio.form.plumbing`) is `Horizontal`/`Vertical`. It's set once by
-the caller, not derived from `ResponsivityController.isCollapsed` - a layout choice, not a
-responsive behaviour (contrast `ChoiceRow.stackOnCollapse` above, which is the latter kind).
-Children top-align within `fixedHeight` by default, same as any other HaxeUI container - size
-`fixedHeight` to actually match the content (or accept the slack) rather than picking a round
-number, or unused space below top-aligned content can look like uneven padding.
+```haxe
+public function new(fields:Array<Component>, ?direction:ByWidth<FieldGroupDirection>, ?fixedHeight:ByWidth<Int>)
+public function dispose():Void
+```
+
+`FieldGroupDirection` (`haxefolio.form.plumbing`) is `Horizontal`/`Vertical`; `direction` is
+`Vertical` when omitted. A field's own `percentWidth` is what it gets while the group is
+horizontal (remembered at construction - set it on each field to split the row); while vertical it
+is replaced by 100. Call `dispose()` once the group is done with (e.g. a page's `onClose`) to
+detach its breakpoint subscriptions; if neither `direction` nor `fixedHeight` differs between the
+two states there's nothing to detach. Fields top-align within `fixedHeight` by default, same as any
+other HaxeUI container - size `fixedHeight` to actually match the content (or accept the slack)
+rather than picking a round number, or unused space below top-aligned content can look like uneven
+padding. A group never wraps: it is one direction or the other, since deciding layout by
+measurement leaves ragged half-wrapped states between the two.
+
+The group itself is a plain box holding a single genuine `HBox`/`VBox`, replaced with the other
+kind (the fields moved across) when `direction` flips, rather than one box with its `layout`
+swapped in place - which measured its own `percentWidth` against its children's resolved size
+instead of the other way around, inflating the container far past its intended 100% whenever a
+child itself had a `percentWidth`.
 
 ### SteppedValueField<T\>
 

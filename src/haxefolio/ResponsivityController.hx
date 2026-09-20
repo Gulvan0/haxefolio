@@ -103,14 +103,31 @@ class ResponsivityController
                 listener(isCollapsed);
     }
 
+    /**
+        The framework's only breakpoint subscription: applies `value` for the current state
+        immediately, then re-applies it whenever `isCollapsed` actually flips (not on every debounced
+        resize) - so a component built after the initial layout still starts in sync rather than
+        assuming the collapsed default. Anything whose layout depends on the breakpoint beyond what
+        the menu bar itself already reacts to takes a `ByWidth` and passes it through here.
+
+        Detach the returned handle once the subscriber is disposed. For a `ByWidth` that is the same
+        in both states, `apply` runs once and nothing is subscribed, so the handle is a harmless no-op.
+    **/
+    public static function bind<T>(value:ByWidth<T>, apply:T->Void):Detachable
+    {
+        if (value.isConstant)
+        {
+            apply(value.resolve(isCollapsed));
+            return new Detachable(() -> {});
+        }
+
+        return onCollapseChange(collapsed -> apply(value.resolve(collapsed)));
+    }
+
     /*
-        Notifies `listener` whenever `isCollapsed` actually flips (not on every debounced resize),
-        immediately with the current value first - so a component built after the initial layout
-        still starts in sync rather than assuming the collapsed default. For any component whose
-        layout depends on `isCollapsed` beyond what the menu bar itself already reacts to (e.g. a
-        `ChoiceRow` stacking on mobile) - detach the returned handle once the component is disposed.
+        Notifies `listener` whenever `isCollapsed` actually flips, immediately with the current value first.
     */
-    public static function onCollapseChange(listener:Bool->Void):Detachable
+    private static function onCollapseChange(listener:Bool->Void):Detachable
     {
         collapseChangeListeners.push(listener);
         listener(isCollapsed);

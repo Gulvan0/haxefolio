@@ -3,17 +3,17 @@ package haxefolio.form;
 import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
+import haxefolio.ByWidth;
 import haxefolio.form.plumbing.ChoiceButton;
 import haxefolio.form.plumbing.ChoiceGridSelection;
 import haxefolio.form.plumbing.ChoiceOption;
-import haxefolio.form.plumbing.ChoicesPerRow;
 import haxefolio.form.plumbing.FieldHeader;
 import morestd.Detachable;
 
 /*
     The same selection semantics as ChoiceRow, but wrapping, for 6-20 curated options - under a
-    FieldHeader, in rows of `perRow.expanded`/`perRow.collapsed` cells (keyed off
-    `ResponsivityController.isCollapsed`, the framework's one app-wide breakpoint).
+    FieldHeader, in rows of `perRow` cells (a `ByWidth`, so it may differ between the
+    framework's one app-wide breakpoint's two states - see `ResponsivityController.bind`).
 
     Cell width is a percentage of the row, never pixels, so a host's scrollbar gutter or a padding
     change cannot push the last cell onto another row; a final short row is padded with empty
@@ -39,15 +39,14 @@ class ChoiceGrid<T> extends VBox
 {
     private final options:Array<ChoiceOption<T>>;
     private final selection:ChoiceGridSelection<T>;
-    private final perRow:ChoicesPerRow;
     private final gap:Int;
     private final rowContainer:VBox;
     private final buttons:Array<ChoiceButton> = [];
-    private final collapseListener:Detachable;
+    private final perRowBinding:Detachable;
     private var selectedSingle:Null<T>;
     private var selectedMulti:Array<T>;
 
-    public function new(label:String, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ChoicesPerRow, gap:Int = 6, locked:Bool = false, ?lockReason:String)
+    public function new(label:String, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ByWidth<Int>, gap:Int = 6, locked:Bool = false, ?lockReason:String)
     {
         super();
 
@@ -56,7 +55,6 @@ class ChoiceGrid<T> extends VBox
         this.addClass("haxefolio-choice-grid");
         this.options = options;
         this.selection = selection;
-        this.perRow = perRow;
         this.gap = gap;
 
         switch selection
@@ -84,7 +82,7 @@ class ChoiceGrid<T> extends VBox
 
         renderSelection();
 
-        collapseListener = ResponsivityController.onCollapseChange(rebuildRows);
+        perRowBinding = ResponsivityController.bind(perRow, rebuildRows);
     }
 
     /**
@@ -119,12 +117,13 @@ class ChoiceGrid<T> extends VBox
     }
 
     /**
-        Detaches this grid's `ResponsivityController.onCollapseChange` listener - call once the
-        grid is removed for good (e.g. from a page's `onClose`).
+        Detaches this grid's breakpoint subscription (see `ResponsivityController.bind`) - call once
+        the grid is removed for good (e.g. from a page's `onClose`). A no-op unless `perRow`
+        differs between the two breakpoint states.
     **/
     public function dispose():Void
     {
-        collapseListener.detach();
+        perRowBinding.detach();
     }
 
     private function onCellClicked(value:T):Void
@@ -159,10 +158,8 @@ class ChoiceGrid<T> extends VBox
         }
     }
 
-    private function rebuildRows(collapsed:Bool):Void
+    private function rebuildRows(cellsPerRow:Int):Void
     {
-        var cellsPerRow:Int = collapsed ? perRow.collapsed : perRow.expanded;
-
         for (button in buttons)
         {
             if (button.parentComponent != null)

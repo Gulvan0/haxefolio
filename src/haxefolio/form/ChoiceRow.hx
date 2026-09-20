@@ -4,8 +4,10 @@ import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.layouts.HorizontalLayout;
 import haxe.ui.layouts.VerticalLayout;
+import haxefolio.ByWidth;
 import haxefolio.form.plumbing.ChoiceButton;
 import haxefolio.form.plumbing.ChoiceOption;
+import haxefolio.form.plumbing.FieldGroupDirection;
 import haxefolio.form.plumbing.FieldHeader;
 import haxefolio.form.plumbing.HintState;
 import haxefolio.form.plumbing.IconAlign;
@@ -27,9 +29,9 @@ class ChoiceRow<T> extends VBox
     private final buttonRow:HBox;
     private final buttons:Array<ChoiceButton> = [];
     private final optionCount:Int;
-    private final collapseListener:Null<Detachable>;
+    private final directionBinding:Detachable;
 
-    public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, stackOnCollapse:Bool = false, locked:Bool = false, ?lockReason:String)
+    public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByWidth<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
     {
         super();
 
@@ -55,26 +57,30 @@ class ChoiceRow<T> extends VBox
             buttonRow.addComponent(button);
         }
 
-        collapseListener = stackOnCollapse ? ResponsivityController.onCollapseChange(applyStacking) : null;
-        if (!stackOnCollapse)
-            applyStacking(false);
+        var resolvedDirection:ByWidth<FieldGroupDirection> = FieldGroupDirection.Horizontal;
+        if (direction != null)
+            resolvedDirection = direction;
+
+        directionBinding = ResponsivityController.bind(resolvedDirection, applyDirection);
     }
 
-    private function applyStacking(collapsed:Bool):Void
+    private function applyDirection(direction:FieldGroupDirection):Void
     {
-        buttonRow.layout = collapsed ? new VerticalLayout() : new HorizontalLayout();
+        var stacked:Bool = direction == Vertical;
+
+        buttonRow.layout = stacked ? new VerticalLayout() : new HorizontalLayout();
 
         for (button in buttons)
-            button.percentWidth = collapsed ? 100 : (100 / optionCount);
+            button.percentWidth = stacked ? 100 : (100 / optionCount);
     }
 
     /**
-        Detaches this row's `ResponsivityController.onCollapseChange` listener, if `stackOnCollapse`
-        was `true` - call once this row is removed for good (e.g. from a page's `onClose`).
+        Detaches this row's breakpoint subscription (see `ResponsivityController.bind`) - call once
+        this row is removed for good (e.g. from a page's `onClose`). A no-op unless `direction`
+        differs between the two breakpoint states.
     **/
     public function dispose():Void
     {
-        if (collapseListener != null)
-            collapseListener.detach();
+        directionBinding.detach();
     }
 }

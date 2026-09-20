@@ -74,7 +74,12 @@ class FormDemoPage extends PageBase
             { value: "white", label: "White" },
             { value: "random", label: "Random" },
             { value: "black", label: "Black" }
-        ], "random", value -> trace('selected: $value'), false, true, "Rated games use random colour"));
+        ], "random", value -> trace('selected: $value'), Horizontal, true, "Rated games use random colour"));
+        addComponent(new ChoiceRow("Colour (stacks when collapsed)", [
+            { value: "white", label: "White" },
+            { value: "random", label: "Random" },
+            { value: "black", label: "Black" }
+        ], "random", value -> trace('selected: $value'), {expanded: Horizontal, collapsed: Vertical}));
 
         addComponent(sectionLabel("SwapSlot<DemoSwapVariant> (height stays 60px even though Open's content would naturally wrap to ~4 lines / 80px+)"));
         var directLabel:Label = new Label();
@@ -94,7 +99,7 @@ class FormDemoPage extends PageBase
         addComponent(toOpen);
         addComponent(swapSlot);
 
-        addComponent(sectionLabel("FieldGroup (horizontal, fixed height)"));
+        addComponent(sectionLabel("FieldGroup (horizontal expanded / vertical collapsed, fixed height 44 / 68)"));
         var left:Label = new Label();
         left.text = "Left child";
         left.percentWidth = 50;
@@ -102,7 +107,7 @@ class FormDemoPage extends PageBase
         right.text = "Right child";
         right.percentWidth = 50;
         right.textAlign = "right";
-        addComponent(FieldGroup.create([left, right], Horizontal, 44)); // 12px padding + 20px single-line label + 12px padding
+        addComponent(new FieldGroup([left, right], {expanded: Horizontal, collapsed: Vertical}, {expanded: 44, collapsed: 68})); // 12px padding + 20px per single-line label + 12px padding, + the 5px gap when stacked
 
         addComponent(sectionLabel("Stepper (standalone, no value semantics)"));
         var standaloneText:Label = new Label();
@@ -122,7 +127,7 @@ class FormDemoPage extends PageBase
         bonusField.percentWidth = 50;
         var initialField:SteppedValueField<Int> = DurationField.create("Initial time", 300, value -> lastValue.text = 'onChange: initial = $value', 0, 21600, "max 6:00:00", "use m:ss", "out of range", true, valid -> trace('initial valid: $valid'));
         initialField.percentWidth = 50;
-        addComponent(FieldGroup.create([initialField, bonusField], Horizontal, 90));
+        addComponent(new FieldGroup([initialField, bonusField], {expanded: Horizontal, collapsed: Vertical}, {expanded: 90, collapsed: 142}));
         addComponent(lastValue);
 
         var presetToOneHour:Button = new Button();
