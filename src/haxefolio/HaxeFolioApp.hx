@@ -21,6 +21,7 @@ import haxefolio.overlay.builder.SideBarOverlay;
 import haxefolio.preferences.PreferenceRegistry;
 import haxefolio.preferences.StorageBackend;
 import haxefolio.preferences.builder.PreferenceWindowBuilder;
+import haxefolio.structure.ScrollArea;
 import haxefolio.PageRouter.PageResolution;
 
 using StringTools;
@@ -53,6 +54,7 @@ class HaxeFolioApp
     private static var config:HaxeFolioConfig;
     private static var pageContainer:Box;
     private static var currentPage:PageBase;
+    private static var currentPageScrollArea:ScrollArea;
 
     /**
         Initializes the framework from `config`: builds the menu bar and side bar, sets up
@@ -122,7 +124,7 @@ class HaxeFolioApp
 
         ResponsivityController.init(pageContainer, menuBarBuildResult.hamburgerButton, menuBarBuildResult.collapsibleComponents, menuCollapseWidth, debounceMs, (width, height) -> {
             if (currentPage != null)
-                currentPage.onResize(width, height);
+                currentPage.onResize(currentPageScrollArea.element.clientWidth, currentPageScrollArea.element.clientHeight);
 
             SideBarOverlay.resize();
         });
@@ -351,11 +353,28 @@ class HaxeFolioApp
         if (currentPage != null)
         {
             currentPage.finalizeClose();
-            pageContainer.removeComponent(currentPage, true);
+            pageContainer.removeComponent(currentPageScrollArea, true);
             currentPage = null;
+            currentPageScrollArea = null;
         }
 
-        pageContainer.addComponent(page);
+        /*
+            Every page scrolls vertically inside its own ScrollArea (a fresh one per navigation,
+            since pages are never reused), so a page taller than the container scrolls while the
+            menu bar stays put. The area is the container's child, not the page's parent chain's
+            problem: overlays are added to the container directly and so never scroll with a page.
+        */
+        page.percentHeight = null;
+
+        // the inset lives inside the scrolling area, so the area itself (and its scrollbar) reaches the window edge
+        var inset:Box = new Box();
+        inset.percentWidth = 100;
+        inset.addClass("haxefolio-page-container-inset");
+        inset.addComponent(page);
+
+        var scrollArea:ScrollArea = new ScrollArea(inset);
+        scrollArea.percentHeight = 100;
+        pageContainer.addComponent(scrollArea);
 
         try
         {
@@ -363,7 +382,7 @@ class HaxeFolioApp
         }
         catch (e:Dynamic)
         {
-            pageContainer.removeComponent(page, true);
+            pageContainer.removeComponent(scrollArea, true);
             throw e;
         }
 
@@ -371,6 +390,7 @@ class HaxeFolioApp
             Browser.document.title = LocaleUtils.resolveText(config.defaultTitleText ?? config.siteName);
 
         currentPage = page;
+        currentPageScrollArea = scrollArea;
     }
 
     private static function get_navigationState():Dynamic

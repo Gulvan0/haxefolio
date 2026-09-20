@@ -12,6 +12,7 @@ import overlay.CustomOverlayContent;
 import pages.AboutPage;
 import pages.FormDemoPage;
 import pages.HomePage;
+import pages.StructureDemoPage;
 import pages.TextDemoPage;
 
 class Main
@@ -28,6 +29,7 @@ class Main
             .addPage("about", params -> new AboutPage())
             .addPage("text-demo", params -> new TextDemoPage())
             .addPage("form-demo", params -> new FormDemoPage())
+            .addPage("structure-demo", params -> new StructureDemoPage())
             .addLeftMenubarItem(NormalMenu("navigation", []))
             .addNormalMenuItem("navigation", "home", NavigateTo(() -> "home"))
             .addNormalMenuItem("navigation", "about", NavigateTo(() -> "about"))
@@ -36,6 +38,8 @@ class Main
             .addNormalMenuItem("text-demo", "reset-labels", Execute(resetLabels), null, "{{haxefolio.sample.reset_labels_label}}")
             .addLeftMenubarItem(NormalMenu("form-demo", []))
             .addNormalMenuItem("form-demo", "open", NavigateTo(() -> "form-demo"))
+            .addLeftMenubarItem(NormalMenu("structure-demo", []))
+            .addNormalMenuItem("structure-demo", "open", NavigateTo(() -> "structure-demo"))
             .addLeftMenubarItem(NormalMenu("overlay-demo", []))
             .addNormalMenuItem("overlay-demo", "plain", Execute(showPlainOverlay))
             .addNormalMenuItem("overlay-demo", "dismissible", Execute(showDismissibleOverlay))

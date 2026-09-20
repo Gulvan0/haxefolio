@@ -9,3 +9,12 @@
     width: 14px;
     height: 14px;
 }
+
+.sample-section-header {
+    font-name: $ui-family-semibold;
+    font-size: 17px;
+    font-weight: 600;
+    color: #2f3540;
+    margin-top: 28px;
+    margin-bottom: 6px;
+}

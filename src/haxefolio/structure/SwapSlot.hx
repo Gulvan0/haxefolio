@@ -15,6 +15,9 @@ import haxe.ui.core.Component;
     than merely possible, so the "constant height, never measured" contract is part of the type
     itself rather than a convention a bare `Stack` would let a caller forget. If a variant does
     not fit the supplied height, that is a design error to fix, not a case to accommodate.
+
+    The height may be reassigned later through the inherited `height` property - what lets an
+    owner that computes it (e.g. a region stack sizing tab pages) push a new value in.
 */
 class SwapSlot<K> extends Stack
 {

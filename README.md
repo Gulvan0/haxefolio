@@ -55,12 +55,20 @@ class GamePage extends PageBase
 ```
 
 - `init` runs once the page has been added to the container - the place for a page's own setup, rather than its constructor. May throw; `HaxeFolioApp.navigateTo` may also be called from here to redirect elsewhere before the page finishes opening.
-- `onResize(width, height)` runs whenever the page container's size changes, debounced (see `Responsivity`), with the container's new pixel dimensions.
+- `onResize(width, height)` runs whenever the page container's size changes, debounced (see `Responsivity`), with the pixel dimensions of the area the page is laid out in: the container's, minus the always-reserved scrollbar lane (see `Page scrolling` below) - so `width` is the width the page can actually use.
 - `onClose` runs right before the page is torn down and the user is navigated away - the place for cleanup such as detaching preference `onChange` handlers (see `Preferences`) or cancelling pending requests. Calling `navigateTo` from here is not supported.
 
 If a page's factory (see below) or `init` throws, the framework redirects to the default page instead - except when the default page's own factory/`init` is what throws, in which case the exception is left uncaught.
 
 Each page is isolated: nothing a page does affects any other page. Pages are also never reused - navigating away destroys the current page for good, and navigating back to the "same" page later creates a fresh instance.
+
+### Page scrolling
+
+The page is mounted in a `ScrollArea` (see `ScrollArea` under `Region stacks`) inside the page container, so a page taller than the container scrolls vertically while the menu bar stays put - a page needs no scrolling code of its own. The `ScrollArea` treatment applies as it does everywhere: scrolling stops at the end of the page rather than continuing into the browser page behind it, and the scrollbar lane is always reserved (10px, at the right edge of the container), so a page is the same width whether or not it overflows; the scrollbar thumb itself only appears when it does. A fresh area is created for every navigation, so a page always opens scrolled to the top.
+
+Horizontal overflow is not scrollable: a page is expected to fit the width it's given (its percentage-sized children resolve against the width excluding the lane), and anything wider is clipped.
+
+The page's height is that of its content, not of the container: a `percentHeight` on the page itself (or on a child, relative to it) has nothing to resolve against and should not be relied on. The host `index.html` must keep `overflow: hidden` on `html`/`body` - the framework scrolls the page itself, and a scrolling document would carry the menu bar away with it.
 
 ### Registering pages
 
@@ -241,7 +249,7 @@ HaxeFolio reacts to viewport size changes - window resizing on desktop, orientat
 
 Below `HaxeFolioConfig.menuCollapseWidth` (an author-chosen width past which the menu bar no longer fits everything; defaults to 900), the menu bar hides its `NormalMenu`s and any `Widget` not marked `persistent`, and reveals the hamburger button to reach the side bar instead. Above it, the reverse. Deciding *what* happens at the threshold is HaxeFolio's job; the framework user only supplies the threshold itself and which widgets should stay persistent.
 
-Independently of that threshold, every time the page container is resized, the active page's `onResize(width, height)` is called with its new pixel dimensions (see `Pages`) - overriding it to react to size changes is the framework user's responsibility.
+Independently of that threshold, every time the page container is resized, the active page's `onResize(width, height)` is called with the new pixel dimensions of the area it is laid out in (see `Pages`) - overriding it to react to size changes is the framework user's responsibility.
 
 ### Reacting to the collapse threshold directly
 
@@ -368,7 +376,7 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 
 - **`haxefolio.form`** - the components a framework user actually reaches for and composes a
   form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `PreviewPane`, `FormSection` below, and more as the library grows.
-- **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on. Currently `SwapSlot` (below), which forms use directly; a form imports it from here, not from `haxefolio.form`.
+- **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on: `SwapSlot` (below), which forms use directly, plus `RegionStack`, `Region` and `ScrollArea` (see `Region stacks`); a form imports it from here, not from `haxefolio.form`.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
   `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
@@ -513,7 +521,9 @@ public function new(variants:Map<K, Component>, active:K, height:Int)
 public var active(default, set):K;
 ```
 
-Setting `active` to a key that was never registered in `variants` throws - a mismatch there is
+The height is given by whoever owns the slot, never measured, and may be reassigned afterwards
+(`slot.height = 90`) - the inherited `Component.height`, which is how an owner that computes
+the height (see `RegionStack`) pushes a new one in. Setting `active` to a key that was never registered in `variants` throws - a mismatch there is
 a programming error, not a case to accommodate. If a variant's content doesn't fit `height`,
 fix the variant or the height; `SwapSlot` will not measure and resize around it - it also does
 not clip on its own, so its `.haxefolio-swap-slot` class carries `clip: true;` (HaxeUI's
@@ -765,6 +775,67 @@ public function new(?label:String, ?headerHint:String, children:Array<Component>
   state a reason in. Lock the fields inside it, and show the reason in a `HintLine` placed
   beneath it.
 
+## Region stacks
+
+`haxefolio.structure` also holds the frame that overlays are composed from. A `RegionStack` is a
+frame of a given height holding an ordered list of `Region`s - the building block the overlay
+system is built on, and usable on its own for any fixed-size panel with a scrolling body:
+
+```haxe
+var stack:RegionStack = new RegionStack([
+    Custom(60, headerContent),
+    Scroll(bodyContent),
+    Custom({expanded: 68, collapsed: 100}, footerContent)
+], 420);
+
+stack.frameHeight = 300; // e.g. from a viewport resize; only the scrolling area changes
+stack.dispose();         // once done with it, to detach its breakpoint subscriptions
+```
+
+```haxe
+public function new(regions:Array<Region>, frameHeight:Float)
+public var frameHeight(default, set):Float
+public function scrollHeight():Float
+public function dispose():Void
+```
+
+```haxe
+enum Region
+{
+    Custom(height:ByWidth<Int>, content:Component);
+    Scroll(content:Component);
+}
+```
+
+- **Every height is declared, never measured.** `Custom` regions have the `height` they are given (a
+  `ByWidth`, so it may differ between the expanded and collapsed states; content that doesn't fit is
+  cut off, not accommodated), and the frame has `frameHeight`. The `Scroll` region gets
+  `scrollHeight = frameHeight - sum of the fixed heights`, recomputed when `frameHeight` or the breakpoint
+  state changes. It is the only region that ever resizes; nothing is asked how tall it is, so adding
+  content to one region never moves another.
+- A stack has at most one `Scroll` region (more throws) and may have none. If the fixed regions alone
+  exceed the frame, the scrolling area is hidden rather than overflowing - a design error to correct.
+- Only these two regions exist so far. `Header`, `Actions`, `Search` and `Tabs` are added as their
+  components are built; each reads its height from `GeometryTokens` (see `Appearance`), so the arithmetic
+  above doesn't change.
+
+### ScrollArea
+
+Every scrolling area the framework builds - a `Scroll` region, and later every tab page - is a
+`ScrollArea` (`haxefolio.structure.ScrollArea`), also usable directly (`new ScrollArea(content)`; give it a
+`height`). It is HaxeUI's `ScrollView` in native scroll mode with a fixed treatment:
+
+- vertical scrolling only;
+- **the scrollbar lane is always reserved** (10px), whether or not the content overflows, so usable width
+  never changes when content grows past the area (which would silently re-wrap percentage-sized rows);
+- **scrolling that reaches an end stops there** (`overscroll-behavior: contain`) and never scrolls
+  the page behind, for wheel, drag and touch momentum alike;
+- the scrollbar is a thin transparent-track bar with a 6px rounded thumb (`#cccdd1`, `#b3b3b6` on hover,
+  `#90929a` while dragged) - drawn with `::-webkit-scrollbar`, which HaxeUI stylesheets can't reach, so
+  its rules are injected once as a plain document stylesheet, keyed on the DOM class
+  `haxefolio-scroll-area`. Firefox has no such pseudo-elements: it gets a thin scrollbar of the same
+  colours, with its own width.
+
 ## Preferences
 
 HaxeFolio comes with a preference system: a framework user declares named, typed preferences; their values persist to LocalStorage automatically, are editable by the website user through an auto-generated preference window, and are readable/writable from the app's own code with change notifications.
@@ -952,7 +1023,7 @@ HaxeFolioConfigBuilder.init("my-app", Preferences)
 ```
 
 - **`EmphasisStyle`** is `Filled` (default) or `Outlined`: which treatment means "primary" - a solid `accent` fill, or an `accentTint` fill with an `accentMuted` border. `ChoiceButton`, `ToggleButton` and the commit button of `CommitTextField` read it when they are built, so they always agree with each other. Colour is still the stylesheet's business: it can restyle both treatments, but only code says which one is in use. There is no CSS channel for selecting it.
-- **`GeometryTokens`** is the table of constants the framework's height arithmetic reads - `headerHeight` (60), `actionBarHeight` (68), `tabStripHeight` (44), `searchBarHeight` (52), `fieldHeight` (38), `messageLine` (16), `rowGap` (8) and `padding` (16), the first five being `ByWidth<Int>` so they may differ between expanded and collapsed. They live in code rather than CSS because they are needed before layout, and reading them back out of the style engine would make the arithmetic depend on cascade timing. Overriding a token propagates to every sum that reads it. Note that the built-in components do not yet all consume these tokens; each is wired up as the region that uses it lands.
+- **`GeometryTokens`** is the table of constants the framework's height arithmetic reads - `headerHeight` (60), `actionBarHeight` (68), `tabStripHeight` (44), `searchBarHeight` (52), `fieldHeight` (38), `messageLine` (16), `rowGap` (10) and `padding` (22), the first five being `ByWidth<Int>` so they may differ between expanded and collapsed. They live in code rather than CSS because they are needed before layout, and reading them back out of the style engine would make the arithmetic depend on cascade timing. Overriding a token propagates to every sum that reads it. Note that the built-in components do not yet all consume these tokens; each is wired up as the region that uses it lands.
 
 `AppearanceOverrides` also has an optional `styleClass`; it only has meaning for a per-overlay override and is ignored in `HaxeFolioConfig.appearance`.
 
@@ -965,6 +1036,23 @@ Every component HaxeFolio builds carries a `haxefolio-*` CSS class (and often an
     color: #205081;
 }
 ```
+
+### Styling plain HaxeUI components the HaxeFolio way
+
+A plain HaxeUI `Button` or `Label` - one a framework user creates directly, rather than a HaxeFolio component - keeps HaxeUI's own look by default. To give it the framework's, add the respective class:
+
+```haxe
+var button:Button = new Button();
+button.addClass("haxefolio-button");
+
+var label:Label = new Label();
+label.addClass("haxefolio-label");
+```
+
+- `haxefolio-button` makes a `Button` look like an unselected `ChoiceButton` (see `ChoiceButton`), including its `:hover`, `:disabled` and, for a toggle button, `:down` states.
+- `haxefolio-label` gives a `Label` the body text style from `Typography` (`ui` family, 13px, weight 500, `ink`; muted when disabled).
+
+Nothing else is affected: components HaxeFolio or HaxeUI build themselves (menu bar items, switch thumbs, steppers, ...) never carry these classes, so they keep their own styling. In XML markup, use `styleName="haxefolio-button"`. HaxeUI stylesheets have no specificity - among matching rules the last one wins - so an app's own rule for the same component overrides these defaults simply by being registered later.
 
 `MenuFacade.menuBar`/`sideBar` are also exposed as static members, letting a framework user reach into either component and adjust properties directly - once, right after `HaxeFolioApp.init` returns (there's no need to account for redraws, since this only runs once at startup). No overlay - the built-in preference window included - has an equivalent static member: unlike the menu bar/side bar, an overlay isn't built once at startup - a fresh instance is built on every `showOverlay`/`showPreferences()` call instead, since it must pick one of its two presentations depending on the current layout mode (see `Overlays`). The preference window's supported customization points are instead `HaxeFolioConfig.preferenceTabIcons` and CSS.
 
@@ -1035,7 +1123,8 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 
 | Selector | Notes |
 |---|---|
-| `.haxefolio-page-container` / `#haxefolio-page-container` | The box the active page is mounted into. |
+| `.haxefolio-page-container` / `#haxefolio-page-container` | The box the active page's `ScrollArea` is mounted into (see `Page scrolling`); carries no padding, so the scrollbar reaches the window edge. |
+| `.haxefolio-page-container-inset` | The box inside the scrolling area that holds the page and gives it its 10px inset (the page itself adds its own 5px padding). |
 
 #### Menu bar and side bar
 
@@ -1078,7 +1167,11 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-stepper-input` / `-invalid` / `:disabled` | Its text input; `-invalid` applies whenever `invalid == true`. |
 | `.haxefolio-stepped-value-field` | A `SteppedValueField`'s own box (no default styling). |
 | `.haxefolio-field-group` | A `FieldGroup`'s own box. `SwapSlot` carries no styling of its own - it's a bare `Stack`. |
+| `.haxefolio-region-stack` / `.haxefolio-region-custom` | A `RegionStack`'s own box / one of its `Custom` regions' slots. |
+| `.haxefolio-scroll-area` | A `ScrollArea`. Also a plain DOM class on its element - that is what the scrollbar rules key on. |
 | `.haxefolio-form-section` | A `FormSection`'s own box; carries the 18px bottom margin. |
+| `.haxefolio-button` / `:hover` / `:down` / `:disabled` | Opt-in look for a plain `Button` (see `Styling plain HaxeUI components the HaxeFolio way`). |
+| `.haxefolio-label` / `:disabled` | Opt-in look for a plain `Label`, same section. |
 
 #### Preference window
 

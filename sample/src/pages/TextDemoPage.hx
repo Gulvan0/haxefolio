@@ -54,6 +54,7 @@ class TextDemoPage extends PageBase
     {
         var label:Label = new Label();
         label.text = text;
+        label.addClass("sample-section-header");
         return label;
     }
 

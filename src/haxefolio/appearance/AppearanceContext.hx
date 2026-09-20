@@ -57,8 +57,8 @@ class AppearanceContext
                 searchBarHeight: 52,
                 fieldHeight: 38,
                 messageLine: 16,
-                rowGap: 8,
-                padding: 16
+                rowGap: 10,
+                padding: 22
             },
             emphasis: Filled
         };
