@@ -1,4 +1,4 @@
-package haxefolio.form;
+package haxefolio.structure;
 
 import haxe.ui.containers.Stack;
 import haxe.ui.core.Component;

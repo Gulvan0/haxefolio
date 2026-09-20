@@ -358,7 +358,8 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 `haxefolio.preferences`/`.builder` already use elsewhere in the framework:
 
 - **`haxefolio.form`** - the components a framework user actually reaches for and composes a
-  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SwapSlot`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `PreviewPane`, `FormSection` below, and more as the library grows.
+  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `PreviewPane`, `FormSection` below, and more as the library grows.
+- **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on. Currently `SwapSlot` (below), which forms use directly; a form imports it from here, not from `haxefolio.form`.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
   `EmphasisStyle`, `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `ChoicesPerRow`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
@@ -479,7 +480,7 @@ the same convention `FieldHeader.locked` already follows on its own.
 
 ### SwapSlot<K\>
 
-A fixed-height region that shows one of several variants - built on HaxeUI's own `Stack`
+`haxefolio.structure.SwapSlot`. A fixed-height region that shows one of several variants - built on HaxeUI's own `Stack`
 rather than from scratch: `Stack` already shows exactly one child at a time and, given an
 explicit height, already won't resize when the selection changes, since a hidden child is
 excluded from layout. What this adds over a bare `Stack`: selecting by an arbitrary key `K`

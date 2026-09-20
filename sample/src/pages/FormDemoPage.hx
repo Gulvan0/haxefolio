@@ -13,7 +13,7 @@ import haxefolio.form.FormSection;
 import haxefolio.form.IntField;
 import haxefolio.form.PreviewPane;
 import haxefolio.form.SteppedValueField;
-import haxefolio.form.SwapSlot;
+import haxefolio.structure.SwapSlot;
 import haxefolio.form.ToggleButton;
 import haxefolio.form.plumbing.ChoiceButton;
 import haxefolio.form.plumbing.ChoiceGridSelection;
