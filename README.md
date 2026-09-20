@@ -371,7 +371,7 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 - **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on. Currently `SwapSlot` (below), which forms use directly; a form imports it from here, not from `haxefolio.form`.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
-  `EmphasisStyle`, `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
+  `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
   and still useful directly for a bespoke field the higher-level components don't cover - just
   not the first thing to reach for.
 
@@ -431,10 +431,10 @@ public function new(label:String, onClick:Void->Void, ?icon:String, iconAlign:Ic
 Its selected-state styling hooks off `:down` - the pseudo-class a toggle `Button` already
 applies for as long as `selected == true`, not just while the mouse is held - rather than a
 class this component would otherwise have to manage itself. Which visual treatment `:down`
-resolves to (`Filled`/`Outlined`) is not a constructor argument at all: it comes from the
-enclosing host via the `haxefolio-emphasis-outlined` class (absent it, `Filled` - a solid
-`accent` fill - is the default) on any ancestor, so every `ChoiceButton`/`ToggleButton` inside
-a host agrees on what "active" looks like. `IconAlign` is `Leading`/`Trailing`.
+resolves to (`Filled`/`Outlined`) is not a constructor argument at all: it is the app's
+`EmphasisStyle` (see `Appearance`), read when the button is built (`Filled` - a solid `accent`
+fill - by default), so every `ChoiceButton`/`ToggleButton` agrees on what "active" looks like.
+`IconAlign` is `Leading`/`Trailing`.
 
 A disabled button that is also selected (a locked row showing the value actually in effect) has
 its own muted grey-blue look, `:down:disabled`: unmistakably "chosen", yet clearly inert, and
@@ -713,8 +713,8 @@ public var enabled(default, set):Bool;
   blur trigger: HaxeFolio disables HaxeUI's `FocusManager`, so no focus-out is delivered, and a
   blur-commit would fire before the click on the button and commit twice.
 - `enabled = false` disables the input and button and greys the label.
-- The button follows `EmphasisStyle` like `ChoiceButton` does (solid fill by default,
-  `haxefolio-emphasis-outlined` on an ancestor for the tinted-and-bordered look).
+- The button follows `EmphasisStyle` like `ChoiceButton` does (solid fill by default, the
+  tinted-and-bordered look under `Outlined`).
 
 ### PreviewPane
 
@@ -877,6 +877,7 @@ Every displayed string is localized; see `Locale keys` in `Reference`.
 | `siteName` | `String` | Site name label text - see `Menu bar` for how it's interpreted. |
 | `?menuCollapseWidth` | `Int` | Mobile/desktop breakpoint (see `Responsivity`). Defaults to 900. |
 | `?debounceMs` | `Int` | Resize handling debounce interval, in milliseconds (see `Responsivity`). Defaults to 500. |
+| `?appearance` | `AppearanceOverrides` | Theme-wide overrides of the framework's code-side appearance - geometry tokens and `EmphasisStyle` (see `Appearance`). |
 | `pages` | `Array<PageDefinition>` | See `Registering pages`. |
 | `menubar` | `MenuBarConfig` (`{left, right}`) | See `Menu bar`. |
 | `?sidebarExtras` | `Array<SidebarGroup>` | See `Side bar`. |
@@ -931,6 +932,29 @@ An app's own module is processed after its library dependencies, so this overrid
 | Hint, status, validation | ui | 11px | 400 | `inkMuted` / `danger` |
 
 Field labels are sentence case, not mono uppercase - small mono caps read as administrative software, can't be tracked out without `letter-spacing`, and Cyrillic caps run particularly wide.
+
+## Appearance
+
+Theming is split by who consumes a value. Colour and typography are consumed by the renderer and stay in stylesheets (see `Typography` and `Styling`) - the cascade is the mechanism for them. What a stylesheet cannot carry is anything the framework *computes with* or a *semantic choice* components must agree on; those are code-side, in `Appearance` (`haxefolio.appearance`):
+
+```haxe
+typedef Appearance = {
+    geometry:GeometryTokens,
+    emphasis:EmphasisStyle
+}
+```
+
+A host overrides any part of it theme-wide through `HaxeFolioConfig.appearance` (or `HaxeFolioConfigBuilder.setAppearance`), an `AppearanceOverrides` - the same shape with every field optional, `geometry` itself partial - applied over the built-in defaults by `HaxeFolioApp.init`:
+
+```haxe
+HaxeFolioConfigBuilder.init("my-app", Preferences)
+    .setAppearance({emphasis: Outlined, geometry: {headerHeight: {expanded: 60, collapsed: 72}}})
+```
+
+- **`EmphasisStyle`** is `Filled` (default) or `Outlined`: which treatment means "primary" - a solid `accent` fill, or an `accentTint` fill with an `accentMuted` border. `ChoiceButton`, `ToggleButton` and the commit button of `CommitTextField` read it when they are built, so they always agree with each other. Colour is still the stylesheet's business: it can restyle both treatments, but only code says which one is in use. There is no CSS channel for selecting it.
+- **`GeometryTokens`** is the table of constants the framework's height arithmetic reads - `headerHeight` (60), `actionBarHeight` (68), `tabStripHeight` (44), `searchBarHeight` (52), `fieldHeight` (38), `messageLine` (16), `rowGap` (8) and `padding` (16), the first five being `ByWidth<Int>` so they may differ between expanded and collapsed. They live in code rather than CSS because they are needed before layout, and reading them back out of the style engine would make the arithmetic depend on cascade timing. Overriding a token propagates to every sum that reads it. Note that the built-in components do not yet all consume these tokens; each is wired up as the region that uses it lands.
+
+`AppearanceOverrides` also has an optional `styleClass`; it only has meaning for a per-overlay override and is ignored in `HaxeFolioConfig.appearance`.
 
 ## Styling
 
@@ -1046,8 +1070,9 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-field-header-hint` / `.haxefolio-field-header-hint-error` | Its hint; the `-error` variant applies whenever `state == Error`. |
 | `.haxefolio-hint-line` / `.haxefolio-hint-line-error` | A `HintLine`; same `-error` convention. |
 | `.haxefolio-choice-button` / `:hover` / `:down` / `:disabled` | A `ChoiceButton`. `:down` is the selected state, `:disabled` the disabled one, `:down:disabled` a locked-but-selected one (see `ChoiceButton` above). |
-| `.haxefolio-emphasis-outlined` | Ancestor class switching every `ChoiceButton`/`ToggleButton` beneath it from `Filled` to `Outlined` (see `ChoiceButton`). |
+| `.haxefolio-choice-button-outlined` | Carried by a `ChoiceButton`/`ToggleButton` built while the app's `EmphasisStyle` is `Outlined` (see `Appearance`); switches its `:down` treatment from `Filled` to `Outlined`. Set by the framework - not something to add by hand. |
 | `.haxefolio-choice-row` | A `ChoiceRow`'s own box. |
+| `.haxefolio-commit-button` / `.haxefolio-commit-button-outlined` | A `CommitTextField`'s commit button; the `-outlined` variant is carried while the app's `EmphasisStyle` is `Outlined`. |
 | `.haxefolio-stepper` | A `Stepper`'s row. |
 | `.haxefolio-stepper-button` / `:hover` / `:disabled` | Its `-`/`+` buttons. |
 | `.haxefolio-stepper-input` / `-invalid` / `:disabled` | Its text input; `-invalid` applies whenever `invalid == true`. |

@@ -212,7 +212,7 @@
     color: #ffffff;
 }
 
-.haxefolio-emphasis-outlined .haxefolio-choice-button:down {
+.haxefolio-choice-button-outlined:down {
     background-color: #e7e9ee;
     border: 1px solid #8d939e;
     color: #2f3540;
@@ -325,7 +325,7 @@
     background-color: #3d4452;
 }
 
-.haxefolio-emphasis-outlined .haxefolio-commit-button {
+.haxefolio-commit-button-outlined {
     background-color: #e7e9ee;
     border: 1px solid #8d939e;
     color: #2f3540;
@@ -337,7 +337,7 @@
     color: #9a9ca2;
 }
 
-.haxefolio-emphasis-outlined .haxefolio-commit-button:disabled {
+.haxefolio-commit-button-outlined:disabled {
     background-color: #f0f0f1;
     border: 1px solid #e4e4e6;
     color: #9a9ca2;

@@ -1,5 +1,6 @@
 package haxefolio;
 
+import haxefolio.appearance.AppearanceOverrides;
 import haxefolio.menu.MenuAction;
 import haxefolio.menu.MenuBarItem;
 import haxefolio.menu.MenuItemDefinition;
@@ -20,6 +21,7 @@ class HaxeFolioConfigBuilder
     private var siteName:Null<String>;
     private var menuCollapseWidth:Int;
     private var debounceMs:Int;
+    private var appearance:Null<AppearanceOverrides>;
     private var pages:Array<PageDefinition>;
     private var menubarLeft:Array<MenuBarItem>;
     private var menubarRight:Array<MenuBarItem>;
@@ -73,6 +75,12 @@ class HaxeFolioConfigBuilder
     public function setDebounceMs(debounceMs:Int):HaxeFolioConfigBuilder
     {
         this.debounceMs = debounceMs;
+        return this;
+    }
+
+    public function setAppearance(appearance:AppearanceOverrides):HaxeFolioConfigBuilder
+    {
+        this.appearance = appearance;
         return this;
     }
 
@@ -161,6 +169,7 @@ class HaxeFolioConfigBuilder
             siteName: siteName,
             menuCollapseWidth: menuCollapseWidth,
             debounceMs: debounceMs,
+            appearance: appearance,
             pages: pages,
             menubar: {left: menubarLeft, right: menubarRight},
             sidebarExtras: sidebarExtras,

@@ -1,5 +1,6 @@
 package haxefolio;
 
+import haxefolio.appearance.AppearanceOverrides;
 import haxefolio.menu.MenuBarConfig;
 import haxefolio.menu.SidebarGroup;
 import haxefolio.preferences.Preference;
@@ -39,6 +40,14 @@ typedef HaxeFolioConfig = {
         observed for this long. Defaults to 500.
     **/
     ?debounceMs:Int,
+
+    /**
+        Theme-wide overrides of the framework's `Appearance` - the geometry tokens its height
+        arithmetic reads, and the `EmphasisStyle` its components agree on - applied over the
+        built-in defaults. `styleClass` is ignored here. Colour and typography are not part of it;
+        those are overridden in a stylesheet.
+    **/
+    ?appearance:AppearanceOverrides,
 
     /**
         The app's page definitions, checked top-to-bottom to resolve a URL path - see

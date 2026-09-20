@@ -5,6 +5,7 @@ import haxe.ui.components.TextField;
 import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.events.UIEvent;
+import haxefolio.appearance.AppearanceContext;
 import haxefolio.form.plumbing.CommitResult;
 import haxefolio.form.plumbing.CommitTrigger;
 import haxefolio.form.plumbing.FieldHeader;
@@ -87,6 +88,10 @@ class CommitTextField extends VBox
         commitButton = new Button();
         commitButton.text = commitLabel;
         commitButton.addClass("haxefolio-commit-button");
+
+        if (AppearanceContext.current.emphasis == Outlined)
+            commitButton.addClass("haxefolio-commit-button-outlined");
+
         row.addComponent(commitButton);
 
         if (commitTrigger == Enter)

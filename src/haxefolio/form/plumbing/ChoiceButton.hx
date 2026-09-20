@@ -1,6 +1,7 @@
 package haxefolio.form.plumbing;
 
 import haxe.ui.components.Button;
+import haxefolio.appearance.AppearanceContext;
 
 /*
     One selectable button - the atom of both ChoiceRow and ChoiceGrid. Built on HaxeUI's own
@@ -11,8 +12,9 @@ import haxe.ui.components.Button;
     Selected styling hooks off `:down` - the pseudo-class HaxeUI's toggle Button already applies
     for as long as `selected == true` (not just while the mouse is actually held) - rather than a
     class this component would otherwise have to toggle itself on every selection change. Which
-    treatment (`Filled`/`Outlined`) `:down` resolves to is not a property here at all - see
-    `EmphasisStyle`.
+    treatment (`Filled`/`Outlined`) `:down` resolves to is not a property here at all: it is read
+    from `AppearanceContext` at construction (see `EmphasisStyle`) and realized as this component's
+    own `haxefolio-choice-button-outlined` class.
 
     Disabled and selected at once (`:down:disabled`) gets its own muted look, so a locked row
     still shows the value actually in effect. That chained selector needs a haxeui-core that keeps
@@ -25,6 +27,10 @@ class ChoiceButton extends Button
         super();
 
         this.addClass("haxefolio-choice-button");
+
+        if (AppearanceContext.current.emphasis == Outlined)
+            this.addClass("haxefolio-choice-button-outlined");
+
         this.toggle = true;
         this.text = label;
         this.selected = selected;

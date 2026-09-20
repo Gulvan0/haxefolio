@@ -9,6 +9,7 @@ import haxe.ui.containers.SideBar;
 import haxe.ui.containers.VBox;
 import haxe.ui.containers.menus.MenuBar;
 import haxe.ui.core.Screen;
+import haxefolio.appearance.AppearanceContext;
 import js.Browser;
 import haxefolio.menu.MenuFacade;
 import haxefolio.menu.builder.MenuBarBuilder;
@@ -63,6 +64,7 @@ class HaxeFolioApp
     public static function init(config:HaxeFolioConfig):Void
     {
         Toolkit.init();
+        AppearanceContext.init(config.appearance);
         FocusManager.instance.enabled = false;
         FocusManager.instance.autoFocus = false;
 
