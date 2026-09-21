@@ -329,6 +329,35 @@ HaxeFolioApp.present("my-overlay", dismiss -> {
 
 Only one overlay may be open at a time: calling `present` while one is open (or closing) is a no-op.
 
+### Embedded content
+
+The same content structure can be placed inline in a page or panel instead of over the app - an embedded settings panel, say. It isn't an overlay that merely lacks a scrim: nothing presents it, nothing dismisses it, and its width comes from its host. So it is a separate call rather than a third presentation of `present`:
+
+```haxe
+HaxeFolioApp.embed(slug:String, contentFactory:Void->OverlayContent, into:Component, frameHeight:Float, ?appearance:AppearanceOverrides):EmbeddedOverlay
+```
+
+```haxe
+private override function init():Void
+{
+    panel = HaxeFolioApp.embed("settings-panel", buildPanelContent, panelHost, 360);
+}
+
+private override function onClose():Void
+    panel.detach();
+```
+
+- `contentFactory` builds the `OverlayContent` (see `Overlay content`). It is a factory, like `present`'s, so that `appearance` is in effect while the content is built and every component the factory constructs reads it. It has no `dismiss` handle: there is nothing to dismiss.
+- `into` is the host component the frame is added to. The frame takes its full width, so `into` must have a width of its own to resolve against (typically `percentWidth = 100` inside a laid-out page). The frame is a bordered box of the same `RegionStack` (see `Region stacks`) an overlay holds, with the same reserved scrollbar lane and scroll behaviour.
+- `frameHeight` is the frame's height in pixels, declared by the host - an embedded frame has no presentation to size it, and nothing is measured. It can be changed afterwards through the returned handle (`panel.frameHeight = 260`, e.g. from the page's `onResize`); as in an overlay, only the scrolling region resizes.
+- `appearance` works as for `present`: its geometry and emphasis are in effect while the content is built, and its `styleClass` is added to the frame.
+
+None of what makes an overlay modal applies. There is no scrim, no Esc handling and nothing is made inert, and an embedded frame neither counts as the one open overlay nor blocks `present` from opening one over the page it sits in.
+
+The returned `EmbeddedOverlay` is a `Detachable`: `detach()` disposes the region stack, removes the frame from `into` and runs the content's own `onDismissed`, once - later calls do nothing. The host is responsible for calling it when done with the panel, typically from a page's `onClose`, since nothing else knows when that is.
+
+**Commit strategy.** An overlay always has somewhere to put its primary action - a footer region. An embedded panel often doesn't, so the host must pick one of two, deliberately: give it a footer region of its own (a `Custom` region for now), so it behaves like a dialog body; or commit each field on change, in which case each field's reserved message line must report both the save and any rejection - a field that saves silently and rejects silently is the worst case. Mixing the two - some fields autosaving under a footer's Save button - leaves the user unable to tell which of their changes are already committed. HaxeFolio does not enforce this.
+
 ### Overlay styling
 
 Colour and type are the stylesheet's business, following the same class-vs-id cascade as the rest of HaxeFolio's chrome (see `Styling`): target the generic class for a blanket change across every overlay, or `#haxefolio-overlay-<slug>-*` for a single one. Geometry is not settable from CSS - it goes through `AppearanceOverrides` (see `Appearance`). See `Overlays` in `CSS classes and elements` for the selector list.
@@ -1109,6 +1138,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-overlay-frame` / `#haxefolio-overlay-<slug>-frame` | The frame itself, in both presentations: fill, border, no padding. Also carries the overlay's `styleClass`, if it was given one. Its clipping and elevation shadow are set on the DOM element by the framework. |
 | `.haxefolio-overlay-dialog` | Additionally on the frame of the dialog presentation (corner radius). |
 | `.haxefolio-overlay-sheet` | Additionally on the frame of the sheet presentation (top corner radii). |
+| `.haxefolio-overlay-embedded` | On the frame of embedded content (see `Embedded content`; corner radius) instead of a presentation class. It carries `.haxefolio-overlay-frame` and `#haxefolio-overlay-<slug>-frame` too, and has no scrim. |
 
 #### Form components
 

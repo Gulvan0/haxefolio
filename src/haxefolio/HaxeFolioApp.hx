@@ -8,6 +8,7 @@ import haxe.ui.containers.Box;
 import haxe.ui.containers.SideBar;
 import haxe.ui.containers.VBox;
 import haxe.ui.containers.menus.MenuBar;
+import haxe.ui.core.Component;
 import haxe.ui.core.Screen;
 import haxefolio.appearance.AppearanceContext;
 import haxefolio.appearance.AppearanceOverrides;
@@ -16,6 +17,7 @@ import haxefolio.menu.MenuFacade;
 import haxefolio.menu.builder.MenuBarBuilder;
 import haxefolio.menu.builder.MenuBarBuilder.MenuBarBuildResult;
 import haxefolio.menu.builder.SideBarBuilder;
+import haxefolio.overlay.EmbeddedOverlay;
 import haxefolio.overlay.OverlayContent;
 import haxefolio.overlay.OverlayController;
 import haxefolio.preferences.PreferenceRegistry;
@@ -175,6 +177,25 @@ class HaxeFolioApp
     public static function present(slug:String, contentFactory:(Void->Void)->OverlayContent, ?mobileContentFactory:(Void->Void)->OverlayContent, ?appearance:AppearanceOverrides, ?onDismissed:Void->Void):Void
     {
         OverlayController.present(slug, contentFactory, mobileContentFactory, appearance, onDismissed);
+    }
+
+    /**
+        Embeds the regions of the `OverlayContent` that `contentFactory` builds in `into`, as a
+        bordered frame of `frameHeight` pixels and the full width of `into` - the region model of
+        `present` without a presentation: no scrim, no Esc, nothing made inert, and it neither
+        counts as the open overlay nor blocks one.
+
+        `into` must have a width for the frame to resolve against. The host owns the frame's
+        height (`frameHeight`, changeable through the returned handle) and its teardown: call the
+        handle's `detach()` once done, e.g. from a page's `onClose`. `appearance` overrides the
+        geometry/emphasis - and adds a style class - for this embedded content only, as for `present`.
+
+        There is no footer by default, so decide how the content commits (see `Embedded content`
+        in the manual).
+    **/
+    public static function embed(slug:String, contentFactory:Void->OverlayContent, into:Component, frameHeight:Float, ?appearance:AppearanceOverrides):EmbeddedOverlay
+    {
+        return OverlayController.embed(slug, contentFactory, into, frameHeight, appearance);
     }
 
     /**

@@ -11,6 +11,7 @@ import haxefolio.menu.MenuFacade;
 import js.Browser;
 import overlay.CustomOverlayContent;
 import pages.AboutPage;
+import pages.EmbedDemoPage;
 import pages.FormDemoPage;
 import pages.HomePage;
 import pages.StructureDemoPage;
@@ -31,6 +32,7 @@ class Main
             .addPage("text-demo", params -> new TextDemoPage())
             .addPage("form-demo", params -> new FormDemoPage())
             .addPage("structure-demo", params -> new StructureDemoPage())
+            .addPage("embed-demo", params -> new EmbedDemoPage())
             .addLeftMenubarItem(NormalMenu("navigation", []))
             .addNormalMenuItem("navigation", "home", NavigateTo(() -> "home"))
             .addNormalMenuItem("navigation", "about", NavigateTo(() -> "about"))
@@ -47,6 +49,7 @@ class Main
             .addNormalMenuItem("overlay-demo", "mobile-variant", Execute(showMobileVariantOverlay))
             .addNormalMenuItem("overlay-demo", "long", Execute(showLongOverlay))
             .addNormalMenuItem("overlay-demo", "appearance", Execute(showAppearanceOverlay))
+            .addNormalMenuItem("overlay-demo", "embed", NavigateTo(() -> "embed-demo"))
             .addRightMenubarItem(Widget(buildSettingsWidget, true))
             .setLanguagePreference(SamplePreferences.language)
             .buildConfig();

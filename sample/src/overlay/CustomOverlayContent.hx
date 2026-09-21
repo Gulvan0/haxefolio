@@ -41,9 +41,16 @@ class CustomOverlayContent
 
     public static function buildDesktopVariant():OverlayContent
     {
+        var columnA:Label = label("Expanded column A");
+        columnA.percentWidth = 50;
+
+        var columnB:Label = label("Expanded column B");
+        columnB.percentWidth = 50;
+
         var row:HBox = new HBox();
-        row.addComponent(label("Expanded column A"));
-        row.addComponent(label("Expanded column B"));
+        row.percentWidth = 100;
+        row.addComponent(columnA);
+        row.addComponent(columnB);
 
         return {
             title: "Mobile variant",
@@ -90,6 +97,31 @@ class CustomOverlayContent
             title: "Appearance override",
             regions: [Scroll(body([label("This overlay overrides emphasis and carries a style class (tinted frame)."), row]))],
             onDismissed: row.dispose
+        };
+    }
+
+    /*
+        Content for HaxeFolioApp.embed (see EmbedDemoPage): the same region model, with a footer whose
+        action just logs since there is nothing to dismiss. The teardown hook logs to the console,
+        which is how "detach() runs it exactly once" is checked.
+    */
+    public static function buildEmbedded(name:String):OverlayContent
+    {
+        var row:ChoiceRow<String> = new ChoiceRow("Emphasis (" + name + ")", [
+            {value: "a", label: "First"},
+            {value: "b", label: "Second"}
+        ], "a", _ -> {});
+
+        var lines:Array<Component> = [for (i in 1...21) label('Line $i of 20 - only this scrolling area scrolls; the footer stays put.')];
+        lines.unshift(row);
+
+        return {
+            title: name,
+            regions: [Scroll(body(lines)), footer(() -> Browser.console.log('[embed-demo] $name footer action'))],
+            onDismissed: () -> {
+                row.dispose();
+                Browser.console.log('[embed-demo] $name content.onDismissed');
+            }
         };
     }
 

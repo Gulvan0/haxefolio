@@ -1,5 +1,6 @@
 package haxefolio.overlay;
 
+import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
 import haxefolio.appearance.AppearanceContext;
 import haxefolio.appearance.AppearanceOverrides;
@@ -128,6 +129,62 @@ class OverlayController
         Browser.document.addEventListener("keydown", onKeyDown, true);
 
         presentation.show();
+    }
+
+    /*
+        Builds the content under the given appearance and mounts its region stack in a bordered
+        frame inside `into`. None of present's machinery applies: no scrim, no inert, no Esc, and it
+        neither counts as the one open overlay nor blocks one - the host owns the frame's height
+        and its teardown (the returned handle) instead.
+    */
+    public static function embed(slug:String, contentFactory:Void->OverlayContent, into:Component, frameHeight:Float, ?appearance:AppearanceOverrides):EmbeddedOverlay
+    {
+        var content:Null<OverlayContent> = null;
+        var stack:RegionStack;
+
+        try
+        {
+            stack = AppearanceContext.runWith(appearance, () -> {
+                content = contentFactory();
+                return new RegionStack(content.regions, frameHeight);
+            });
+        }
+        catch (e:Dynamic)
+        {
+            if (content != null && content.onDismissed != null)
+                content.onDismissed();
+
+            throw e;
+        }
+
+        var frame:VBox = new VBox();
+        frame.id = 'haxefolio-overlay-$slug-frame';
+        frame.addClass("haxefolio-overlay-frame");
+        frame.addClass("haxefolio-overlay-embedded");
+        frame.percentWidth = 100;
+        frame.height = frameHeight;
+
+        // on the frame only, as for a presented overlay
+        var styleClass:Null<String> = appearance?.styleClass;
+        if (styleClass != null)
+            frame.addClass(styleClass);
+
+        frame.addComponent(stack);
+        into.addComponent(frame);
+
+        // clipping keeps a region's square corners inside the frame's rounded ones, see OverlayPresentation
+        frame.element.style.overflow = "hidden";
+
+        return new EmbeddedOverlay(frame, stack, () -> {
+            stack.dispose();
+
+            // the host's own teardown may already have taken the frame down with it
+            if (frame.parentComponent != null)
+                frame.parentComponent.removeComponent(frame, true);
+
+            if (content.onDismissed != null)
+                content.onDismissed();
+        });
     }
 
     /*
