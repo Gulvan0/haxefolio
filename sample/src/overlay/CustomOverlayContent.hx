@@ -5,11 +5,16 @@ import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
 import haxefolio.form.ChoiceRow;
+import haxefolio.form.DurationField;
+import haxefolio.form.IntField;
+import haxefolio.form.SteppedValueField;
 import haxefolio.form.ToggleButton;
 import haxefolio.overlay.OverlayContent;
 import haxefolio.structure.ActionBar;
 import haxefolio.structure.ActionButton;
+import haxefolio.structure.ErrorMarker;
 import haxefolio.structure.Region;
+import haxefolio.structure.TabPage;
 import js.Browser;
 
 /*
@@ -119,6 +124,117 @@ class CustomOverlayContent
                 Header("Actions - no close control, 80px header", 80, true),
                 Scroll(body([label("The header has no close control (hideClose), so the footer is the exit; Esc still works. Toggle below to enable the primary button."), toggle])),
                 Actions(new ActionBar([reset, cancel, save]))
+            ]
+        };
+    }
+
+    /*
+        A Navigate tab region, built to show the error markers (see ErrorMarker): one form cut into four
+        pages sharing one footer, whose primary action is disabled for as long as any tab is marked.
+        - "General" holds a toggle that drives the Extra tab's marker directly, the way a host would
+          flag a problem it detected itself rather than through a field.
+        - "Limits" holds two fields sharing one marker: the tab is marked while either is invalid
+          (aggregating is the host's job). Only this page overflows and scrolls.
+        - "Timing" opens already invalid and already marked, though its field shows only its neutral
+          hint until touched - stepping it to a valid value clears the marker.
+        - "Extra" carries an icon; its marker is the toggle's.
+    */
+    public static function buildNavigateTabs(dismiss:Void->Void):OverlayContent
+    {
+        var save:ActionButton = new ActionButton("Save & Close", dismiss, true);
+
+        var limitsMarker:ErrorMarker = new ErrorMarker();
+        var timingMarker:ErrorMarker = new ErrorMarker(true);
+        var extraMarker:ErrorMarker = new ErrorMarker();
+
+        var refreshSave:Void->Void = () -> save.enabled = !(limitsMarker.active || timingMarker.active || extraMarker.active);
+        var limitsInvalid:Array<Bool> = [false, false];
+        var updateLimits:Int->Bool->Void = (index, valid) -> {
+            limitsInvalid[index] = !valid;
+            limitsMarker.active = limitsInvalid[0] || limitsInvalid[1];
+            refreshSave();
+        };
+
+        var limitA:SteppedValueField<Int> = IntField.create("Limit A", 10, _ -> {}, 1, 100, "1 to 100", "not a number", "out of range", true, valid -> updateLimits(0, valid));
+        var limitB:SteppedValueField<Int> = IntField.create("Limit B", 20, _ -> {}, 1, 100, "1 to 100", "not a number", "out of range", true, valid -> updateLimits(1, valid));
+
+        var limitsLines:Array<Component> = [for (i in 1...31) label('Limits line $i of 30 - this page scrolls on its own; the strip and footer stay put.')];
+        limitsLines.unshift(limitB);
+        limitsLines.unshift(limitA);
+        limitsLines.unshift(label("Type e.g. 500 or abc into either field, then switch tabs: the Limits tab stays marked while at least one of them is invalid."));
+
+        var timing:SteppedValueField<Int> = DurationField.create("Duration", 30, _ -> {}, 60, 3600, "1:00 to 60:00", "use m:ss", "out of range", true, valid -> {
+            timingMarker.active = !valid;
+            refreshSave();
+        });
+
+        var flagExtra:ToggleButton = new ToggleButton("Flag the Extra tab as invalid", on -> {
+            extraMarker.active = on;
+            refreshSave();
+        });
+
+        var pages:Array<TabPage> = [
+            {
+                label: "General",
+                content: body([
+                    label("Toggle below to mark the Extra tab from code (no field involved). While any tab is marked the primary action is disabled."),
+                    flagExtra
+                ])
+            },
+            {
+                label: "Limits",
+                content: body(limitsLines),
+                errorMarker: limitsMarker
+            },
+            {
+                label: "Timing",
+                content: body([
+                    label("This tab opened already marked: 0:30 is below the 1:00 minimum, but the field shows only its neutral hint until touched. Press + to fix it."),
+                    timing
+                ]),
+                errorMarker: timingMarker
+            },
+            {
+                label: "Extra",
+                icon: "haxefolio-sample/images/alt_close_icon.svg",
+                content: body([label("A tab with an icon. Its marker follows the toggle on the General tab.")]),
+                errorMarker: extraMarker
+            }
+        ];
+
+        refreshSave();
+
+        return {
+            regions: [Header("Navigate tabs"), Tabs(Navigate, pages), Actions(new ActionBar([save]))]
+        };
+    }
+
+    /*
+        A Choose tab region: alternative forms with nothing shared. The frame title follows the tab
+        (TabPage.title) and the host relabels its primary action per tab through onSelect.
+    */
+    public static function buildChooseTabs(dismiss:Void->Void):OverlayContent
+    {
+        var submit:ActionButton = new ActionButton("Sign in", dismiss, true);
+
+        var pages:Array<TabPage> = [
+            {
+                label: "Sign in",
+                title: "Sign in to the sample",
+                content: body([label("Existing account: nothing on this tab is shared with the other one.")])
+            },
+            {
+                label: "Sign up",
+                title: "Create an account",
+                content: body([label("New account."), new ChoiceRow("Plan", [{value: "free", label: "Free"}, {value: "pro", label: "Pro"}], "free", _ -> {})])
+            }
+        ];
+
+        return {
+            regions: [
+                Header("Account"),
+                Tabs(Choose, pages, null, index -> submit.text = index == 0 ? "Sign in" : "Sign up"),
+                Actions(new ActionBar([submit]))
             ]
         };
     }

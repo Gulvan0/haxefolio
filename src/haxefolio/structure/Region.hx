@@ -6,9 +6,9 @@ import haxe.ui.core.Component;
     One region of a `RegionStack`. Every region but the scrolling one has a constant, declared
     height; the scrolling one takes whatever the frame has left.
 
-    Only the regions that can be built from what exists today are listed. `Search` and `Tabs` join
-    as their components are built - each one is a constructor here plus a token it reads its height
-    from (see `GeometryTokens`), and nothing in `RegionStack`'s arithmetic changes.
+    Only the regions that can be built from what exists today are listed. `Search` joins as its
+    component is built - a constructor here plus a token it reads its height from (see
+    `GeometryTokens`), and nothing in `RegionStack`'s arithmetic changes.
 **/
 enum Region
 {
@@ -35,7 +35,22 @@ enum Region
 
     /**
         The scrolling area: vertical scrolling only, at the height the arithmetic leaves it (see
-        `ScrollArea`). A stack has at most one.
+        `ScrollArea`). A stack has at most one scrolling area: a `Scroll` region or a `Tabs` one, never both.
     **/
     Scroll(content:Component);
+
+    /**
+        A tab strip (see `TabStrip`) with, below it, the scrolling area holding the pages: the strip is a
+        fixed region (`stripHeight` overrides the `tabStripHeight` token for this instance only) and the
+        pages fill the height the arithmetic leaves, each in its own `ScrollArea` inside a slot that
+        never changes size when the tab is switched. Pages may differ in height and each keeps its own
+        scroll offset.
+
+        `role` says what the tabs mean to each other (see `TabRole`). `onSelect` runs with the page
+        index each time the user picks a tab other than the current one - for a `Choose` region, the
+        hook for relabelling the host's primary action; it is not called for the initial tab (the first)
+        nor for changes made by the host. A stack has at most one `Tabs` region, and it counts as the
+        stack's scrolling area (see `Scroll`).
+    **/
+    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void);
 }

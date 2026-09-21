@@ -296,7 +296,7 @@ typedef OverlayContent = {
 }
 ```
 
-- `regions` are laid out top to bottom in the frame, with at most one `Scroll` region (see `Region stacks` for the height arithmetic). The frame's size is not the host's to set - it comes from the presentation.
+- `regions` are laid out top to bottom in the frame, with at most one scrolling area - a `Scroll` or a `Tabs` region (see `Region stacks` for the height arithmetic). The frame's size is not the host's to set - it comes from the presentation.
 - The overlay's title is not part of the content structure: it belongs to the `Header` region (see `Header and Actions`), and an overlay without one has none.
 - `onDismissed` is the content's own teardown hook - release here whatever the content registered while it was built (a `Preference.onChange` handle, a `ChoiceGrid`/`ChoiceRow`/`FieldGroup` `dispose()`). It is called exactly once, when the overlay is entirely gone, before the `onDismissed` argument of `present`.
 
@@ -371,7 +371,7 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 
 - **`haxefolio.form`** - the components a framework user actually reaches for and composes a
   form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `PreviewPane`, `FormSection` below, and more as the library grows.
-- **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on: `SwapSlot` (below), which forms use directly, plus `RegionStack`, `Region` and `ScrollArea` (see `Region stacks`); a form imports it from here, not from `haxefolio.form`.
+- **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on: `SwapSlot` (below), which forms use directly, plus `RegionStack`, `Region`, `ScrollArea`, `TabStrip` and `ErrorMarker` (see `Region stacks`); a form imports it from here, not from `haxefolio.form`.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
   `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
@@ -801,6 +801,7 @@ enum Region
     Actions(bar:ActionBar, ?height:ByWidth<Int>);
     Custom(height:ByWidth<Int>, content:Component);
     Scroll(content:Component);
+    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void);
 }
 ```
 
@@ -808,16 +809,16 @@ enum Region
 close control. `idPrefix` names the parts for a stylesheet (see `Overlays` in `CSS classes and elements`) - `present` and
 `embed` pass `haxefolio-overlay-<slug>`.
 
-- **Every height is declared, never measured.** `Custom` regions have the `height` they are given, `Header` and `Actions` ones the `headerHeight`/`actionBarHeight` token of the `Appearance` in effect when the stack is built (60 and 68 by default; `height` overrides it for one instance) - all of them (a
+- **Every height is declared, never measured.** `Custom` regions have the `height` they are given, `Header`, `Actions` and `Tabs` (its strip) ones the `headerHeight`/`actionBarHeight`/`tabStripHeight` token of the `Appearance` in effect when the stack is built (60, 68 and 44 by default; `height`/`stripHeight` overrides it for one instance) - all of them (a
   `ByWidth`, so it may differ between the expanded and collapsed states; content that doesn't fit is
-  cut off, not accommodated), and the frame has `frameHeight`. The `Scroll` region gets
+  cut off, not accommodated), and the frame has `frameHeight`. The scrolling area (a `Scroll` region, or the pages of a `Tabs` one) gets
   `scrollHeight = frameHeight - sum of the fixed heights`, recomputed when `frameHeight` or the breakpoint
   state changes. It is the only region that ever resizes; nothing is asked how tall it is, so adding
   content to one region never moves another.
-- A stack has at most one `Scroll` region (more throws) and may have none. If the fixed regions alone
+- A stack has at most one scrolling area - a `Scroll` or a `Tabs` region, never both (more throws) - and may have none. If the fixed regions alone
   exceed the frame, the scrolling area is hidden rather than overflowing - a design error to correct.
-- Only these four regions exist so far. `Search` and `Tabs` are added as their components are built; each
-  reads its height from `GeometryTokens` (see `Appearance`), so the arithmetic above doesn't change.
+- Only these five regions exist so far. `Search` is added when its component is built; it reads its height
+  from `GeometryTokens` (see `Appearance`), so the arithmetic above doesn't change.
 
 ### Header and Actions
 
@@ -848,9 +849,83 @@ public var enabled(get, set):Bool
   `ChoiceButton`. A disabled primary button **loses its emphasis** - it greys out like any other disabled button rather than
   still reading as the thing to press. A secondary action such as Reset is simply not `primary`.
 
+### Tabs
+
+`Tabs(role, pages, ?stripHeight, ?onSelect)` is a tab strip with, below it, the scrolling area holding the pages. It is one region
+that contributes two things to the arithmetic above: the strip, a fixed region, and the pages, the scrolling area (so a stack
+has either a `Tabs` or a `Scroll` region, never both). Each page sits in its own `ScrollArea` (see below) inside a slot
+of the scrolling area's height that never changes when the tab is switched - so pages may differ in height, no space is
+reserved for the tallest, and every page keeps its own scroll offset: switching away and back returns the user to where they were.
+
+```haxe
+var limitsMarker:ErrorMarker = new ErrorMarker();
+var limit:SteppedValueField<Int> = IntField.create("Limit", 10, ..., 1, 100, "1 to 100", "not a number", "out of range", true,
+    valid -> {
+        limitsMarker.active = !valid;
+        saveButton.enabled = valid;
+    });
+
+var pages:Array<TabPage> = [
+    {label: "General", content: generalPage},
+    {label: "Limits", content: limitsPage, errorMarker: limitsMarker},
+    {label: "Extra", icon: "assets/extra.svg", content: extraPage}
+];
+
+Header("Settings"), Tabs(Navigate, pages), Actions(new ActionBar([saveButton]))
+```
+
+```haxe
+typedef TabPage = {
+    label:String,
+    ?icon:String,
+    content:Component,
+    ?title:String,
+    ?errorMarker:ErrorMarker
+}
+
+enum TabRole
+{
+    Navigate;
+    Choose;
+}
+
+public function new(active:Bool = false)                          // ErrorMarker
+public var active(default, set):Bool
+public function onChange(handler:Bool->Void):Detachable
+```
+
+`label` is interpreted like any HaxeUI `.text` property (see `Locale utilities`), `icon` is a resource shown before it. A tab is one
+line and is not truncated - there is no ellipsis - so labels must fit the strip: `Navigate` tabs take their natural width side by side, `Choose`
+tabs split the strip evenly, so check the captions against the narrowest share (collapsed) in every shipped locale.
+
+**`TabRole`** says what the tabs mean to each other. The rule for choosing: if the tabs can be saved together, it is `Navigate`;
+if choosing one discards the other, it is `Choose`.
+
+| | `Navigate` | `Choose` |
+|---|---|---|
+| Meaning | One form cut into groups: shared state and footer | Alternative forms: nothing shared |
+| Drawing | Flush underlined tabs | Segmented control on a recessed track |
+| Frame title | Fixed | Follows the tab (`TabPage.title`) |
+| Footer | One, constant, shared by all tabs | The host relabels its primary action per tab (`onSelect`) |
+| Error marker | Marks a tab holding an invalid field | Rarely needed |
+
+- **`onSelect`** runs with the page index each time the user picks a tab other than the current one. It is not called for the
+  initial tab (the first) nor for changes the host makes; the host knows its own initial state.
+- **`TabPage.title`** (`Choose` only - giving one to a `Navigate` page throws) is the `Header` region's title while the tab
+  is active; a page without one shows the `Header`'s own title. A `Choose` region with titled pages needs a `Header` region
+  to show them (throws otherwise).
+- **Error markers** are how a container that can hide an invalid field says so: a blocked action must always show what is
+  blocking it. The host creates an `ErrorMarker` per page, gives it in `TabPage.errorMarker`, and sets `active` whenever it
+  learns about validity - typically from its fields' `onValidityChange` (see `SteppedValueField`) - while a tab whose page has a
+  marker shows a dot after the label for as long as it is `active`. Deciding when a page with several fields is invalid (any of
+  them) is the host's; disabling the primary action alongside is too. The dot's space is reserved on every tab that has a marker, so
+  its appearing moves nothing. The same class is meant for other containers that can hide an invalid descendant.
+- The strip's own component, `TabStrip` (`haxefolio.structure`), is what draws the labels and the selection; a stack disposes
+  it with `dispose()`.
+
 ### ScrollArea
 
-Every scrolling area the framework builds - a `Scroll` region, and later every tab page - is a
+Every scrolling area the framework builds - a `Scroll` region, and every tab page of a `Tabs` one - is a
 `ScrollArea` (`haxefolio.structure.ScrollArea`), also usable directly (`new ScrollArea(content)`; give it a
 `height`). It is HaxeUI's `ScrollView` in native scroll mode with a fixed treatment:
 
@@ -1170,7 +1245,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-overlay-dialog` | Additionally on the frame of the dialog presentation (corner radius). |
 | `.haxefolio-overlay-sheet` | Additionally on the frame of the sheet presentation (top corner radii). |
 | `.haxefolio-overlay-embedded` | On the frame of embedded content (see `Embedded content`; corner radius) instead of a presentation class. It carries `.haxefolio-overlay-frame` and `#haxefolio-overlay-<slug>-frame` too, and has no scrim. |
-| `#haxefolio-overlay-<slug>-header` / `-actions` / `-scroll` / `-close` | The parts of a presented or embedded overlay's stack, for restyling one overlay: the `Header` and `Actions` slots, the `Scroll` region's `ScrollArea`, and the header's close control. Present only for the regions the composition has. |
+| `#haxefolio-overlay-<slug>-header` / `-tabs` / `-actions` / `-scroll` / `-close` | The parts of a presented or embedded overlay's stack, for restyling one overlay: the `Header`, `Tabs` (its strip) and `Actions` slots, the scrolling area (the `Scroll` region's `ScrollArea`, or the slot holding a `Tabs` region's pages), and the header's close control. Present only for the regions the composition has. |
 
 #### Form components
 
@@ -1190,7 +1265,12 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-stepped-value-field` | A `SteppedValueField`'s own box (no default styling). |
 | `.haxefolio-field-group` | A `FieldGroup`'s own box. `SwapSlot` carries no styling of its own - it's a bare `Stack`. |
 | `.haxefolio-region-stack` / `.haxefolio-region-custom` | A `RegionStack`'s own box / one of its `Custom` regions' slots. |
-| `.haxefolio-region-header` / `.haxefolio-region-actions` | The slot of a `Header` / `Actions` region: fill and the hairline. |
+| `.haxefolio-region-header` / `.haxefolio-region-tabs` / `.haxefolio-region-actions` | The slot of a `Header` / `Tabs` (its strip) / `Actions` region: fill and the hairline. |
+| `.haxefolio-tab-strip` / `-navigate` / `-choose` | A `TabStrip`'s row, per `TabRole`. |
+| `.haxefolio-tab-track` | The recessed track of a `Choose` strip. |
+| `.haxefolio-tab` / `-navigate` / `-choose` | One tab, per role. The selected one additionally carries `.haxefolio-tab-selected` and `.haxefolio-tab-navigate-selected` / `.haxefolio-tab-choose-selected`. Set by the framework - not something to add by hand. |
+| `.haxefolio-tab-content` / `-icon` / `-label` / `-label-selected` | A tab's inner row, its icon, its caption and (while selected) the caption's selected variant. |
+| `.haxefolio-tab-marker` / `-marker-active` | A tab's error marker dot; `-active` while its `ErrorMarker` is. |
 | `.haxefolio-header-bar` / `.haxefolio-header-title` | A `HeaderBar`'s row / its title label. |
 | `.haxefolio-close-button` / `:hover` / `:down` | The header's close control. |
 | `.haxefolio-action-bar` | An `ActionBar`'s row. |

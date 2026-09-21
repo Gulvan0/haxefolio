@@ -50,6 +50,8 @@ class Main
             .addNormalMenuItem("overlay-demo", "long", Execute(showLongOverlay))
             .addNormalMenuItem("overlay-demo", "appearance", Execute(showAppearanceOverlay))
             .addNormalMenuItem("overlay-demo", "actions", Execute(showActionsOverlay))
+            .addNormalMenuItem("overlay-demo", "tabs-navigate", Execute(showNavigateTabsOverlay))
+            .addNormalMenuItem("overlay-demo", "tabs-choose", Execute(showChooseTabsOverlay))
             .addNormalMenuItem("overlay-demo", "embed", NavigateTo(() -> "embed-demo"))
             .addRightMenubarItem(Widget(buildSettingsWidget, true))
             .setLanguagePreference(SamplePreferences.language)
@@ -115,4 +117,16 @@ class Main
     */
     private static function showActionsOverlay():Void
         HaxeFolioApp.present("custom-actions", CustomOverlayContent.buildActions);
+
+    /*
+        Tabs region in the Navigate role: shared footer, per-tab scrolling, error marker on the strip.
+    */
+    private static function showNavigateTabsOverlay():Void
+        HaxeFolioApp.present("custom-tabs-navigate", CustomOverlayContent.buildNavigateTabs);
+
+    /*
+        Tabs region in the Choose role: the frame title follows the tab, the primary action relabels.
+    */
+    private static function showChooseTabsOverlay():Void
+        HaxeFolioApp.present("custom-tabs-choose", CustomOverlayContent.buildChooseTabs);
 }

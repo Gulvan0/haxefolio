@@ -263,6 +263,76 @@
     color: #9a9ca2;
 }
 
+/*
+    Tabs region: the strip (see TabStrip) in its two roles. Navigate is flush underlined tabs,
+    Choose a segmented control on a recessed track. Label weight never changes with selection, so
+    switching tabs moves nothing.
+*/
+
+.haxefolio-region-tabs {
+    background-color: #fafafa;
+    border-bottom: 1px solid #e4e4e6;
+}
+
+.haxefolio-tab {
+    pointer-events: true;
+    cursor: pointer;
+}
+
+.haxefolio-tab-label {
+    font-name: $ui-family-medium;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: #5f6168;
+}
+
+.haxefolio-tab-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.haxefolio-tab-marker {
+    border-radius: 3px;
+    background-color: transparent;
+}
+
+.haxefolio-tab-marker-active {
+    background-color: #c4392f;
+}
+
+.haxefolio-tab-navigate {
+    border-bottom: 2px solid transparent;
+}
+
+.haxefolio-tab-navigate:hover > .haxefolio-tab-content > .haxefolio-tab-label {
+    color: #1f2126;
+}
+
+.haxefolio-tab-navigate-selected {
+    border-bottom: 2px solid #2f3540;
+}
+
+.haxefolio-tab-track {
+    padding: 3px;
+    border-radius: 6px;
+    background-color: #f0f0f1;
+}
+
+.haxefolio-tab-choose {
+    border-radius: 4px;
+    border: 1px solid transparent;
+}
+
+.haxefolio-tab-choose-selected {
+    background-color: #ffffff;
+    border: 1px solid #d4d4d6;
+}
+
+.haxefolio-tab-label-selected {
+    color: #1f2126;
+}
+
 .switch-button-sub {
     background-color: #cccccc;
 }

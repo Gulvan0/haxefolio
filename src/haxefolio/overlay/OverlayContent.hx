@@ -8,7 +8,7 @@ import haxefolio.structure.Region;
 **/
 typedef OverlayContent = {
     /**
-        The regions the frame holds, top to bottom. At most one may be a `Scroll` region.
+        The regions the frame holds, top to bottom. At most one may be a scrolling area (a `Scroll` or a `Tabs` region).
     **/
     regions:Array<Region>,
 

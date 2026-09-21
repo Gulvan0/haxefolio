@@ -7,8 +7,9 @@ import haxefolio.appearance.AppearanceContext;
 import morestd.Detachable;
 
 /**
-    A frame of fixed height holding an ordered list of regions, one of which - the `Scroll` region -
-    is the scrolling area and every other has a declared, constant height.
+    A frame of fixed height holding an ordered list of regions, one of which - the `Scroll` region, or
+    the pages of a `Tabs` one - is the scrolling area and every other has a declared, constant height
+    (a `Tabs` region contributes its strip as a fixed region and the pages as the scrolling area).
 
     The frame's height is given, never measured, and so is every region's; the scrolling area
     gets `scrollHeight = frameHeight - sum of fixed heights`. It is the only region that ever
@@ -16,12 +17,13 @@ import morestd.Detachable;
     `ByWidth` height differing between the two) changes exactly that one number. Nothing is ever
     asked how tall it is, so adding content to a region never moves another.
 
-    A stack with no `Scroll` region is legal (every region fixed); one with more than one is not.
+    A stack with no scrolling area is legal (every region fixed); one with more than one is not.
     If the fixed regions alone exceed the frame, the scrolling area is squeezed to zero rather than
     overflowing - a design error to correct, not a case to accommodate.
 
-    A `Header` or `Actions` region takes its height from the `AppearanceContext` in effect when the
-    stack is built (the `headerHeight`/`actionBarHeight` token) unless it names one of its own.
+    A `Header`, `Actions` or `Tabs` region takes its height from the `AppearanceContext` in effect when
+    the stack is built (the `headerHeight`/`actionBarHeight`/`tabStripHeight` token) unless it names
+    one of its own.
 
     Call `dispose()` once the stack is done with, to detach its breakpoint subscriptions.
 **/
@@ -31,7 +33,11 @@ class RegionStack extends VBox
     private final bindings:Array<Detachable> = [];
     private final dismiss:Null<Void->Void>;
     private final idPrefix:Null<String>;
-    private var scrollArea:Null<ScrollArea>;
+    private var titledTabsRegion:Bool = false;
+    private var initialTabTitle:Null<String>;
+    private var headerBaseTitle:String = "";
+    private var scrollingComponent:Null<Component>;
+    private var headerBar:Null<HeaderBar>;
 
     /**
         The height of the whole stack. Assigning it recomputes the scrolling area's height and
@@ -42,7 +48,8 @@ class RegionStack extends VBox
     /**
         `dismiss` is what a `Header` region's close control calls; without it (nothing to dismiss)
         there is no close control. `idPrefix`, if given, names the parts for a stylesheet: the
-        regions get the ids `<idPrefix>-header`, `-actions` and `-scroll`, the close control `-close`.
+        regions get the ids `<idPrefix>-header`, `-tabs` (the strip), `-actions` and `-scroll` (the
+        scrolling area, the pages' slot for a `Tabs` region), the close control `-close`.
     **/
     public function new(regions:Array<Region>, frameHeight:Float, ?dismiss:Void->Void, ?idPrefix:String)
     {
@@ -57,6 +64,14 @@ class RegionStack extends VBox
 
         for (region in regions)
             addRegion(region);
+
+        if (titledTabsRegion)
+        {
+            if (headerBar == null)
+                throw "RegionStack: a Tabs region with titled pages needs a Header region to show them.";
+
+            applyTabTitle(initialTabTitle);
+        }
 
         this.frameHeight = frameHeight;
     }
@@ -86,7 +101,8 @@ class RegionStack extends VBox
             case Header(title, height, hideClose):
                 var closeHandler:Null<Void->Void> = hideClose == true ? null : dismiss;
                 var closeButtonId:Null<String> = idPrefix == null ? null : '$idPrefix-close';
-                var headerBar:HeaderBar = new HeaderBar(title, closeHandler, closeButtonId);
+                headerBar = new HeaderBar(title, closeHandler, closeButtonId);
+                headerBaseTitle = title;
                 addFixedRegion(height ?? AppearanceContext.current.geometry.headerHeight, headerBar, "haxefolio-region-header", "header");
 
             case Actions(bar, height):
@@ -96,16 +112,79 @@ class RegionStack extends VBox
                 addFixedRegion(height, content, "haxefolio-region-custom");
 
             case Scroll(content):
-                if (scrollArea != null)
-                    throw "RegionStack: at most one Scroll region is allowed.";
+                claimScrollingArea();
 
-                scrollArea = new ScrollArea(content);
+                var scrollArea:ScrollArea = new ScrollArea(content);
+                addScrollingComponent(scrollArea);
 
-                if (idPrefix != null)
-                    scrollArea.id = '$idPrefix-scroll';
-
-                this.addComponent(scrollArea);
+            case Tabs(role, pages, stripHeight, onSelect):
+                addTabsRegion(role, pages, stripHeight, onSelect);
         }
+    }
+
+    private function claimScrollingArea():Void
+    {
+        if (scrollingComponent != null)
+            throw "RegionStack: at most one scrolling area (a Scroll or a Tabs region) is allowed.";
+    }
+
+    private function addScrollingComponent(component:Component):Void
+    {
+        scrollingComponent = component;
+
+        if (idPrefix != null)
+            component.id = '$idPrefix-scroll';
+
+        this.addComponent(component);
+    }
+
+    private function addTabsRegion(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void):Void
+    {
+        claimScrollingArea();
+
+        if (pages.length == 0)
+            throw "RegionStack: a Tabs region needs at least one page.";
+
+        var pageTitles:Array<Null<String>> = [for (page in pages) page.title];
+        var hasTitles:Bool = [for (title in pageTitles) if (title != null) title].length > 0;
+
+        if (hasTitles && role == Navigate)
+            throw "RegionStack: only the pages of a Choose region may have titles - a Navigate region's frame title is fixed.";
+
+        titledTabsRegion = hasTitles;
+
+        var pageAreas:Map<Int, Component> = [];
+        for (i in 0...pages.length)
+        {
+            var pageArea:ScrollArea = new ScrollArea(pages[i].content);
+            pageArea.percentHeight = 100;
+            pageAreas[i] = pageArea;
+        }
+
+        var pageSlot:SwapSlot<Int> = new SwapSlot(pageAreas, 0, 0);
+
+        var strip:TabStrip = new TabStrip(role, pages, 0, index -> {
+            pageSlot.active = index;
+
+            if (hasTitles)
+                applyTabTitle(pageTitles[index]);
+
+            if (onSelect != null)
+                onSelect(index);
+        });
+        bindings.push(new Detachable(strip.dispose, false));
+
+        addFixedRegion(stripHeight ?? AppearanceContext.current.geometry.tabStripHeight, strip, "haxefolio-region-tabs", "tabs");
+        addScrollingComponent(pageSlot);
+
+        initialTabTitle = pageTitles[0];
+    }
+
+    // A page without a title of its own shows the Header region's
+    private function applyTabTitle(title:Null<String>):Void
+    {
+        if (headerBar != null)
+            headerBar.title = title ?? headerBaseTitle;
     }
 
     private function addFixedRegion(height:ByWidth<Int>, content:Component, styleClass:String, ?idSuffix:String):Void
@@ -132,15 +211,15 @@ class RegionStack extends VBox
 
     private function applyScrollHeight():Void
     {
-        if (scrollArea == null)
+        if (scrollingComponent == null)
             return;
 
         // HaxeUI ignores an assignment of 0 to `height`, so an exhausted frame hides the area instead
         var remaining:Float = scrollHeight();
-        scrollArea.hidden = remaining <= 0;
+        scrollingComponent.hidden = remaining <= 0;
 
         if (remaining > 0)
-            scrollArea.height = remaining;
+            scrollingComponent.height = remaining;
     }
 
     private function set_frameHeight(value:Float):Float
