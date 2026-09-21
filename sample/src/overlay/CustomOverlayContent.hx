@@ -1,39 +1,39 @@
 package overlay;
 
-import haxe.ui.components.Button;
 import haxe.ui.components.Label;
-import haxe.ui.containers.Box;
 import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
 import haxefolio.form.ChoiceRow;
+import haxefolio.form.ToggleButton;
 import haxefolio.overlay.OverlayContent;
+import haxefolio.structure.ActionBar;
+import haxefolio.structure.ActionButton;
 import haxefolio.structure.Region;
 import js.Browser;
 
 /*
     Builder functions for the sample's own overlay content, each returning a fresh OverlayContent
-    the way a real framework user's own content would be. Until the Header and Actions regions
-    exist, a "footer" is a Custom region the sample fills itself.
+    the way a real framework user's own content would be.
 */
 class CustomOverlayContent
 {
-    private static inline var FOOTER_HEIGHT:Int = 68;
-
     public static function buildPlain():OverlayContent
     {
         return {
-            title: "Plain overlay",
-            regions: [Scroll(body([label("A plain overlay: one Scroll region, everything else left to the presentation. Press Esc to close it.")]))]
+            regions: [
+                Header("Plain overlay"),
+                Scroll(body([label("A plain overlay: a Header and one Scroll region. The close control in the header and Esc both close it.")]))
+            ]
         };
     }
 
     public static function buildDismissible(dismiss:Void->Void):OverlayContent
     {
         return {
-            title: "Dismissible",
             regions: [
-                Scroll(body([label("The footer's button closes the overlay through the dismiss handle its factory received. Esc works too.")])),
+                Header("Dismissible"),
+                Scroll(body([label("The footer's button closes the overlay through the dismiss handle its factory received. Esc and the close control work too.")])),
                 footer(dismiss)
             ]
         };
@@ -53,16 +53,14 @@ class CustomOverlayContent
         row.addComponent(columnB);
 
         return {
-            title: "Mobile variant",
-            regions: [Scroll(body([row]))]
+            regions: [Header("Mobile variant"), Scroll(body([row]))]
         };
     }
 
     public static function buildMobileVariant():OverlayContent
     {
         return {
-            title: "Mobile variant",
-            regions: [Scroll(body([label("Collapsed content - a genuinely different component tree from the expanded variant of this overlay.")]))]
+            regions: [Header("Mobile variant"), Scroll(body([label("Collapsed content - a genuinely different component tree from the expanded variant of this overlay.")]))]
         };
     }
 
@@ -76,8 +74,7 @@ class CustomOverlayContent
         var lines:Array<Component> = [for (i in 1...41) label('Line $i of 40 - scroll to the end; scrolling must stop there instead of moving the page behind.')];
 
         return {
-            title: "Long content",
-            regions: [Scroll(body(lines)), footer(dismiss)],
+            regions: [Header("Long content"), Scroll(body(lines)), footer(dismiss)],
             onDismissed: () -> Browser.console.log("[overlay-demo] content.onDismissed")
         };
     }
@@ -86,7 +83,7 @@ class CustomOverlayContent
         Built under a per-overlay appearance (Outlined emphasis, plus a style class): the selected
         choice below must be drawn tinted-and-bordered rather than as a solid fill.
     */
-    public static function buildAppearance():OverlayContent
+    public static function buildAppearance(dismiss:Void->Void):OverlayContent
     {
         var row:ChoiceRow<String> = new ChoiceRow("Emphasis follows the overlay", [
             {value: "a", label: "First"},
@@ -94,9 +91,35 @@ class CustomOverlayContent
         ], "a", _ -> {});
 
         return {
-            title: "Appearance override",
-            regions: [Scroll(body([label("This overlay overrides emphasis and carries a style class (tinted frame)."), row]))],
+            regions: [
+                Header("Appearance override"),
+                Scroll(body([label("This overlay overrides emphasis and carries a style class (tinted frame). Its primary button follows the emphasis too."), row])),
+                footer(dismiss)
+            ],
             onDismissed: row.dispose
+        };
+    }
+
+    /*
+        The Header/Actions regions in their less common shapes: a header without a close control
+        (hideClose - this overlay's exit is the footer) and with a per-instance height, and an
+        action bar mixing a fixed-width secondary button, a plain one and a primary one that a
+        toggle enables/disables (a disabled primary must lose its emphasis).
+    */
+    public static function buildActions(dismiss:Void->Void):OverlayContent
+    {
+        var save:ActionButton = new ActionButton("Save & Close", dismiss, true, null, null, false);
+        var cancel:ActionButton = new ActionButton("Cancel", dismiss);
+        var reset:ActionButton = new ActionButton("Reset", () -> Browser.console.log("[overlay-demo] reset"), false, null, 25);
+
+        var toggle:ToggleButton = new ToggleButton("Allow saving", on -> save.enabled = on);
+
+        return {
+            regions: [
+                Header("Actions - no close control, 80px header", 80, true),
+                Scroll(body([label("The header has no close control (hideClose), so the footer is the exit; Esc still works. Toggle below to enable the primary button."), toggle])),
+                Actions(new ActionBar([reset, cancel, save]))
+            ]
         };
     }
 
@@ -116,8 +139,7 @@ class CustomOverlayContent
         lines.unshift(row);
 
         return {
-            title: name,
-            regions: [Scroll(body(lines)), footer(() -> Browser.console.log('[embed-demo] $name footer action'))],
+            regions: [Header(name), Scroll(body(lines)), footer(() -> Browser.console.log('[embed-demo] $name footer action'))],
             onDismissed: () -> {
                 row.dispose();
                 Browser.console.log('[embed-demo] $name content.onDismissed');
@@ -148,17 +170,6 @@ class CustomOverlayContent
 
     private static function footer(dismiss:Void->Void):Region
     {
-        var closeButton:Button = new Button();
-        closeButton.text = "Save & Close";
-        closeButton.addClass("haxefolio-button");
-        closeButton.onClick = _ -> dismiss();
-
-        var bar:Box = new Box();
-        bar.percentWidth = 100;
-        bar.percentHeight = 100;
-        bar.addClass("sample-overlay-footer");
-        bar.addComponent(closeButton);
-
-        return Custom(FOOTER_HEIGHT, bar);
+        return Actions(new ActionBar([new ActionButton("Save & Close", dismiss, true)]));
     }
 }

@@ -281,7 +281,7 @@ HaxeFolio presents dismissible overlays: a fixed-size frame of `Region`s (see `R
 - The **dialog** is a centred window, 620px wide and at most 720px tall. The frame tracks the viewport: a short or narrow window shrinks it - the height down to a 420px floor - and only the scrolling region notices.
 - The **sheet** is a bottom `SideBar` covering the entire viewport, menu bar included, sliding up from the bottom edge.
 
-Both are **modal** and neither is draggable: the whole rest of the app - menu bar included - is unreachable by pointer, keyboard or assistive technology (it is marked `inert`) for as long as the overlay is open, opening or closing. An overlay is dismissed by **Esc**, by the `dismiss` handle its factory receives (typically from a footer button), or by navigating away (see `Navigation`), which closes it first rather than leaving it stranded over an unrelated page - nothing else: there is no click-outside-to-dismiss. There is no close control yet: it arrives with the `Header` region, so until then an overlay without a footer button relies on Esc.
+Both are **modal** and neither is draggable: the whole rest of the app - menu bar included - is unreachable by pointer, keyboard or assistive technology (it is marked `inert`) for as long as the overlay is open, opening or closing. An overlay is dismissed by **Esc**, by the `dismiss` handle its factory receives (typically from a footer button), or by navigating away (see `Navigation`), which closes it first rather than leaving it stranded over an unrelated page - nothing else: there is no click-outside-to-dismiss. The close control is the `Header` region's (see `Region stacks`); a composition without one (no `Header`, or `hideClose`) relies on Esc or a footer action.
 
 The presentation is fixed for the lifetime of each overlay: if the viewport crosses the breakpoint while it is open, the dialog does not turn into a sheet or vice versa - the frame keeps tracking the viewport within its presentation, and breakpoint-aware components inside it (see `Reacting to the collapse threshold directly`) still reflow live.
 
@@ -291,14 +291,13 @@ An overlay's content is a plain structure, built by the factory given to `presen
 
 ```haxe
 typedef OverlayContent = {
-    title:String,
     regions:Array<Region>,
     ?onDismissed:Void->Void
 }
 ```
 
 - `regions` are laid out top to bottom in the frame, with at most one `Scroll` region (see `Region stacks` for the height arithmetic). The frame's size is not the host's to set - it comes from the presentation.
-- `title` is the overlay's title. Nothing displays it yet; the `Header` region will.
+- The overlay's title is not part of the content structure: it belongs to the `Header` region (see `Header and Actions`), and an overlay without one has none.
 - `onDismissed` is the content's own teardown hook - release here whatever the content registered while it was built (a `Preference.onChange` handle, a `ChoiceGrid`/`ChoiceRow`/`FieldGroup` `dispose()`). It is called exactly once, when the overlay is entirely gone, before the `onDismissed` argument of `present`.
 
 ### Presenting an overlay
@@ -309,14 +308,12 @@ HaxeFolioApp.present(slug:String, contentFactory:(Void->Void)->OverlayContent, ?
 
 ```haxe
 HaxeFolioApp.present("my-overlay", dismiss -> {
-    var closeButton:Button = new Button();
-    closeButton.text = "Save & Close";
-    closeButton.addClass("haxefolio-button");
-    closeButton.onClick = _ -> dismiss();
-
     return {
-        title: "My overlay",
-        regions: [Scroll(bodyContent), Custom(68, closeButton)]
+        regions: [
+            Header("My overlay"),
+            Scroll(bodyContent),
+            Actions(new ActionBar([new ActionButton("Save & Close", dismiss, true)]))
+        ]
     };
 });
 ```
@@ -356,7 +353,7 @@ None of what makes an overlay modal applies. There is no scrim, no Esc handling 
 
 The returned `EmbeddedOverlay` is a `Detachable`: `detach()` disposes the region stack, removes the frame from `into` and runs the content's own `onDismissed`, once - later calls do nothing. The host is responsible for calling it when done with the panel, typically from a page's `onClose`, since nothing else knows when that is.
 
-**Commit strategy.** An overlay always has somewhere to put its primary action - a footer region. An embedded panel often doesn't, so the host must pick one of two, deliberately: give it a footer region of its own (a `Custom` region for now), so it behaves like a dialog body; or commit each field on change, in which case each field's reserved message line must report both the save and any rejection - a field that saves silently and rejects silently is the worst case. Mixing the two - some fields autosaving under a footer's Save button - leaves the user unable to tell which of their changes are already committed. HaxeFolio does not enforce this.
+**Commit strategy.** An overlay always has somewhere to put its primary action - a footer region. An embedded panel often doesn't, so the host must pick one of two, deliberately: give it a footer region of its own (`Actions`), so it behaves like a dialog body; or commit each field on change, in which case each field's reserved message line must report both the save and any rejection - a field that saves silently and rejects silently is the worst case. Mixing the two - some fields autosaving under a footer's Save button - leaves the user unable to tell which of their changes are already committed. HaxeFolio does not enforce this.
 
 ### Overlay styling
 
@@ -781,9 +778,9 @@ system is built on, and usable on its own for any fixed-size panel with a scroll
 
 ```haxe
 var stack:RegionStack = new RegionStack([
-    Custom(60, headerContent),
+    Header("Settings"),
     Scroll(bodyContent),
-    Custom({expanded: 68, collapsed: 100}, footerContent)
+    Actions(new ActionBar([resetButton, saveButton]))
 ], 420);
 
 stack.frameHeight = 300; // e.g. from a viewport resize; only the scrolling area changes
@@ -791,7 +788,7 @@ stack.dispose();         // once done with it, to detach its breakpoint subscrip
 ```
 
 ```haxe
-public function new(regions:Array<Region>, frameHeight:Float)
+public function new(regions:Array<Region>, frameHeight:Float, ?dismiss:Void->Void, ?idPrefix:String)
 public var frameHeight(default, set):Float
 public function scrollHeight():Float
 public function dispose():Void
@@ -800,12 +797,18 @@ public function dispose():Void
 ```haxe
 enum Region
 {
+    Header(title:String, ?height:ByWidth<Int>, ?hideClose:Bool);
+    Actions(bar:ActionBar, ?height:ByWidth<Int>);
     Custom(height:ByWidth<Int>, content:Component);
     Scroll(content:Component);
 }
 ```
 
-- **Every height is declared, never measured.** `Custom` regions have the `height` they are given (a
+`dismiss` is what a `Header`'s close control calls (`present` passes the overlay's own); without it there is no
+close control. `idPrefix` names the parts for a stylesheet (see `Overlays` in `CSS classes and elements`) - `present` and
+`embed` pass `haxefolio-overlay-<slug>`.
+
+- **Every height is declared, never measured.** `Custom` regions have the `height` they are given, `Header` and `Actions` ones the `headerHeight`/`actionBarHeight` token of the `Appearance` in effect when the stack is built (60 and 68 by default; `height` overrides it for one instance) - all of them (a
   `ByWidth`, so it may differ between the expanded and collapsed states; content that doesn't fit is
   cut off, not accommodated), and the frame has `frameHeight`. The `Scroll` region gets
   `scrollHeight = frameHeight - sum of the fixed heights`, recomputed when `frameHeight` or the breakpoint
@@ -813,9 +816,37 @@ enum Region
   content to one region never moves another.
 - A stack has at most one `Scroll` region (more throws) and may have none. If the fixed regions alone
   exceed the frame, the scrolling area is hidden rather than overflowing - a design error to correct.
-- Only these two regions exist so far. `Header`, `Actions`, `Search` and `Tabs` are added as their
-  components are built; each reads its height from `GeometryTokens` (see `Appearance`), so the arithmetic
-  above doesn't change.
+- Only these four regions exist so far. `Search` and `Tabs` are added as their components are built; each
+  reads its height from `GeometryTokens` (see `Appearance`), so the arithmetic above doesn't change.
+
+### Header and Actions
+
+`Header` and `Actions` are the two regions every composition uses; their content components are also usable on
+their own:
+
+```haxe
+public function new(title:String, ?onClose:Void->Void, ?closeButtonId:String)            // HeaderBar
+public var title(get, set):String
+
+public function new(buttons:Array<ActionButton>)                                         // ActionBar
+
+public function new(caption:String, onPress:Void->Void, primary:Bool = false, ?glyph:String, ?widthPercent:Float, initiallyEnabled:Bool = true)   // ActionButton
+public var enabled(get, set):Bool
+```
+
+- **`Header(title, ?height, ?hideClose)`** holds a `HeaderBar`: `title` on the left (17px, weight 600, `ink`; interpreted
+  like any HaxeUI `.text` property, see `Locale utilities`), a 26 x 26 close control on the right, a `divider` hairline
+  below. The close control calls the stack's `dismiss`, so it closes a presented overlay; `hideClose: true` drops it for a
+  host whose footer carries the exit, and a stack with nothing to dismiss (an embedded panel, or a bare `RegionStack`
+  built without `dismiss`) has none either way. The title is one line and is not truncated - there is no ellipsis - so a
+  title too long for the row pushes the close control out: keep titles short (and re-check them in every shipped locale).
+- **`Actions(bar, ?height)`** holds an `ActionBar` - a row of `ActionButton`s with a `divider` hairline above - typically the
+  overlay's footer. Each button takes its `widthPercent` if it has one; the rest split what remains evenly, and all are
+  centred vertically. The host keeps references to the buttons it changes later (`primaryButton.enabled = form.valid`).
+- An `ActionButton` is an ordinary action (the unselected `ChoiceButton` look) or, with `primary`, the primary one, drawn per
+  the app's `EmphasisStyle` (read when the button is built, so a per-overlay `appearance` applies) exactly like a selected
+  `ChoiceButton`. A disabled primary button **loses its emphasis** - it greys out like any other disabled button rather than
+  still reading as the thing to press. A secondary action such as Reset is simply not `primary`.
 
 ### ScrollArea
 
@@ -1139,6 +1170,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-overlay-dialog` | Additionally on the frame of the dialog presentation (corner radius). |
 | `.haxefolio-overlay-sheet` | Additionally on the frame of the sheet presentation (top corner radii). |
 | `.haxefolio-overlay-embedded` | On the frame of embedded content (see `Embedded content`; corner radius) instead of a presentation class. It carries `.haxefolio-overlay-frame` and `#haxefolio-overlay-<slug>-frame` too, and has no scrim. |
+| `#haxefolio-overlay-<slug>-header` / `-actions` / `-scroll` / `-close` | The parts of a presented or embedded overlay's stack, for restyling one overlay: the `Header` and `Actions` slots, the `Scroll` region's `ScrollArea`, and the header's close control. Present only for the regions the composition has. |
 
 #### Form components
 
@@ -1158,6 +1190,12 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-stepped-value-field` | A `SteppedValueField`'s own box (no default styling). |
 | `.haxefolio-field-group` | A `FieldGroup`'s own box. `SwapSlot` carries no styling of its own - it's a bare `Stack`. |
 | `.haxefolio-region-stack` / `.haxefolio-region-custom` | A `RegionStack`'s own box / one of its `Custom` regions' slots. |
+| `.haxefolio-region-header` / `.haxefolio-region-actions` | The slot of a `Header` / `Actions` region: fill and the hairline. |
+| `.haxefolio-header-bar` / `.haxefolio-header-title` | A `HeaderBar`'s row / its title label. |
+| `.haxefolio-close-button` / `:hover` / `:down` | The header's close control. |
+| `.haxefolio-action-bar` | An `ActionBar`'s row. |
+| `.haxefolio-action-button` / `:hover` / `:disabled` | An `ActionButton`. |
+| `.haxefolio-action-button-primary` / `-outlined` | Additionally on a primary `ActionButton`; `-outlined` is carried while the `EmphasisStyle` is `Outlined`. Set by the framework - not something to add by hand. The `:disabled` rule comes last, so a disabled primary loses both. |
 | `.haxefolio-scroll-area` | A `ScrollArea`. Also a plain DOM class on its element - that is what the scrollbar rules key on. |
 | `.haxefolio-form-section` | A `FormSection`'s own box; carries the 18px bottom margin. |
 | `.haxefolio-button` / `:hover` / `:down` / `:disabled` | Opt-in look for a plain `Button` (see `Styling plain HaxeUI components the HaxeFolio way`). |

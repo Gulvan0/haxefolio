@@ -6,13 +6,26 @@ import haxe.ui.core.Component;
     One region of a `RegionStack`. Every region but the scrolling one has a constant, declared
     height; the scrolling one takes whatever the frame has left.
 
-    Only the regions that can be built from what exists today are listed. `Header`, `Actions`,
-    `Search` and `Tabs` join as their components are built - each one is a constructor here plus
-    a token it reads its height from (see `GeometryTokens`), and nothing in `RegionStack`'s
-    arithmetic changes.
+    Only the regions that can be built from what exists today are listed. `Search` and `Tabs` join
+    as their components are built - each one is a constructor here plus a token it reads its height
+    from (see `GeometryTokens`), and nothing in `RegionStack`'s arithmetic changes.
 **/
 enum Region
 {
+    /**
+        The title row (see `HeaderBar`): `title`, interpreted like any HaxeUI `.text` property, and a
+        close control that dismisses the overlay. `height` overrides the `headerHeight` token for
+        this instance only. `hideClose` drops the close control, for a host whose footer carries the
+        exit; a stack with nothing to dismiss (an embedded panel) has no close control either way.
+    **/
+    Header(title:String, ?height:ByWidth<Int>, ?hideClose:Bool);
+
+    /**
+        A row of buttons (see `ActionBar`), typically the overlay's footer. `height` overrides the
+        `actionBarHeight` token for this instance only.
+    **/
+    Actions(bar:ActionBar, ?height:ByWidth<Int>);
+
     /**
         A fixed-height region holding arbitrary content. `height` is declared, never measured:
         content that does not fit is cut off, not accommodated. `Custom` is the one region that

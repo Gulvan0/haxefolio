@@ -49,6 +49,7 @@ class Main
             .addNormalMenuItem("overlay-demo", "mobile-variant", Execute(showMobileVariantOverlay))
             .addNormalMenuItem("overlay-demo", "long", Execute(showLongOverlay))
             .addNormalMenuItem("overlay-demo", "appearance", Execute(showAppearanceOverlay))
+            .addNormalMenuItem("overlay-demo", "actions", Execute(showActionsOverlay))
             .addNormalMenuItem("overlay-demo", "embed", NavigateTo(() -> "embed-demo"))
             .addRightMenubarItem(Widget(buildSettingsWidget, true))
             .setLanguagePreference(SamplePreferences.language)
@@ -77,7 +78,7 @@ class Main
     }
 
     /*
-        The simplest overlay: one Scroll region, everything else left to the presentation.
+        The simplest overlay: a Header and one Scroll region, everything else left to the presentation.
     */
     private static function showPlainOverlay():Void
         HaxeFolioApp.present("custom-plain", _ -> CustomOverlayContent.buildPlain());
@@ -107,5 +108,11 @@ class Main
         Per-overlay appearance: Outlined emphasis and a style class.
     */
     private static function showAppearanceOverlay():Void
-        HaxeFolioApp.present("custom-appearance", _ -> CustomOverlayContent.buildAppearance(), null, {emphasis: Outlined, styleClass: "sample-overlay-variant"});
+        HaxeFolioApp.present("custom-appearance", CustomOverlayContent.buildAppearance, null, {emphasis: Outlined, styleClass: "sample-overlay-variant"});
+
+    /*
+        Header without a close control and an action bar with a secondary/primary/disabled mix.
+    */
+    private static function showActionsOverlay():Void
+        HaxeFolioApp.present("custom-actions", CustomOverlayContent.buildActions);
 }

@@ -3,6 +3,7 @@ package haxefolio.structure;
 import haxe.ui.containers.Box;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
+import haxefolio.appearance.AppearanceContext;
 import morestd.Detachable;
 
 /**
@@ -19,12 +20,17 @@ import morestd.Detachable;
     If the fixed regions alone exceed the frame, the scrolling area is squeezed to zero rather than
     overflowing - a design error to correct, not a case to accommodate.
 
+    A `Header` or `Actions` region takes its height from the `AppearanceContext` in effect when the
+    stack is built (the `headerHeight`/`actionBarHeight` token) unless it names one of its own.
+
     Call `dispose()` once the stack is done with, to detach its breakpoint subscriptions.
 **/
 class RegionStack extends VBox
 {
     private final fixedHeights:Array<Int> = [];
     private final bindings:Array<Detachable> = [];
+    private final dismiss:Null<Void->Void>;
+    private final idPrefix:Null<String>;
     private var scrollArea:Null<ScrollArea>;
 
     /**
@@ -33,9 +39,17 @@ class RegionStack extends VBox
     **/
     public var frameHeight(default, set):Float = 0;
 
-    public function new(regions:Array<Region>, frameHeight:Float)
+    /**
+        `dismiss` is what a `Header` region's close control calls; without it (nothing to dismiss)
+        there is no close control. `idPrefix`, if given, names the parts for a stylesheet: the
+        regions get the ids `<idPrefix>-header`, `-actions` and `-scroll`, the close control `-close`.
+    **/
+    public function new(regions:Array<Region>, frameHeight:Float, ?dismiss:Void->Void, ?idPrefix:String)
     {
         super();
+
+        this.dismiss = dismiss;
+        this.idPrefix = idPrefix;
 
         this.percentWidth = 100;
         this.verticalSpacing = 0;
@@ -69,29 +83,51 @@ class RegionStack extends VBox
     {
         switch region
         {
-            case Custom(height, content):
-                var slot:Box = new Box();
-                slot.percentWidth = 100;
-                slot.clip = true;
-                slot.addClass("haxefolio-region-custom");
-                slot.addComponent(content);
-                this.addComponent(slot);
+            case Header(title, height, hideClose):
+                var closeHandler:Null<Void->Void> = hideClose == true ? null : dismiss;
+                var closeButtonId:Null<String> = idPrefix == null ? null : '$idPrefix-close';
+                var headerBar:HeaderBar = new HeaderBar(title, closeHandler, closeButtonId);
+                addFixedRegion(height ?? AppearanceContext.current.geometry.headerHeight, headerBar, "haxefolio-region-header", "header");
 
-                var fixedIndex:Int = fixedHeights.length;
-                fixedHeights.push(0);
-                bindings.push(ResponsivityController.bind(height, resolved -> {
-                    fixedHeights[fixedIndex] = resolved;
-                    slot.height = resolved;
-                    applyScrollHeight();
-                }));
+            case Actions(bar, height):
+                addFixedRegion(height ?? AppearanceContext.current.geometry.actionBarHeight, bar, "haxefolio-region-actions", "actions");
+
+            case Custom(height, content):
+                addFixedRegion(height, content, "haxefolio-region-custom");
 
             case Scroll(content):
                 if (scrollArea != null)
                     throw "RegionStack: at most one Scroll region is allowed.";
 
                 scrollArea = new ScrollArea(content);
+
+                if (idPrefix != null)
+                    scrollArea.id = '$idPrefix-scroll';
+
                 this.addComponent(scrollArea);
         }
+    }
+
+    private function addFixedRegion(height:ByWidth<Int>, content:Component, styleClass:String, ?idSuffix:String):Void
+    {
+        var slot:Box = new Box();
+        slot.percentWidth = 100;
+        slot.clip = true;
+        slot.addClass(styleClass);
+
+        if (idPrefix != null && idSuffix != null)
+            slot.id = '$idPrefix-$idSuffix';
+
+        slot.addComponent(content);
+        this.addComponent(slot);
+
+        var fixedIndex:Int = fixedHeights.length;
+        fixedHeights.push(0);
+        bindings.push(ResponsivityController.bind(height, resolved -> {
+            fixedHeights[fixedIndex] = resolved;
+            slot.height = resolved;
+            applyScrollHeight();
+        }));
     }
 
     private function applyScrollHeight():Void

@@ -3,15 +3,10 @@ package haxefolio.overlay;
 import haxefolio.structure.Region;
 
 /**
-    What an overlay is made of: a title and the ordered regions the overlay's frame holds (see
-    `RegionStack`). Built by the content factories given to `HaxeFolioApp.present`.
+    What an overlay is made of: the ordered regions the overlay's frame holds (see `RegionStack`) and
+    its teardown hook. Built by the content factories given to `HaxeFolioApp.present`.
 **/
 typedef OverlayContent = {
-    /**
-        The overlay's title. Shown by the `Header` region once it exists; until then, no region reads it.
-    **/
-    title:String,
-
     /**
         The regions the frame holds, top to bottom. At most one may be a `Scroll` region.
     **/

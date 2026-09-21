@@ -82,7 +82,7 @@ class OverlayController
         {
             stack = AppearanceContext.runWith(appearance, () -> {
                 content = factory(dismiss);
-                return new RegionStack(content.regions, 0);
+                return new RegionStack(content.regions, 0, dismiss, 'haxefolio-overlay-$slug');
             });
         }
         catch (e:Dynamic)
@@ -146,7 +146,7 @@ class OverlayController
         {
             stack = AppearanceContext.runWith(appearance, () -> {
                 content = contentFactory();
-                return new RegionStack(content.regions, frameHeight);
+                return new RegionStack(content.regions, frameHeight, null, 'haxefolio-overlay-$slug');
             });
         }
         catch (e:Dynamic)
