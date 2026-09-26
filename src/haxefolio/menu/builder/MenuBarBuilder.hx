@@ -3,13 +3,20 @@ package haxefolio.menu.builder;
 import haxefolio.menu.builder.components.NormalMenu;
 import haxefolio.menu.builder.components.SiteNameLabel;
 import haxefolio.menu.builder.components.HamburgerButton;
+import haxe.ui.components.Button;
 import haxe.ui.components.Spacer;
-import haxe.ui.containers.SideBar;
+import haxe.ui.containers.menus.Menu;
 import haxe.ui.containers.menus.MenuBar;
 import haxe.ui.core.Component;
+import haxefolio.ElementShadow;
 import haxefolio.HaxeFolioApp;
 import haxefolio.HaxeFolioConfig;
+import haxefolio.ResponsivityController;
+import haxefolio.Viewport;
 import haxefolio.menu.MenuBarItem;
+import haxefolio.menu.SideBarController;
+import js.Browser;
+import js.html.KeyboardEvent;
 
 /*
     The menu bar itself, plus the pieces `ResponsivityController` needs to react to
@@ -26,36 +33,116 @@ class MenuBarBuilder
 {
     private static inline final SOURCE_REFERENCE:String = "menubar";
 
-    public static function build(config:HaxeFolioConfig, sideBar:SideBar):MenuBarBuildResult
+    // must match the dropdown's corner radius in the stylesheet (`.haxefolio-normal-menu`)
+    private static inline final DROPDOWN_CORNER_RADIUS:Int = 8;
+
+    public static function build(config:HaxeFolioConfig):MenuBarBuildResult
     {
         var menuBar:MenuBar = new MenuBar();
         menuBar.percentWidth = 100;
         menuBar.addClass("haxefolio-menubar");
 
-        var hamburgerButton:Component = new HamburgerButton(SOURCE_REFERENCE, sideBar.show);
+
+        // HaxeUI closes a dropdown on an outside click or a selection, but not on Esc
+        Browser.document.addEventListener("keydown", (event:KeyboardEvent) -> {
+            if (event.key == "Escape")
+                menuBar.closeCurrentMenu();
+        });
+
+        menuBar.onMenuOpened = event -> placeOpenDropdown(menuBar, event.menu);
+
+        var hamburgerButton:Component = new HamburgerButton(SOURCE_REFERENCE, SideBarController.open);
         hamburgerButton.hidden = true;
         menuBar.addComponent(hamburgerButton);
 
-        menuBar.addComponent(new SiteNameLabel(SOURCE_REFERENCE, config.siteName, HaxeFolioApp.navigateToDefault));
+        var siteNameLabel:SiteNameLabel = new SiteNameLabel(SOURCE_REFERENCE, config.siteName, HaxeFolioApp.navigateToDefault);
+        menuBar.addComponent(siteNameLabel);
+
+        /*
+            The stylesheet can't see the breakpoint: the padding and gaps key on these state
+            classes instead. The site name label carries its own, since HaxeUI doesn't restyle a
+            component's children when the component's class changes. A dropdown open at the moment
+            of crossing is closed - its trigger may be about to disappear with the rest of the
+            collapsible items.
+        */
+        ResponsivityController.onCollapseChange(collapsed -> {
+            if (collapsed)
+            {
+                menuBar.swapClass("haxefolio-menubar-collapsed", "haxefolio-menubar-expanded");
+                siteNameLabel.removeClass("haxefolio-site-name-label-expanded");
+            }
+            else
+            {
+                menuBar.swapClass("haxefolio-menubar-expanded", "haxefolio-menubar-collapsed");
+                siteNameLabel.addClass("haxefolio-site-name-label-expanded");
+            }
+
+            menuBar.closeCurrentMenu();
+        });
 
         var collapsibleComponents:Array<Component> = [];
 
         for (item in config.menubar.left)
-            addMenuBarItem(menuBar, collapsibleComponents, config, item);
+            addMenuBarItem(menuBar, collapsibleComponents, item);
 
         var spacer:Spacer = new Spacer();
         spacer.percentWidth = 100;
         menuBar.addComponent(spacer);
 
         for (item in config.menubar.right)
-            addMenuBarItem(menuBar, collapsibleComponents, config, item);
+            addMenuBarItem(menuBar, collapsibleComponents, item);
 
         return {menuBar: menuBar, hamburgerButton: hamburgerButton, collapsibleComponents: collapsibleComponents};
     }
 
-    private static function addMenuBarItem(menuBar:MenuBar, collapsibleComponents:Array<Component>, config:HaxeFolioConfig, item:MenuBarItem):Void
+    /*
+        Runs on every open, once HaxeUI has positioned the dropdown, and again whenever the dropdown
+        re-fits its width to its labels while open (see NormalMenu) - HaxeUI positions it only
+        once, at open, so the same placement rule is applied here to keep it right after a re-fit:
+        left-aligned under its trigger, or right-aligned to it when that would overflow the screen.
+
+        The corner under the trigger is square, and the top edge beside the trigger is HaxeUI's
+        filler, which is refitted here too: HaxeUI fits it around a rounded top-right corner only.
+    */
+    private static function placeOpenDropdown(menuBar:MenuBar, menu:Menu):Void
     {
-        var component:Component = buildMenuBarItem(config, item);
+        var trigger:Null<Button> = findOpenTrigger(menuBar);
+        if (trigger == null)
+            return;
+
+        var flipped:Bool = trigger.screenLeft + menu.width > Viewport.width();
+        menu.left = flipped ? trigger.screenLeft + trigger.width - menu.width : trigger.screenLeft;
+
+        if (flipped)
+            menu.addClass("haxefolio-normal-menu-flipped");
+        else
+            menu.removeClass("haxefolio-normal-menu-flipped");
+
+        var filler:Null<Component> = menu.findComponent("menu-filler", false);
+        if (filler == null)
+            return;
+
+        var cornerOffset:Float = DROPDOWN_CORNER_RADIUS - 1;
+        var fillerWidth:Float = menu.width - trigger.width - cornerOffset + 1;
+
+        filler.hidden = fillerWidth <= 0;
+        filler.width = Math.max(fillerWidth, 0);
+        filler.left = flipped ? cornerOffset : trigger.width - 1;
+    }
+
+    // the menu bar's own button for the open menu: the only one of them left selected while it is open
+    private static function findOpenTrigger(menuBar:MenuBar):Null<Button>
+    {
+        for (child in menuBar.childComponents)
+            if (child.hasClass("menubar-button") && Std.isOfType(child, Button) && cast(child, Button).selected)
+                return cast(child, Button);
+
+        return null;
+    }
+
+    private static function addMenuBarItem(menuBar:MenuBar, collapsibleComponents:Array<Component>, item:MenuBarItem):Void
+    {
+        var component:Component = buildMenuBarItem(menuBar, item);
         menuBar.addComponent(component);
 
         if (isCollapsible(item))
@@ -71,12 +158,15 @@ class MenuBarBuilder
         }
     }
 
-    private static function buildMenuBarItem(config:HaxeFolioConfig, item:MenuBarItem):Component
+    private static function buildMenuBarItem(menuBar:MenuBar, item:MenuBarItem):Component
     {
         switch item
         {
             case NormalMenu(slug, items, defaultText):
-                return new NormalMenu(slug, items, defaultText);
+                var menu:NormalMenu = new NormalMenu(slug, items, defaultText);
+                ElementShadow.apply(menu.element, "0 8px 28px rgba(24, 26, 31, 0.16)");
+                menu.onWidthRefitted = () -> placeOpenDropdown(menuBar, menu);
+                return menu;
             case Widget(componentFactory, _):
                 var component:Component = componentFactory();
                 component.verticalAlign = "center";

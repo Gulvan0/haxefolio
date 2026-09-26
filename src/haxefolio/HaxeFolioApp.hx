@@ -5,7 +5,6 @@ import haxe.ui.Toolkit;
 import haxe.ui.locale.LocaleManager;
 import haxe.ui.focus.FocusManager;
 import haxe.ui.containers.Box;
-import haxe.ui.containers.SideBar;
 import haxe.ui.containers.VBox;
 import haxe.ui.containers.menus.MenuBar;
 import haxe.ui.core.Component;
@@ -14,6 +13,7 @@ import haxefolio.appearance.AppearanceContext;
 import haxefolio.appearance.AppearanceOverrides;
 import js.Browser;
 import haxefolio.menu.MenuFacade;
+import haxefolio.menu.SideBarController;
 import haxefolio.menu.builder.MenuBarBuilder;
 import haxefolio.menu.builder.MenuBarBuilder.MenuBarBuildResult;
 import haxefolio.menu.builder.SideBarBuilder;
@@ -23,6 +23,7 @@ import haxefolio.overlay.OverlayController;
 import haxefolio.preferences.PreferenceRegistry;
 import haxefolio.preferences.StorageBackend;
 import haxefolio.preferences.builder.PreferenceWindowBuilder;
+import haxefolio.structure.EdgePanel;
 import haxefolio.structure.ScrollArea;
 import haxefolio.PageRouter.PageResolution;
 
@@ -98,9 +99,9 @@ class HaxeFolioApp
                     currentPage.resyncLocalizedText();
             });
 
-        var sideBar:SideBar = SideBarBuilder.build(config);
+        var sideBar:EdgePanel = SideBarBuilder.build(config);
 
-        var menuBarBuildResult:MenuBarBuildResult = MenuBarBuilder.build(config, sideBar);
+        var menuBarBuildResult:MenuBarBuildResult = MenuBarBuilder.build(config);
         var menuBar:MenuBar = menuBarBuildResult.menuBar;
 
         MenuFacade.init(menuBar, sideBar);
@@ -119,9 +120,9 @@ class HaxeFolioApp
         root.addComponent(pageContainer);
 
         Screen.instance.addComponent(root);
-        Screen.instance.addComponent(sideBar);
 
         OverlayController.init([root, sideBar]);
+        SideBarController.init(sideBar, [root]);
 
         var menuCollapseWidth:Int = config.menuCollapseWidth ?? 900;
         var debounceMs:Int = config.debounceMs ?? 500;
@@ -131,6 +132,7 @@ class HaxeFolioApp
                 currentPage.onResize(currentPageScrollArea.element.clientWidth, currentPageScrollArea.element.clientHeight);
 
             OverlayController.resize();
+            SideBarController.fit();
         });
 
         Browser.window.addEventListener("popstate", _ -> openFromCurrentUrl());
@@ -312,6 +314,7 @@ class HaxeFolioApp
     {
         // an open overlay belongs to the page it was opened over; don't leave it dangling over the next one
         OverlayController.dismissIfOpen();
+        SideBarController.close();
 
         var page:PageBase = definition.factory(params);
 

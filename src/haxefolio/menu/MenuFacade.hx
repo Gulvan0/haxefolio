@@ -1,13 +1,13 @@
 package haxefolio.menu;
 
 import haxe.ui.components.Button;
-import haxe.ui.containers.SideBar;
 import haxe.ui.containers.menus.MenuBar;
 import haxefolio.menu.builder.components.NormalMenu;
 import haxefolio.menu.builder.components.NormalMenuItem;
 import haxefolio.menu.builder.components.SidebarGroupHeader;
 import haxefolio.menu.builder.components.SidebarGroupItem;
 import haxefolio.menu.builder.components.SiteNameLabel;
+import haxefolio.structure.EdgePanel;
 
 /*
     Relies on the changes in https://github.com/haxeui/haxeui-core/pull/703
@@ -26,10 +26,10 @@ import haxefolio.menu.builder.components.SiteNameLabel;
 class MenuFacade
 {
     public static var menuBar(default, null):MenuBar;
-    public static var sideBar(default, null):SideBar;
+    public static var sideBar(default, null):EdgePanel;
 
     @:allow(haxefolio.HaxeFolioApp)
-    private static function init(menuBar:MenuBar, sideBar:SideBar):Void
+    private static function init(menuBar:MenuBar, sideBar:EdgePanel):Void
     {
         MenuFacade.menuBar = menuBar;
         MenuFacade.sideBar = sideBar;
@@ -119,8 +119,8 @@ class MenuFacade
 
     /**
         Updates the icon of the item identified by `itemSlug` within the `NormalMenu` identified by
-        `menuSlug`. The side bar has no icons to keep in sync, so only the menu bar item is touched.
-        Throws if no such item is present in the menu bar.
+        `menuSlug`, and of its mirrored side bar item, together. Throws if no such item is present
+        in the menu bar.
     **/
     public static function updateMenuItemIcon(menuSlug:String, itemSlug:String, icon:String):Void
     {
@@ -130,6 +130,9 @@ class MenuFacade
             throw 'MenuFacade: no item "$itemSlug" found in NormalMenu "$menuSlug" in the menu bar.';
 
         item.icon = icon;
+
+        var mirrored:SidebarGroupItem = sideBar.findComponent('haxefolio-sidebar-group-item-$menuSlug-$itemSlug', SidebarGroupItem);
+        mirrored.icon = icon;
     }
 
     /**

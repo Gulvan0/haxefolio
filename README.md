@@ -156,7 +156,7 @@ class LocaleUtils
 
 ## Menu and side bar
 
-The top of the app is a menu bar (`haxe.ui.containers.menus.MenuBar`); a side bar (`haxe.ui.containers.SideBar`, hidden until opened) mirrors it for narrow screens. Both are built from the same `HaxeFolioConfig.menubar`/`sidebarExtras` configuration.
+The top of the app is a menu bar (`haxe.ui.containers.menus.MenuBar`); a side bar (an `EdgePanel`, see `EdgePanel` under `Region stacks`; off screen until opened) mirrors it for narrow screens. Both are built from the same `HaxeFolioConfig.menubar`/`sidebarExtras` configuration.
 
 ### Menu bar
 
@@ -182,11 +182,15 @@ enum MenuBarItem
   ```
 
   `NavigateTo` goes through `HaxeFolioApp.navigateTo` just like any other navigation; `Execute` runs an arbitrary function, which may itself call `navigateTo` if it needs to combine navigation with something `NavigateTo` alone doesn't cover (e.g. passing `state`). `Link` opens `url` in a new tab if `newTab` is `true`, or the current one otherwise - a shorthand for an `Execute` whose callback opens `url` via `window.open` with the respective target.
-- **`Widget(componentFactory, ?persistent)`** - a custom component, built by `componentFactory` and wrapped in its own menu, e.g. the settings button shown in `Getting started`. The factory is only invoked once the menu bar itself is being built (i.e. after `Toolkit.init()` has run as part of `HaxeFolioApp.init`), since HaxeUI components can't be constructed any earlier.
+- **`Widget(componentFactory, ?persistent)`** - a custom component, built by `componentFactory` and added to the menu bar as-is (vertically centred, not wrapped in a menu), e.g. the settings button shown in `Getting started`. The factory is only invoked once the menu bar itself is being built (i.e. after `Toolkit.init()` has run as part of `HaxeFolioApp.init`), since HaxeUI components can't be constructed any earlier.
 
 `hiddenByDefault`, if `true`, starts a `MenuItemDefinition` hidden - in the menu bar and, for a `NormalMenu` item, its mirrored side bar entry too - until `MenuFacade.showMenuItem`/`showSidebarExtraGroupItem` (see `Showing and hiding menu items at runtime` below) makes it visible; omitted, it defaults to `false`.
 
-Additionally, two components are always present as the menu bar's leftmost children, placed there by the framework itself rather than configured as `MenuBarItem`s: a hamburger button - hidden by default, shown once the menu bar collapses to its mobile layout (see `Responsivity`), at which point clicking it opens the side bar - followed by the site name label, showing `HaxeFolioConfig.siteName` (interpreted the same way any HaxeUI `.text` property is, see `Locale utilities`) and navigating to the default page when clicked.
+Additionally, two components are always present as the menu bar's leftmost children, placed there by the framework itself rather than configured as `MenuBarItem`s: a hamburger button - hidden by default, shown once the menu bar collapses to its mobile layout (see `Responsivity`), at which point clicking it opens the side bar - followed by the site name label, showing `HaxeFolioConfig.siteName` (interpreted the same way any HaxeUI `.text` property is, see `Locale utilities`) in its own typeface (see `Typography`) and navigating to the default page when clicked.
+
+A `NormalMenu` opens on a click on its label, and closes on a click outside it, on choosing one of its items, on **Esc**, or when the menu bar crosses `menuCollapseWidth` (see `Responsivity`). Its dropdown opens attached under its label, left-aligned to it - or right-aligned, when that would run off the screen - and is as wide as its widest item label needs, 232px at the least: labels are single-line and never truncated, so keep them short (roughly 27 Latin or 25 Cyrillic characters fit the minimum width at 13px), and re-check them in every shipped locale.
+
+Closing on Esc and on the breakpoint relies on `MenuBar.closeCurrentMenu()`, and sizing the dropdown on `Menu.openPopup()`, neither of which is in stock `haxeui-core` yet: they need https://github.com/haxeui/haxeui-core/pull/715 and https://github.com/haxeui/haxeui-core/pull/701 (both in the `Gulvan0/haxeui-core` fork).
 
 ### Updating menu bar labels at runtime
 
@@ -208,7 +212,7 @@ public static function updateMenuItemLabelText(menuSlug:String, itemSlug:String,
 public static function updateMenuItemIcon(menuSlug:String, itemSlug:String, icon:String):Void
 ```
 
-Updates the icon of the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`. Unlike the label-updating methods above, this only touches the menu bar - the side bar has no icons of its own to keep in sync (see `Side bar` below). Throws if no such item is present in the menu bar.
+Updates the icon of the item identified by `itemSlug` within the `NormalMenu` identified by `menuSlug`, and of its mirrored side bar item, together - the same as the label-updating methods above. Throws if no such item is present in the menu bar.
 
 ### Showing and hiding menu items at runtime
 
@@ -226,7 +230,11 @@ public static function hideSidebarExtraGroupItem(groupSlug:String, itemSlug:Stri
 
 ### Side bar
 
-The side bar's first row always holds a hamburger button (closes the side bar) and the site name (closes the side bar and navigates to the default page). Below that, every `NormalMenu` from the menu bar is mirrored as a group: a header line with the menu's own label, followed by an indented, clickable line per item - clicking closes the side bar, then runs the same action as the menu bar counterpart.
+The side bar slides in from the left edge when the menu bar's hamburger button is clicked: 320px wide (narrower on a viewport too small to leave 56px of the scrim uncovered), the viewport's full height, over a scrim covering the rest of the screen, menu bar included.
+
+Its first row repeats the collapsed menu bar's row - same height, padding and gap - so its two components sit exactly where the menu bar's own do: a button with a cross in place of the hamburger's three bars (closes the side bar) and the site name (closes the side bar and navigates to the default page). Below that, in a scrolling body, every `NormalMenu` from the menu bar is mirrored as a group: a header line with the menu's own label, followed by one row per item, showing the item's icon (if it has one) and label - clicking a row closes the side bar and runs the same action as the menu bar counterpart straight away, without waiting for the slide-out. Persistent widgets are not repeated in the side bar: they stay in the menu bar, under the scrim.
+
+While the side bar is on screen, the rest of the app is unreachable by pointer, keyboard or assistive technology (it is marked `inert`). It is closed by its hamburger button, a click on the scrim, **Esc**, or navigating (see `Navigation`), and taken off screen at once, without the slide, when the menu bar leaves its collapsed layout (see `Responsivity`). It is not an overlay (see `Overlays`): it doesn't count as the one open overlay, so `present` works while it is open or closing - the overlay appears over it, and Esc then closes the overlay only.
 
 The side bar's site name label and every mirrored group/item label are built from the very same `siteName`/`defaultText` (or derived locale key) as their menu bar counterparts, and stay coherent with them afterwards too: any `MenuFacade` update (see `Updating menu bar labels at runtime` above) applies to both the menu bar's label and its side bar mirror together.
 
@@ -279,7 +287,7 @@ Enum constructors inside a `ByWidth` argument resolve unqualified where the expe
 HaxeFolio presents dismissible overlays: a fixed-size frame of `Region`s (see `Region stacks`) over a scrim. Which of two presentations appears is decided internally, by the same breakpoint everything else responds to (`menuCollapseWidth`, see `Responsivity`) - a **dialog** while expanded, a **sheet** while collapsed. A host never names a presentation: it supplies content that is valid in both states, and may branch on the breakpoint state (through `mobileContentFactory`, or a `ByWidth` value), never on the presentation itself.
 
 - The **dialog** is a centred window, 620px wide and at most 720px tall. The frame tracks the viewport: a short or narrow window shrinks it - the height down to a 420px floor - and only the scrolling region notices.
-- The **sheet** is a bottom `SideBar` covering the entire viewport, menu bar included, sliding up from the bottom edge.
+- The **sheet** is a bottom `EdgePanel` (see `Region stacks`) covering the entire viewport, menu bar included, sliding up from the bottom edge.
 
 Both are **modal** and neither is draggable: the whole rest of the app - menu bar included - is unreachable by pointer, keyboard or assistive technology (it is marked `inert`) for as long as the overlay is open, opening or closing. An overlay is dismissed by **Esc**, by the `dismiss` handle its factory receives (typically from a footer button), or by navigating away (see `Navigation`), which closes it first rather than leaving it stranded over an unrelated page - nothing else: there is no click-outside-to-dismiss. The close control is the `Header` region's (see `Region stacks`); a composition without one (no `Header`, or `hideClose`) relies on Esc or a footer action.
 
@@ -371,7 +379,7 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 
 - **`haxefolio.form`** - the components a framework user actually reaches for and composes a
   form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `PreviewPane`, `FormSection` below, and more as the library grows.
-- **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on: `SwapSlot` (below), which forms use directly, plus `RegionStack`, `Region`, `ScrollArea`, `TabStrip` and `ErrorMarker` (see `Region stacks`); a form imports it from here, not from `haxefolio.form`.
+- **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on: `SwapSlot` (below), which forms use directly, plus `RegionStack`, `Region`, `ScrollArea`, `TabStrip`, `ErrorMarker` and `EdgePanel` (see `Region stacks`); a form imports it from here, not from `haxefolio.form`.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
   `IconAlign`, `ChoiceOption<T>`, `ChoiceGridSelection<T>`, `FieldGroupDirection`, `CommitResult`, `CommitTrigger`, ...). Still public,
@@ -948,6 +956,41 @@ Every scrolling area the framework builds - a `Scroll` region, and every tab pag
   `haxefolio-scroll-area`. Firefox has no such pseudo-elements: it gets a thin scrollbar of the same
   colours, with its own width.
 
+### EdgePanel
+
+`haxefolio.structure.EdgePanel` is a panel sliding in from an edge of the viewport over a scrim covering the whole viewport - what the side bar (see `Side bar`) and the overlay sheet (see `Overlays`) are built on, also usable directly:
+
+```haxe
+panel = new EdgePanel(Left, onPanelGone, closePanel); // closePanel calls panel.close()
+panel.width = 300;
+panel.height = 600;
+panel.addComponent(content);
+panel.open();
+```
+
+```haxe
+enum EdgePanelEdge
+{
+    Left;
+    Bottom;
+}
+
+public function new(edge:EdgePanelEdge, onGone:Void->Void, ?onScrimClick:Void->Void, disposeOnGone:Bool = false)
+public final scrim:Box
+public var isOnScreen(default, null):Bool
+public var isClosing(default, null):Bool
+public function open():Void
+public function close(animated:Bool = true):Void
+public function fit():Void
+```
+
+- The owner sizes the panel (`width`/`height`) and adds its content; `fit()` positions the panel against its edge and sizes the scrim to the viewport - call it after changing the panel's size and whenever the viewport changes.
+- `open()` puts the panel and scrim on screen, slides the panel in (260ms) and fades the scrim in (220ms), both `cubic-bezier(.2, .8, .2, 1)`. Called while the panel is closing, it slides back in from where it is.
+- `close()` reverses that and calls `onGone` once both are off screen; `close(false)` takes them off screen at once. The scrim stays for as long as the panel is on screen, closing included, so nothing beneath it is reachable mid-slide.
+- `scrim` is exposed for an id and classes; its colour is the stylesheet's. Clicking it calls `onScrimClick`, if given - otherwise it only blocks input.
+- `disposeOnGone` disposes the panel and scrim once gone, for a panel built per use; without it the panel can be opened again.
+- The panel does nothing modal on its own: marking the rest of the app `inert` or handling Esc is its owner's business, as the side bar and the overlay sheet each do.
+
 ## Preferences
 
 HaxeFolio comes with a preference system: a framework user declares named, typed preferences; their values persist to LocalStorage automatically, are editable by the website user through an auto-generated preference window, and are readable/writable from the app's own code with change notifications.
@@ -1090,6 +1133,8 @@ A fluent, mutating alternative to writing the structure above by hand: `HaxeFoli
 
 HaxeFolio ships its own type rather than relying on a platform font stack - two self-hosted, Latin+Cyrillic WOFF2 families, exposed as theme vars: `uiFamily` (default **Onest**, weights 400/500/600) for all UI text, and `monoFamily` (default **IBM Plex Mono**, weights 400/500) for numeric values read digit-by-digit - clock readouts, ratings, notation strings - never for prose or labels, which would dilute that meaning.
 
+The site name label (see `Menu bar`) alone is set in a third face, `siteNameFamily` (default **Jost** SemiBold, 21px, also self-hosted Latin+Cyrillic WOFF2). It is the app's wordmark, not a third UI family: nothing else uses it, and the split above is unaffected.
+
 Since a HaxeUI `font-name` rule loads one font file per weight rather than resolving weight within a family the way a browser's own `@font-face` does, each weight is its own var:
 
 | Var | Default resource | Weight |
@@ -1099,6 +1144,7 @@ Since a HaxeUI `font-name` rule loads one font file per weight rather than resol
 | `$ui-family-semibold` | `haxefolio/fonts/Onest-SemiBold.woff2` | 600 |
 | `$mono-family-regular` | `haxefolio/fonts/IBMPlexMono-Regular.woff2` | 400 |
 | `$mono-family-medium` | `haxefolio/fonts/IBMPlexMono-Medium.woff2` | 500 |
+| `$site-name-family` | `haxefolio/fonts/Jost-SemiBold.woff2` | 600 |
 
 A component references one via `font-name: $ui-family-medium;` in its stylesheet, the same `$var` mechanism `$accent-color` and friends already use (see `Styling` below). A host substitutes a family by redeclaring the same var name(s), at whatever weights it uses, in its own `module.xml`:
 
@@ -1174,7 +1220,7 @@ label.addClass("haxefolio-label");
 
 Nothing else is affected: components HaxeFolio or HaxeUI build themselves (menu bar items, switch thumbs, steppers, ...) never carry these classes, so they keep their own styling. In XML markup, use `styleName="haxefolio-button"`. HaxeUI stylesheets have no specificity - among matching rules the last one wins - so an app's own rule for the same component overrides these defaults simply by being registered later.
 
-`MenuFacade.menuBar`/`sideBar` are also exposed as static members, letting a framework user reach into either component and adjust properties directly - once, right after `HaxeFolioApp.init` returns (there's no need to account for redraws, since this only runs once at startup). No overlay has an equivalent static member: unlike the menu bar/side bar, an overlay isn't built once at startup - a fresh instance is built on every `present` call instead, since it must pick one of its two presentations depending on the current layout mode (see `Overlays`). An overlay is customized through `present`'s `appearance` argument and CSS.
+`MenuFacade.menuBar` (a `MenuBar`) and `MenuFacade.sideBar` (an `EdgePanel`) are also exposed as static members, letting a framework user reach into either component and adjust properties directly - once, right after `HaxeFolioApp.init` returns (there's no need to account for redraws, since this only runs once at startup). No overlay has an equivalent static member: unlike the menu bar/side bar, an overlay isn't built once at startup - a fresh instance is built on every `present` call instead, since it must pick one of its two presentations depending on the current layout mode (see `Overlays`). An overlay is customized through `present`'s `appearance` argument and CSS.
 
 See `CSS classes and elements` in `Reference` for the full list of selectors HaxeFolio's own components carry.
 
@@ -1250,15 +1296,22 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 
 | Selector | Notes |
 |---|---|
-| `.haxefolio-menubar` | The `MenuBar` itself. Its own buttons/icons carry HaxeUI's built-in `menubar-button`/`menuitem-icon` classes - scope overrides with e.g. `.haxefolio-menubar > .menubar-button`. |
-| `.haxefolio-hamburger-button` / `#haxefolio-hamburger-button-menubar`, `#haxefolio-hamburger-button-sidebar` | The hamburger button - one instance in the menu bar, one in the side bar. |
+| `.haxefolio-menubar` | The `MenuBar` itself. Its menu labels are buttons HaxeUI builds itself, carrying its built-in `menubar-button` class (`:down` while the menu is open) - scope overrides with `.haxefolio-menubar > .menubar-button`. |
+| `.haxefolio-menubar-expanded` / `.haxefolio-menubar-collapsed` | Additionally on the `MenuBar`, per layout (see `Responsivity`): its padding and gaps. Set by the framework - not something to add by hand. |
+| `.haxefolio-hamburger-button` / `#haxefolio-hamburger-button-menubar`, `#haxefolio-hamburger-button-sidebar` | The hamburger button - one instance in the menu bar, one in the side bar; `:down` while pressed. |
+| `.haxefolio-hamburger-button-cross` | Additionally on the side bar's instance, which shows a cross. |
 | `.haxefolio-site-name-label` / `#haxefolio-site-name-label-menubar`, `#haxefolio-site-name-label-sidebar` | The site name label - one instance in the menu bar, one in the side bar. |
-| `.haxefolio-normal-menu` / `#haxefolio-normal-menu-<slug>` | A `NormalMenu`. |
+| `.haxefolio-site-name-label-expanded` | Additionally on the menu bar's site name label while the menu bar is expanded: the gap before the menus. Set by the framework. |
+| `.haxefolio-normal-menu` / `#haxefolio-normal-menu-<slug>` | A `NormalMenu` - that is, its dropdown. |
+| `.haxefolio-normal-menu-flipped` | Additionally on a dropdown right-aligned to its label (its square corner moves to the top right). Set by the framework. |
 | `.haxefolio-normal-menu-item` / `#haxefolio-normal-menu-<menuSlug>-item-<itemSlug>` | A menu item within a `NormalMenu`. |
-| `.haxefolio-sidebar` | The `SideBar` itself. |
-| `.haxefolio-sidebar-entries-top-spacer` | Spacer between the first row and the group list. |
+| `.haxefolio-sidebar` | The side bar's `EdgePanel` itself. |
+| `.haxefolio-sidebar-scrim` | The scrim behind the side bar: carries the scrim colour, closes the side bar when clicked. |
+| `.haxefolio-sidebar-header` | The side bar's first row, repeating the collapsed menu bar's. |
+| `.haxefolio-sidebar-body` | The box holding the groups, inside the side bar's scrolling area. |
+| `.haxefolio-sidebar-group` / `.haxefolio-sidebar-group-divided` | A side bar group; `-divided` on every group after the first (the hairline above it). |
 | `.haxefolio-sidebar-group-header` / `#haxefolio-sidebar-group-header-<slug>` | A side bar group's header label - covers both menu-mirrored and `sidebarExtras` groups. |
-| `.haxefolio-sidebar-group-item` / `#haxefolio-sidebar-group-item-<groupSlug>-<itemSlug>` | A side bar group's item label. |
+| `.haxefolio-sidebar-group-item` / `#haxefolio-sidebar-group-item-<groupSlug>-<itemSlug>` | A side bar group's item row, a button; `:down` while pressed. |
 
 #### Overlays
 

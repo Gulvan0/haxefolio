@@ -18,10 +18,11 @@ enum MenuBarItem
     NormalMenu(slug:String, items:Array<MenuItemDefinition>, ?defaultText:String);
 
     /**
-        A custom component built by `componentFactory` and wrapped in its own `Menu`. The factory
-        is only invoked once the menu bar itself is being built, i.e. after `Toolkit.init()` has
-        run, since HaxeUI components can't be constructed before that. Hidden when the menu bar
-        collapses to its mobile layout unless `persistent` is `true`.
+        A custom component built by `componentFactory` and added to the menu bar as-is (vertically
+        centred, not wrapped in a `Menu`). The factory is only invoked once the menu bar itself is
+        being built, i.e. after `Toolkit.init()` has run, since HaxeUI components can't be
+        constructed before that. Hidden when the menu bar collapses to its mobile layout unless
+        `persistent` is `true`.
     **/
     Widget(componentFactory:Void->Component, ?persistent:Bool);
 }

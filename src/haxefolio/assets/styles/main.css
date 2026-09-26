@@ -3,6 +3,17 @@
     carrying the respective class, never to components that merely happen to be one.
 */
 
+/*
+    Single-line button captions. HaxeUI has no `white-space`; its `word-wrap` is the equivalent,
+    and a Button doesn't pass it on to its inner label, so it is set on the label itself.
+*/
+.haxefolio-button .label,
+.haxefolio-action-button .label,
+.haxefolio-choice-button .label,
+.haxefolio-commit-button .label {
+    word-wrap: false;
+}
+
 .haxefolio-button {
     font-name: $ui-family-medium;
     font-size: 13px;
@@ -11,7 +22,6 @@
     padding-bottom: 11px;
     border-radius: 5px;
     text-align: center;
-    white-space: nowrap;
     background-color: #f0f0f1;
     border: 1px solid #d4d4d6;
     color: #5f6168;
@@ -57,44 +67,189 @@
     padding: 10px;
 }
 
+/*
+    Menu bar. Its padding and gaps differ between the expanded and collapsed layouts, so the bar
+    carries one of two state classes (see MenuBarBuilder); the side bar's header repeats the
+    collapsed row.
+*/
+
+.haxefolio-menubar {
+    height: 52px;
+    background-color: #fafafa;
+    border: none;
+    border-bottom: 1px solid #d4d4d6;
+    filter: none;
+}
+
+.haxefolio-menubar-expanded {
+    padding-left: 22px;
+    padding-right: 22px;
+    horizontal-spacing: 2px;
+}
+
+/* the menu bar's site name while expanded, where the menus follow it */
+.haxefolio-site-name-label-expanded {
+    margin-right: 24px;
+}
+
+.haxefolio-menubar-collapsed {
+    padding-left: 4px;
+    padding-right: 8px;
+    horizontal-spacing: 4px;
+}
+
 .haxefolio-hamburger-button {
-    pointer-events: true;
-    background-color: yellow;
-    background-opacity: 0;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 6px;
+    background-color: transparent;
+    border: none;
+    filter: none;
+    icon-position: center;
+    font-name: $ui-family-regular;
+    font-size: 17px;
+    color: #5f6168;
+}
+
+.haxefolio-hamburger-button:hover {
+    background-color: transparent;
+    border: none;
+}
+
+.haxefolio-hamburger-button:down {
+    background-color: #f0f0f1;
+    border: none;
 }
 
 .haxefolio-site-name-label {
     pointer-events: true;
-    white-space: nowrap;
-    color: #333333;
-    font-name: 'haxefolio/fonts/Futura.ttf';
+    word-wrap: false;
+    color: #1f2126;
+    font-name: $site-name-family;
     font-weight: 600;
-    font-size: 20px;
-    padding-left: 7px;
+    font-size: 21px;
     background-color: yellow;
     background-opacity: 0;
-}
-
-.haxefolio-site-name-label:hover {
-    color: #428fd8;
 }
 
 .haxefolio-site-name-label:disabled {
     color: $disabled-text-color;
 }
 
+/*
+    Menu triggers: the buttons MenuBar builds for each menu itself (so reachable only from here, not
+    from code). `:down` is the open state. Open, the trigger has no bottom border and square bottom
+    corners: the dropdown attaches below it, joined by HaxeUI's own filler.
+*/
+
+.haxefolio-menubar > .menubar-button,
+.haxefolio-menubar > .menubar-button-no-children {
+    height: 34px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 12px;
+    padding-right: 11px;
+    border-radius: 5px;
+    background-color: transparent;
+    border: 1px solid transparent;
+    filter: none;
+    vertical-align: center;
+    font-name: $ui-family-medium;
+    font-size: 13px;
+    font-weight: 500;
+    color: #5f6168;
+}
+
 .haxefolio-menubar > .menubar-button {
-    font-weight: 300;
-    color: $normal-text-color;
+    icon: "haxefolio/images/menu_chevron_down.svg";
+    icon-position: right;
+    horizontal-spacing: 8px;
 }
 
-.haxefolio-menubar > .menubar-button:hover {
-    background-color: #eeeeee;
-    color: #333333;
+.haxefolio-menubar > .menubar-button:hover,
+.haxefolio-menubar > .menubar-button-no-children:hover {
+    background-color: #f0f0f1;
+    border: 1px solid transparent;
+    color: #1f2126;
 }
 
-.haxefolio-menubar > .menubar-button:disabled {
-    color: $disabled-text-color;
+.haxefolio-menubar > .menubar-button:down {
+    icon: "haxefolio/images/menu_chevron_up.svg";
+    background-color: #f0f0f1;
+    border: 1px solid #d4d4d6;
+    border-bottom-width: 0px;
+    border-bottom-size: 0px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    color: #1f2126;
+}
+
+.haxefolio-menubar > .menubar-button:disabled,
+.haxefolio-menubar > .menubar-button-no-children:disabled {
+    color: #9a9ca2;
+}
+
+/*
+    Dropdowns. Attached to their trigger: no top border, the top edge beside the trigger drawn by
+    HaxeUI's own filler, and the corner under the trigger square - top-left normally, top-right
+    when HaxeUI right-aligns a dropdown that would overflow the screen (MenuBarBuilder marks that
+    with -flipped). The shadow is set on the DOM element on every open, see MenuBarBuilder.
+*/
+
+.haxefolio-normal-menu {
+    min-width: 232px;
+    padding: 6px;
+    vertical-spacing: 2px;
+    background-color: #fafafa;
+    border: 1px solid #d4d4d6;
+    border-top-width: 0px;
+    border-top-size: 0px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    filter: none;
+}
+
+.haxefolio-normal-menu-flipped {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 0;
+}
+
+.haxefolio-normal-menu .menu-filler {
+    background-color: #d4d4d6;
+}
+
+.haxefolio-normal-menu-item {
+    height: 36px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 5px;
+    background-color: transparent;
+    font-name: $ui-family-medium;
+    font-size: 13px;
+    color: #1f2126;
+}
+
+.haxefolio-normal-menu-item:hover {
+    background-color: #f0f0f1;
+}
+
+.haxefolio-normal-menu-item .menuitem-label {
+    word-wrap: false;
+}
+
+.haxefolio-normal-menu-item .label:hover {
+    color: #1f2126;
+}
+
+.haxefolio-normal-menu-item #menuitem-container {
+    horizontal-spacing: 10px;
 }
 
 .haxefolio-normal-menu-item > .icon {
@@ -102,26 +257,94 @@
     height: 16px;
 }
 
-.haxefolio-sidebar-entries-top-spacer {
-    height: 5px;
+.haxefolio-sidebar {
+    background-color: #fafafa;
+    border: none;
+    border-right: 1px solid #d4d4d6;
+    vertical-spacing: 0;
+}
+
+/* the body's own padding is the whole inset; HaxeUI's scroll view would add 5px of its own */
+.haxefolio-sidebar .scrollview-contents {
+    padding: 0;
+}
+
+.haxefolio-sidebar-scrim {
+    background-color: #181a1f;
+    background-opacity: 0.35;
+}
+
+/* repeats the collapsed menu bar row, so the hamburger button and site name don't move when the side bar opens */
+.haxefolio-sidebar-header {
+    height: 52px;
+    padding-left: 4px;
+    padding-right: 8px;
+    horizontal-spacing: 4px;
+    border-bottom: 1px solid #e4e4e6;
+}
+
+.haxefolio-sidebar-body {
+    padding-top: 4px;
+    padding-bottom: 22px;
+    vertical-spacing: 0;
+}
+
+.haxefolio-sidebar-group {
+    padding-top: 14px;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-bottom: 6px;
+    vertical-spacing: 0;
+}
+
+.haxefolio-sidebar-group-divided {
+    border-top: 1px solid #e4e4e6;
 }
 
 .haxefolio-sidebar-group-header {
-    font-italic: true;
-    margin-left: 10px;
-    color: #666666;
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-bottom: 6px;
+    font-name: $ui-family-medium;
+    font-size: 12px;
+    font-weight: 500;
+    color: #5f6168;
 }
 
 .haxefolio-sidebar-group-item {
-    margin-left: 30px;
-    color: #666666;
-    pointer-events:true;
-    background-color: yellow;
-    background-opacity: 0;
+    height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 14px;
+    padding-right: 14px;
+    border-radius: 6px;
+    background-color: transparent;
+    border: none;
+    filter: none;
+    text-align: left;
+    icon-position: left;
+    horizontal-spacing: 12px;
+    font-name: $ui-family-medium;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1f2126;
 }
 
 .haxefolio-sidebar-group-item:hover {
-    color: #999999;
+    background-color: transparent;
+    border: none;
+    color: #1f2126;
+}
+
+.haxefolio-sidebar-group-item:down {
+    background-color: #f0f0f1;
+    border: none;
+    color: #1f2126;
+}
+
+.haxefolio-sidebar-group-item .icon {
+    width: 16px;
+    height: 16px;
 }
 
 /*
@@ -167,7 +390,7 @@
     font-name: $ui-family-semibold;
     font-size: 17px;
     font-weight: 600;
-    white-space: nowrap;
+    word-wrap: false;
     color: #1f2126;
 }
 
@@ -205,7 +428,6 @@
     padding-bottom: 11px;
     border-radius: 5px;
     text-align: center;
-    white-space: nowrap;
     background-color: #f0f0f1;
     border: 1px solid #d4d4d6;
     color: #5f6168;
@@ -265,7 +487,7 @@
     font-name: $ui-family-medium;
     font-size: 13px;
     font-weight: 500;
-    white-space: nowrap;
+    word-wrap: false;
     color: #5f6168;
 }
 
@@ -381,7 +603,6 @@
     border-radius: 5px;
     font-size: 13px;
     text-align: center;
-    white-space: nowrap;
     background-color: #f0f0f1;
     border: 1px solid #d4d4d6;
     color: #5f6168;
@@ -508,7 +729,6 @@
     font-name: $ui-family-medium;
     font-size: 13px;
     text-align: center;
-    white-space: nowrap;
     padding: 9px 16px;
     border-radius: 4px;
     background-color: #2f3540;

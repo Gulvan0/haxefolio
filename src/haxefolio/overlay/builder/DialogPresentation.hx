@@ -3,6 +3,7 @@ package haxefolio.overlay.builder;
 import haxe.ui.containers.Box;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Screen;
+import haxefolio.Viewport;
 import haxefolio.structure.RegionStack;
 import js.html.Element;
 
@@ -78,8 +79,8 @@ class DialogPresentation extends OverlayPresentation
 
     private function applySize():Void
     {
-        var width:Float = OverlayPresentation.viewportWidth();
-        var height:Float = OverlayPresentation.viewportHeight();
+        var width:Float = Viewport.width();
+        var height:Float = Viewport.height();
 
         scrim.width = width;
         scrim.height = height;

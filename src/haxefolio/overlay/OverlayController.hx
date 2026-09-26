@@ -2,6 +2,7 @@ package haxefolio.overlay;
 
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
+import haxefolio.InertHolds;
 import haxefolio.appearance.AppearanceContext;
 import haxefolio.appearance.AppearanceOverrides;
 import haxefolio.overlay.builder.DialogPresentation;
@@ -10,6 +11,7 @@ import haxefolio.overlay.builder.SheetPresentation;
 import haxefolio.structure.RegionStack;
 import js.Browser;
 import js.html.KeyboardEvent;
+import morestd.Detachable;
 
 /*
     The framework's single overlay at a time: builds the content, picks a presentation, and owns
@@ -21,7 +23,8 @@ import js.html.KeyboardEvent;
     than by a scrim's pointer-events: `inert` takes them out of hit-testing, the tab order and
     assistive technology at once - which is the scrim, focus trap and scroll lock of a modal in one
     attribute, and holds for the whole show -> gone window, sheet slide-out included. The frame and
-    scrim are Screen root components of their own, so they are not affected.
+    scrim are Screen root components of their own, so they are not affected. The attribute goes
+    through InertHolds, since the menu side bar makes the app inert too.
 
     Presentation (dialog or sheet) is picked once, by ResponsivityController.isCollapsed at the
     moment of presenting, and fixed for that overlay's lifetime: swapping live would have to rebuild
@@ -30,6 +33,8 @@ import js.html.KeyboardEvent;
 class OverlayController
 {
     private static var inertComponents:Array<Component> = [];
+    // open or closing; read by the menu side bar, which leaves Esc to an overlay presented over it
+    @:allow(haxefolio)
     private static var isOpen:Bool = false;
     private static var presentation:Null<OverlayPresentation> = null;
     private static var requestDismissal:Null<Void->Void> = null;
@@ -95,12 +100,12 @@ class OverlayController
             throw e;
         }
 
+        var inertHold:Null<Detachable> = null;
+
         function onGone():Void
         {
             stack.dispose();
-
-            for (component in inertComponents)
-                component.element.removeAttribute("inert");
+            inertHold.detach();
 
             Browser.document.removeEventListener("keydown", onKeyDown, true);
 
@@ -122,8 +127,7 @@ class OverlayController
             : new DialogPresentation(slug, stack, styleClass, onGone);
         requestDismissal = dismiss;
 
-        for (component in inertComponents)
-            component.element.setAttribute("inert", "");
+        inertHold = InertHolds.hold(inertComponents);
 
         // capture phase, so Esc reaches this before anything inside the overlay can swallow it
         Browser.document.addEventListener("keydown", onKeyDown, true);

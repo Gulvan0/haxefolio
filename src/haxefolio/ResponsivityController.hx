@@ -16,11 +16,8 @@ import morestd.RefreshableTimer;
     before, indefinitely. A native ResizeObserver instead reports an element's live, current size
     regardless of what caused it to change.
 
-    The observed element is document.body, not the page container itself: SideBar.show() clears
-    percentWidth/percentHeight on every non-sidebar root component to freeze its pixel size for the
-    open/close animation - regardless of `method`, even "float" - and only restores it on hide().
-    Observing the page container directly would mean menu-collapse decisions go stale for as long
-    as the sidebar stays open; document.body's own size is unaffected by that freeze.
+    The observed element is document.body, the viewport itself: the collapse threshold is a
+    property of the viewport, not of any one component laid out in it.
 */
 class ResponsivityController
 {
@@ -127,6 +124,7 @@ class ResponsivityController
     /*
         Notifies `listener` whenever `isCollapsed` actually flips, immediately with the current value first.
     */
+    @:allow(haxefolio)
     private static function onCollapseChange(listener:Bool->Void):Detachable
     {
         collapseChangeListeners.push(listener);
