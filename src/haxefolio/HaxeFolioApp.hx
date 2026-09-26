@@ -22,6 +22,7 @@ import haxefolio.overlay.OverlayContent;
 import haxefolio.overlay.OverlayController;
 import haxefolio.preferences.PreferenceRegistry;
 import haxefolio.preferences.StorageBackend;
+import haxefolio.preferences.builder.PreferenceWindowBuilder;
 import haxefolio.structure.ScrollArea;
 import haxefolio.PageRouter.PageResolution;
 
@@ -199,12 +200,13 @@ class HaxeFolioApp
     }
 
     /**
-        Opens the built-in preference panel. Not available at the moment: the panel is being
-        rebuilt on `present`, and until that lands this throws.
+        Opens the built-in preference window: an overlay (see `present`) with one tab per
+        preference tab and a Reset footer, whose controls apply on change. Customizable through
+        `HaxeFolioConfig.preferenceWindowAppearance` and CSS (`#haxefolio-overlay-preference-*`).
     **/
     public static function showPreferences():Void
     {
-        throw "HaxeFolioApp.showPreferences: the preference window is being rebuilt on `present` and is temporarily unavailable.";
+        present("preference", _ -> PreferenceWindowBuilder.build(config.preferenceTabIcons), null, config.preferenceWindowAppearance);
     }
 
     /**

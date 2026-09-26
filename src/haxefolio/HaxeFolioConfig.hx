@@ -85,10 +85,17 @@ typedef HaxeFolioConfig = {
     /**
         Maps a preference tab's slug (the `tabId` passed to
         `PreferenceRegistry.toggle`/`option`/`locale`) to an icon asset path, shown next to that
-        tab's label in both the desktop modal and mobile sidebar presentations. Tabs with no entry
+        tab's label in the preference window's tab strip. Tabs with no entry
         here are shown without an icon.
     **/
     ?preferenceTabIcons:Map<String, String>,
+
+    /**
+        Per-overlay `AppearanceOverrides` applied to the preference window only (see
+        `HaxeFolioApp.showPreferences`), over the theme-wide `appearance`: the host's way to change
+        its geometry or emphasis, or to give its frame a `styleClass`.
+    **/
+    ?preferenceWindowAppearance:AppearanceOverrides,
 
     /**
         Kept only for its class identity, never read as a value - this is what keeps its static

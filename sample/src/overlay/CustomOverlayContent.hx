@@ -117,7 +117,7 @@ class CustomOverlayContent
         var cancel:ActionButton = new ActionButton("Cancel", dismiss);
         var reset:ActionButton = new ActionButton("Reset", () -> Browser.console.log("[overlay-demo] reset"), false, null, 25);
 
-        var toggle:ToggleButton = new ToggleButton("Allow saving", on -> save.enabled = on);
+        var toggle:ToggleButton = new ToggleButton(on -> save.enabled = on, {on: "Saving allowed", off: "Saving blocked"});
 
         return {
             regions: [
@@ -168,10 +168,10 @@ class CustomOverlayContent
             refreshSave();
         });
 
-        var flagExtra:ToggleButton = new ToggleButton("Flag the Extra tab as invalid", on -> {
+        var flagExtra:ToggleButton = new ToggleButton(on -> {
             extraMarker.active = on;
             refreshSave();
-        });
+        }, {on: "Extra tab flagged invalid", off: "Flag the Extra tab as invalid"});
 
         var pages:Array<TabPage> = [
             {

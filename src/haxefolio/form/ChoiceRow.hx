@@ -28,6 +28,7 @@ class ChoiceRow<T> extends VBox
 
     private final buttonRow:HBox;
     private final buttons:Array<ChoiceButton> = [];
+    private final optionValues:Array<T> = [];
     private final optionCount:Int;
     private final directionBinding:Detachable;
 
@@ -54,6 +55,7 @@ class ChoiceRow<T> extends VBox
             var button:ChoiceButton = new ChoiceButton(option.label, () -> onSelect(option.value), option.icon, Leading, option.value == selected, !locked);
             button.componentGroup = groupId;
             buttons.push(button);
+            optionValues.push(option.value);
             buttonRow.addComponent(button);
         }
 
@@ -72,6 +74,20 @@ class ChoiceRow<T> extends VBox
 
         for (button in buttons)
             button.percentWidth = stacked ? 100 : (100 / optionCount);
+    }
+
+    /**
+        Selects the option holding `value` without calling `onSelect` - the hook for a value driven
+        from elsewhere (e.g. a preference changed in another tab). Throws if no option holds `value`.
+    **/
+    public function select(value:T):Void
+    {
+        var index:Int = optionValues.indexOf(value);
+
+        if (index == -1)
+            throw 'ChoiceRow.select: no option holds value "$value"';
+
+        buttons[index].selected = true;
     }
 
     /**

@@ -159,11 +159,11 @@ class FormDemoPage extends PageBase
         addComponent(sectionLabel("ToggleButton (off / on / disabled / driven externally)"));
         var toggleLabel:Label = new Label();
         toggleLabel.text = "Toggle: (nothing yet)";
-        var driven:ToggleButton = new ToggleButton("No time control", on -> toggleLabel.text = 'Toggle: $on');
+        var driven:ToggleButton = new ToggleButton(on -> toggleLabel.text = 'Toggle: $on', {on: "No time control", off: "Time control"});
         addComponent(driven);
-        addComponent(new ToggleButton("Already on", on -> trace('on: $on'), null, true));
-        addComponent(new ToggleButton("Disabled", on -> trace('disabled toggled: $on'), null, false, false));
-        addComponent(new ToggleButton("Disabled while on", on -> trace('disabled toggled: $on'), null, true, false));
+        addComponent(new ToggleButton(on -> trace('on: $on'), {on: "Already on", off: "Was off"}, true));
+        addComponent(new ToggleButton(on -> trace('disabled toggled: $on'), {on: "Disabled (on)", off: "Disabled"}, false, false));
+        addComponent(new ToggleButton(on -> trace('disabled toggled: $on'), {on: "Disabled while on", off: "Disabled (off)"}, true, false));
         addComponent(toggleLabel);
         var flipDriven:Button = new Button();
         flipDriven.text = "Flip the first toggle externally";

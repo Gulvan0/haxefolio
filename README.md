@@ -479,6 +479,7 @@ var row:ChoiceRow<String> = new ChoiceRow("Rated", [
 
 ```haxe
 public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByWidth<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
+public function select(value:T):Void
 public function dispose():Void
 ```
 
@@ -488,7 +489,7 @@ public function dispose():Void
 stacks whenever `ResponsivityController.isCollapsed` flips (see `Reacting to the collapse
 threshold directly`) - call `dispose()` once the row is done with (e.g. a page's `onClose`) to
 detach that subscription; with a `direction` that doesn't differ between the two states there's
-nothing to detach. `locked`/`lockReason` disable
+nothing to detach. `select(value)` highlights the option holding `value` without calling `onSelect` (the hook for a value driven from elsewhere; throws for an unknown value). `locked`/`lockReason` disable
 every button in place - never hiding the row - and state the reason via the header's own hint,
 the same convention `FieldHeader.locked` already follows on its own.
 
@@ -562,14 +563,21 @@ selected". `dispose()` detaches the breakpoint subscription - call it once the g
 
 A boolean as one full-width button that reads as a mode rather than a checkbox - for when "off"
 is the normal state and "on" a distinct mode ("No time control"). It is a `ChoiceButton`, so
-`EmphasisStyle` styles its on-state exactly as it does a selected choice:
+`EmphasisStyle` styles its on-state exactly as it does a selected choice. A small switch marker at
+the trailing edge (track and thumb, thumb right when on) says what the button does, so an off toggle
+is not mistaken for an unselected choice; the caption is left-aligned and the marker pinned to the trailing edge, as in a settings row, so the button spans the same width as the other controls and nothing moves when the state caption changes. The caption is per state -
+`ToggleLabels` (`haxefolio.form.plumbing`), `{on:String, off:String}`, each interpreted like any HaxeUI
+`.text` property (a literal, or a `{{key}}` locale key) - and defaults to the locale keys
+`haxefolio.toggle.on` / `haxefolio.toggle.off` (see `Locale keys`), which the host defines. A toggle
+therefore has no caption of its own outside its states: name what it controls in a header (see
+`FormSection`) or in the labels themselves:
 
 ```haxe
-var noTimeControl:ToggleButton = new ToggleButton("No time control", on -> trace('on: $on'));
+var noTimeControl:ToggleButton = new ToggleButton(on -> trace('on: $on'), {on: "No time control", off: "Time control"});
 ```
 
 ```haxe
-public function new(caption:String, onToggle:Bool->Void, ?glyph:String, initiallyOn:Bool = false, initiallyEnabled:Bool = true)
+public function new(onToggle:Bool->Void, ?stateLabels:ToggleLabels, initiallyOn:Bool = false, initiallyEnabled:Bool = true)
 public var on:Bool      // assigning renders without calling onToggle
 public var enabled:Bool
 ```
@@ -1033,7 +1041,22 @@ class StorageBackend
 
 ### Preference window
 
-**Temporarily unavailable.** The preference window is being rebuilt on the new overlay system (see `Overlays`); until that lands, `HaxeFolioApp.showPreferences()` throws. Preferences themselves - declaring, reading, writing, reacting, storage - are unaffected, as are `HaxeFolioConfig.preferenceTabIcons` (kept, currently unused) and the `PreferenceRegistry.resetAll()` the window's reset button will call.
+`HaxeFolioApp.showPreferences()` opens the built-in preference window: an overlay (see `Overlays`) presented with slug `preference`, so it is a modal dialog while expanded and a sheet while collapsed, dismissed by its close control or Esc. Unlike the non-blocking box earlier versions showed beside a live menu bar, the rest of the app is unreachable while it is open.
+
+It is composed like any other overlay: a `Header` titled `{{haxefolio.preference.title}}`, a `Tabs` region in the `Navigate` role with one page per preference tab (labels from `haxefolio.preference.tab.<tabId>`, icons from `HaxeFolioConfig.preferenceTabIcons`), and an `Actions` footer holding one plain button, Reset (`PreferenceRegistry.resetAll()`). There is no Save: every control applies the moment it changes, so the window never mixes autosaved fields with a commit button.
+
+Each preference is its own `FormSection` with a header carrying the preference's name (so every preference reads the same in header, spacing and padding), and which control it gets depends only on its kind and, for `option`/`locale`, its number of values:
+
+| Preference | Values | Control |
+|---|---|---|
+| `toggle` | - | `ToggleButton`, full width, under a header with the preference's name; its button shows the default `Enabled`/`Disabled` captions (`haxefolio.toggle.on`/`.off`) |
+| `option` / `locale` | 2-4 | `ChoiceRow`, horizontal while expanded, stacked while collapsed |
+| `option` / `locale` | 5-20 | `ChoiceGrid`, 4 cells per row while expanded, 2 while collapsed |
+| `option` / `locale` | more than 20 | none - the window throws when built |
+
+The controls render from `Preference.get()` and follow `onChange`, so a preference changed from another browser tab (see `Reacting to changes`) updates an open window. Handlers are detached when the window is dismissed. Captions and value labels have no ellipsis: check them against the narrowest button share (four values, collapsed, is stacked and so full width; a `ChoiceGrid` cell is roughly a quarter of the dialog) in every shipped locale.
+
+`HaxeFolioConfig.preferenceWindowAppearance` (`HaxeFolioConfigBuilder.setPreferenceWindowAppearance`) is an `AppearanceOverrides` (see `Appearance`) applied to this window only. Colour and type are changed in a stylesheet through the per-overlay selectors listed under `Overlays` in `CSS classes and elements` (`#haxefolio-overlay-preference-*`); the window has no selectors of its own.
 
 ### HaxeFolioConfig
 
@@ -1050,7 +1073,8 @@ class StorageBackend
 | `?sidebarExtras` | `Array<SidebarGroup>` | See `Side bar`. |
 | `?defaultTitleText` | `String` | Fallback tab title text (see `Page title and notifications` for how it's interpreted) for pages that never call `setTitle`; falls back further to `siteName` if omitted too. |
 | `?supportedLocales` | `Map<String, String>` | Locale id -> display name, e.g. `["en" => "English"]`. Only the keys are consulted by the framework itself (see below); display names are for the app's own use, e.g. as option labels for a language preference. Defaults to `["en" => "English"]`. |
-| `?preferenceTabIcons` | `Map<String, String>` | Preference tab id -> icon asset path (see `Preference window`). |
+| `?preferenceTabIcons` | `Map<String, String>` | Preference tab id -> icon asset path, shown on that tab's label (see `Preference window`). |
+| `?preferenceWindowAppearance` | `AppearanceOverrides` | Overrides applied to the preference window only, over `appearance` (see `Preference window`). |
 | `preferences` | `Class<PreferenceRegistry>` | The app's `PreferenceRegistry` subclass (see `Declaring preferences`) - referenced only for its class identity, which is what keeps its static field initializers reachable for dead code elimination and guarantees they've run before `init` looks at any declared preference. |
 | `?languagePreference` | `Preference<String>` | The `Preference<String>` returned by a `PreferenceRegistry.locale(...)` call, if declared (see `Declaring preferences`). Wiring it in here is what finalizes its admissible values/default from `supportedLocales` and hooks it up to `LocaleManager` and page titles. |
 
@@ -1283,7 +1307,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 
 #### Preference window
 
-Unavailable for the moment (see `Preference window`); its selectors return when it is rebuilt.
+None of its own: the window is a presented overlay with slug `preference`, styled by the `Overlays` selectors above - `#haxefolio-overlay-preference-frame`, `-header`, `-tabs`, `-scroll`, `-actions`, `-close` - and the form components' classes (see `Form components`).
 
 ### Locale keys
 
@@ -1298,9 +1322,10 @@ A locale entry that's missing entirely does **not** throw - HaxeUI's `LocaleMana
 | `haxefolio.sidebar.extra_group.<slug>` | A `sidebarExtras` group's header label |
 | `haxefolio.sidebar.extra_group.<slug>.item.<itemSlug>` | A `sidebarExtras` group item's label, absent `defaultText` |
 | `haxefolio.preference.tab.<tabId>` | A preference tab's label |
-| `haxefolio.preference.<id>.name` | A preference's display name |
+| `haxefolio.preference.<id>.name` | A preference's display name (the header of its section) |
 | `haxefolio.preference.<id>.value.<value>` | An option (or `locale`) preference's value button label |
+| `haxefolio.toggle.on` / `haxefolio.toggle.off` | A `ToggleButton`'s default caption while on / off (used by the preference window's toggles), unless it is given `ToggleLabels` |
+| `haxefolio.preference.title` | The preference window's title |
 | `haxefolio.preference.reset` | The preference window's reset button label |
-| `haxefolio.preference.autosave_notice` | The preference window's autosave notice label |
 
 `siteName`, `defaultTitleText`, and the `text` argument to `setTitle`/`startBlink`/`MenuFacade`'s update methods, are ordinary HaxeUI strings (see `Menu bar` and `Page title and notifications`) - `{{key}}`-wrapped locale keys are the app's own choosing there, not a fixed convention, so they aren't listed above.

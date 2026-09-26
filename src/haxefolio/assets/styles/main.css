@@ -124,24 +124,6 @@
     color: #999999;
 }
 
-.haxefolio-preference-tab {
-    vertical-spacing: 10px;
-}
-
-.haxefolio-preference-row {
-    min-height: 40px;
-    horizontal-spacing: 20px;
-}
-
-.haxefolio-preference-name-label {
-    width: 200px;
-}
-
-.haxefolio-preference-autosave-notice {
-    font-italic: true;
-    color: #999999;
-}
-
 /*
     Overlay chrome: the frame (dialog or sheet) and the scrim behind it. Colour values are the
     framework's own hue-neutral graphite defaults, per the theme.
@@ -403,6 +385,15 @@
     background-color: #f0f0f1;
     border: 1px solid #d4d4d6;
     color: #5f6168;
+}
+
+.haxefolio-toggle-button {
+    text-align: left;
+}
+
+.haxefolio-toggle-button > .icon {
+    width: 28px;
+    height: 16px;
 }
 
 .haxefolio-choice-button:hover {

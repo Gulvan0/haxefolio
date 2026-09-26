@@ -1,6 +1,7 @@
 package haxefolio.form;
 
 import haxefolio.form.plumbing.ChoiceButton;
+import haxefolio.form.plumbing.ToggleLabels;
 
 /*
     A boolean as one full-width button that reads as a mode rather than a checkbox - for when "off"
@@ -13,6 +14,11 @@ import haxefolio.form.plumbing.ChoiceButton;
 */
 class ToggleButton extends ChoiceButton
 {
+    private static inline final SWITCH_OFF:String = "haxefolio/images/toggle_switch_off.svg";
+    private static inline final SWITCH_ON:String = "haxefolio/images/toggle_switch_on.svg";
+
+    private final labels:ToggleLabels;
+
     /**
         Whether the mode is on. Assigning renders it without calling `onToggle` (the assigner
         already knows) - the hook for a value driven from elsewhere.
@@ -26,12 +32,22 @@ class ToggleButton extends ChoiceButton
         captures each constructor parameter as a `_constructorParam_<name>` field, and redeclaring
         one in a subclass is a compile error.
     */
-    public function new(caption:String, onToggle:Bool->Void, ?glyph:String, initiallyOn:Bool = false, initiallyEnabled:Bool = true)
+    public function new(onToggle:Bool->Void, ?stateLabels:ToggleLabels, initiallyOn:Bool = false, initiallyEnabled:Bool = true)
     {
-        super(caption, () -> {}, glyph, Leading, initiallyOn, initiallyEnabled);
+        var resolvedLabels:ToggleLabels = stateLabels ?? {on: LocaleUtils.localeBinding("haxefolio.toggle.on"), off: LocaleUtils.localeBinding("haxefolio.toggle.off")};
 
+        super(initiallyOn ? resolvedLabels.on : resolvedLabels.off, () -> {}, SWITCH_OFF, Leading, initiallyOn, initiallyEnabled);
+
+        this.labels = resolvedLabels;
+
+        this.addClass("haxefolio-toggle-button");
         this.percentWidth = 100;
-        this.onClick = _ -> onToggle(this.selected);
+        this.iconPosition = "far-right";
+        this.icon = initiallyOn ? SWITCH_ON : SWITCH_OFF;
+        this.onClick = _ -> {
+            render(this.selected);
+            onToggle(this.selected);
+        };
     }
 
     private function get_on():Bool
@@ -42,7 +58,14 @@ class ToggleButton extends ChoiceButton
     private function set_on(value:Bool):Bool
     {
         this.selected = value;
+        render(value);
         return value;
+    }
+
+    private function render(isOn:Bool):Void
+    {
+        this.icon = isOn ? SWITCH_ON : SWITCH_OFF;
+        this.text = isOn ? labels.on : labels.off;
     }
 
     private function get_enabled():Bool

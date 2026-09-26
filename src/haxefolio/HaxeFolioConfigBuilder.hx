@@ -29,6 +29,7 @@ class HaxeFolioConfigBuilder
     private var defaultTitleText:Null<String>;
     private var supportedLocales:Null<Map<String, String>>;
     private var preferenceTabIcons:Null<Map<String, String>>;
+    private var preferenceWindowAppearance:Null<AppearanceOverrides>;
     private var preferences:Class<PreferenceRegistry>;
     private var languagePreference:Null<Preference<String>>;
 
@@ -145,6 +146,12 @@ class HaxeFolioConfigBuilder
         return this;
     }
 
+    public function setPreferenceWindowAppearance(preferenceWindowAppearance:AppearanceOverrides):HaxeFolioConfigBuilder
+    {
+        this.preferenceWindowAppearance = preferenceWindowAppearance;
+        return this;
+    }
+
     public function setLanguagePreference(languagePreference:Preference<String>):HaxeFolioConfigBuilder
     {
         this.languagePreference = languagePreference;
@@ -176,6 +183,7 @@ class HaxeFolioConfigBuilder
             defaultTitleText: defaultTitleText,
             supportedLocales: supportedLocales,
             preferenceTabIcons: preferenceTabIcons,
+            preferenceWindowAppearance: preferenceWindowAppearance,
             preferences: preferences,
             languagePreference: languagePreference
         };
