@@ -28,5 +28,12 @@ typedef GeometryTokens = {
         Vertical gap between stacked rows.
     **/
     rowGap:Int,
-    padding:Int
+    padding:Int,
+
+    /**
+        The dialog presentation's preferred frame size (see `HaxeFolioApp.present`). A short or
+        narrow viewport still shrinks the frame; only the preferred size is set here.
+    **/
+    dialogWidth:Int,
+    dialogHeight:Int
 }

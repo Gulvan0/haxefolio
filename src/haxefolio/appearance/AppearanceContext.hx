@@ -63,7 +63,9 @@ class AppearanceContext
                 fieldHeight: geometryOverrides.fieldHeight ?? geometry.fieldHeight,
                 messageLine: geometryOverrides.messageLine ?? geometry.messageLine,
                 rowGap: geometryOverrides.rowGap ?? geometry.rowGap,
-                padding: geometryOverrides.padding ?? geometry.padding
+                padding: geometryOverrides.padding ?? geometry.padding,
+                dialogWidth: geometryOverrides.dialogWidth ?? geometry.dialogWidth,
+                dialogHeight: geometryOverrides.dialogHeight ?? geometry.dialogHeight
             };
 
         return {
@@ -84,7 +86,9 @@ class AppearanceContext
                 fieldHeight: 38,
                 messageLine: 16,
                 rowGap: 10,
-                padding: 22
+                padding: 22,
+                dialogWidth: 620,
+                dialogHeight: 720
             },
             selectionEmphasis: Filled,
             actionEmphasis: Filled

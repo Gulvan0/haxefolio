@@ -12,9 +12,10 @@ import js.html.Element;
     included. Both are added to Screen.instance directly, so nothing of the page container is
     involved; making the rest of the app unreachable is OverlayController's job (it marks it inert).
 
-    The frame has a fixed preferred size, but tracks the viewport: a short or narrow viewport
-    shrinks it - the height down to a floor below which it stops rather than becoming unusable -
-    and only the stack's scrolling area notices (see RegionStack). Deliberately not draggable, and
+    The frame has a fixed preferred size (the `dialogWidth`/`dialogHeight` tokens of the overlay's
+    appearance), but tracks the viewport: a short or narrow viewport shrinks it - the height down
+    to a floor below which it stops rather than becoming unusable - and only the stack's scrolling
+    area notices (see RegionStack). A preferred height below the floor is its own floor. Deliberately not draggable, and
     there is no click-outside-to-dismiss: the scrim is inert.
 
     Removed immediately by hide() - the only animation is the entry fade, which is a Web Animation
@@ -22,18 +23,21 @@ import js.html.Element;
 */
 class DialogPresentation extends OverlayPresentation
 {
-    private static inline var PREFERRED_WIDTH:Int = 620;
-    private static inline var PREFERRED_HEIGHT:Int = 720;
     private static inline var MINIMUM_HEIGHT:Int = 420;
     private static inline var VIEWPORT_MARGIN:Int = 32;
     private static inline var FADE_DURATION_MS:Int = 150;
 
     private final scrim:Box;
     private final frame:VBox;
+    private final preferredWidth:Int;
+    private final preferredHeight:Int;
 
-    public function new(slug:String, stack:RegionStack, styleClass:Null<String>, onGone:Void->Void)
+    public function new(slug:String, stack:RegionStack, styleClass:Null<String>, preferredWidth:Int, preferredHeight:Int, onGone:Void->Void)
     {
         super(slug, stack, styleClass, onGone);
+
+        this.preferredWidth = preferredWidth;
+        this.preferredHeight = preferredHeight;
 
         scrim = new Box();
         scrim.id = 'haxefolio-overlay-$slug-scrim';
@@ -85,8 +89,8 @@ class DialogPresentation extends OverlayPresentation
         scrim.width = width;
         scrim.height = height;
 
-        frame.width = Math.min(PREFERRED_WIDTH, width);
-        stack.frameHeight = Math.max(MINIMUM_HEIGHT, Math.min(PREFERRED_HEIGHT, height - 2 * VIEWPORT_MARGIN));
+        frame.width = Math.min(preferredWidth, width);
+        stack.frameHeight = Math.max(Math.min(MINIMUM_HEIGHT, preferredHeight), Math.min(preferredHeight, height - 2 * VIEWPORT_MARGIN));
         frame.height = stack.frameHeight;
     }
 

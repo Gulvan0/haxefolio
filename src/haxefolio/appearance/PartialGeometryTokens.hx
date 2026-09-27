@@ -14,5 +14,7 @@ typedef PartialGeometryTokens = {
     ?fieldHeight:ByWidth<Int>,
     ?messageLine:Int,
     ?rowGap:Int,
-    ?padding:Int
+    ?padding:Int,
+    ?dialogWidth:Int,
+    ?dialogHeight:Int
 }
