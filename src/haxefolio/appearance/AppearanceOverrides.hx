@@ -6,7 +6,8 @@ package haxefolio.appearance;
 **/
 typedef AppearanceOverrides = {
     ?geometry:PartialGeometryTokens,
-    ?emphasis:EmphasisStyle,
+    ?selectionEmphasis:EmphasisStyle,
+    ?actionEmphasis:EmphasisStyle,
 
     /**
         Style class the framework puts on the overlay root, for a colour variant shared by several

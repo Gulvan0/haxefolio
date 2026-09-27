@@ -12,7 +12,7 @@ import overlay.CustomOverlayContent;
 
 /*
     Demonstrates HaxeFolioApp.embed: two embedded frames in the page, the second under a per-embed
-    appearance (Outlined emphasis plus a style class), and buttons to change the first one's frame
+    appearance (Outlined selection/action emphasis plus a style class), and buttons to change the first one's frame
     height and to detach it. onClose detaches both - the teardown hook of each logs to the console.
 */
 class EmbedDemoPage extends PageBase
@@ -46,12 +46,12 @@ class EmbedDemoPage extends PageBase
         resizeRow.addComponent(button("Detach", () -> plain.detach()));
         addComponent(resizeRow);
 
-        addComponent(sectionLabel("Embedded with appearance {emphasis: Outlined, styleClass: sample-overlay-variant}, frameHeight 260"));
+        addComponent(sectionLabel("Embedded with appearance {selectionEmphasis: Outlined, actionEmphasis: Outlined, styleClass: sample-overlay-variant}, frameHeight 260"));
 
         var themedHost:Box = new Box();
         themedHost.percentWidth = 100;
         addComponent(themedHost);
-        themed = HaxeFolioApp.embed("embed-themed", () -> CustomOverlayContent.buildEmbedded("themed"), themedHost, 260, {emphasis: Outlined, styleClass: "sample-overlay-variant"});
+        themed = HaxeFolioApp.embed("embed-themed", () -> CustomOverlayContent.buildEmbedded("themed"), themedHost, 260, {selectionEmphasis: Outlined, actionEmphasis: Outlined, styleClass: "sample-overlay-variant"});
     }
 
     private override function onClose():Void

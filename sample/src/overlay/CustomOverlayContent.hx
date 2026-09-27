@@ -85,8 +85,9 @@ class CustomOverlayContent
     }
 
     /*
-        Built under a per-overlay appearance (Outlined emphasis, plus a style class): the selected
-        choice below must be drawn tinted-and-bordered rather than as a solid fill.
+        Built under a per-overlay appearance (Outlined selectionEmphasis and actionEmphasis, plus a
+        style class): the selected choice below must be drawn tinted-and-bordered rather than as a
+        solid fill, and so must the primary button.
     */
     public static function buildAppearance(dismiss:Void->Void):OverlayContent
     {
@@ -98,7 +99,7 @@ class CustomOverlayContent
         return {
             regions: [
                 Header("Appearance override"),
-                Scroll(body([label("This overlay overrides emphasis and carries a style class (tinted frame). Its primary button follows the emphasis too."), row])),
+                Scroll(body([label("This overlay overrides emphasis and carries a style class (tinted frame). Its primary button follows actionEmphasis too."), row])),
                 footer(dismiss)
             ],
             onDismissed: row.dispose

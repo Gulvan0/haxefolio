@@ -329,7 +329,7 @@ HaxeFolioApp.present("my-overlay", dismiss -> {
 - `slug` identifies the overlay for CSS (see `Overlay styling`) and must be unique per call site.
 - `contentFactory` builds the content, and receives a `dismiss` handle for closing the overlay from within it.
 - `mobileContentFactory`, optional - used instead of `contentFactory` while the breakpoint is collapsed, for a genuinely different component tree. The choice is made once, when `present` is called.
-- `appearance`, optional - an `AppearanceOverrides` (see `Appearance`) applying to this overlay only: its geometry and emphasis are in effect while the content is built, so every component the factory constructs reads them; its `styleClass` is added to the overlay's frame, for a colour variant shared by several overlays.
+- `appearance`, optional - an `AppearanceOverrides` (see `Appearance`) applying to this overlay only: its geometry, `selectionEmphasis` and `actionEmphasis` are in effect while the content is built, so every component the factory constructs reads them; its `styleClass` is added to the overlay's frame, for a colour variant shared by several overlays.
 - `onDismissed`, optional - runs once the overlay is entirely gone (for the sheet, after its slide-out has finished), after the content's own `onDismissed`. It belongs to the host that called `present`.
 
 Only one overlay may be open at a time: calling `present` while one is open (or closing) is a no-op.
@@ -355,7 +355,7 @@ private override function onClose():Void
 - `contentFactory` builds the `OverlayContent` (see `Overlay content`). It is a factory, like `present`'s, so that `appearance` is in effect while the content is built and every component the factory constructs reads it. It has no `dismiss` handle: there is nothing to dismiss.
 - `into` is the host component the frame is added to. The frame takes its full width, so `into` must have a width of its own to resolve against (typically `percentWidth = 100` inside a laid-out page). The frame is a bordered box of the same `RegionStack` (see `Region stacks`) an overlay holds, with the same reserved scrollbar lane and scroll behaviour.
 - `frameHeight` is the frame's height in pixels, declared by the host - an embedded frame has no presentation to size it, and nothing is measured. It can be changed afterwards through the returned handle (`panel.frameHeight = 260`, e.g. from the page's `onResize`); as in an overlay, only the scrolling region resizes.
-- `appearance` works as for `present`: its geometry and emphasis are in effect while the content is built, and its `styleClass` is added to the frame.
+- `appearance` works as for `present`: its geometry, `selectionEmphasis` and `actionEmphasis` are in effect while the content is built, and its `styleClass` is added to the frame.
 
 None of what makes an overlay modal applies. There is no scrim, no Esc handling and nothing is made inert, and an embedded frame neither counts as the one open overlay nor blocks `present` from opening one over the page it sits in.
 
@@ -443,7 +443,7 @@ Its selected-state styling hooks off `:down` - the pseudo-class a toggle `Button
 applies for as long as `selected == true`, not just while the mouse is held - rather than a
 class this component would otherwise have to manage itself. Which visual treatment `:down`
 resolves to (`Filled`/`Outlined`) is not a constructor argument at all: it is the app's
-`EmphasisStyle` (see `Appearance`), read when the button is built (`Filled` - a solid `accent`
+`selectionEmphasis` (see `Appearance`), read when the button is built (`Filled` - a solid `accent`
 fill - by default), so every `ChoiceButton`/`ToggleButton` agrees on what "active" looks like.
 `IconAlign` is `Leading`/`Trailing`.
 
@@ -571,7 +571,7 @@ selected". `dispose()` detaches the breakpoint subscription - call it once the g
 
 A boolean as one full-width button that reads as a mode rather than a checkbox - for when "off"
 is the normal state and "on" a distinct mode ("No time control"). It is a `ChoiceButton`, so
-`EmphasisStyle` styles its on-state exactly as it does a selected choice. A small switch marker at
+`selectionEmphasis` styles its on-state exactly as it does a selected choice. A small switch marker at
 the trailing edge (track and thumb, thumb right when on) says what the button does, so an off toggle
 is not mistaken for an unselected choice; the caption is left-aligned and the marker pinned to the trailing edge, as in a settings row, so the button spans the same width as the other controls and nothing moves when the state caption changes. The caption is per state -
 `ToggleLabels` (`haxefolio.form.plumbing`), `{on:String, off:String}`, each interpreted like any HaxeUI
@@ -734,8 +734,9 @@ public var enabled(default, set):Bool;
   blur trigger: HaxeFolio disables HaxeUI's `FocusManager`, so no focus-out is delivered, and a
   blur-commit would fire before the click on the button and commit twice.
 - `enabled = false` disables the input and button and greys the label.
-- The button follows `EmphasisStyle` like `ChoiceButton` does (solid fill by default, the
-  tinted-and-bordered look under `Outlined`).
+- The button follows `actionEmphasis`, the same role `ActionButton`'s primary state does (solid
+  fill by default, the tinted-and-bordered look under `Outlined`) - not `selectionEmphasis`: it is
+  a single call-to-action, not a choice among peers.
 
 ### PreviewPane
 
@@ -861,9 +862,11 @@ public var enabled(get, set):Bool
   overlay's footer. Each button takes its `widthPercent` if it has one; the rest split what remains evenly, and all are
   centred vertically. The host keeps references to the buttons it changes later (`primaryButton.enabled = form.valid`).
 - An `ActionButton` is an ordinary action (the unselected `ChoiceButton` look) or, with `primary`, the primary one, drawn per
-  the app's `EmphasisStyle` (read when the button is built, so a per-overlay `appearance` applies) exactly like a selected
-  `ChoiceButton`. A disabled primary button **loses its emphasis** - it greys out like any other disabled button rather than
-  still reading as the thing to press. A secondary action such as Reset is simply not `primary`.
+  the app's `actionEmphasis` (read when the button is built, so a per-overlay `appearance` applies) with the same two
+  treatments a selected `ChoiceButton` uses, but as its own role - a host may keep `actionEmphasis: Filled` while setting
+  `selectionEmphasis: Outlined`, so a screen's one primary action stays full weight even where chips are outlined. A disabled
+  primary button **loses its emphasis** - it greys out like any other disabled button rather than still reading as the thing
+  to press. A secondary action such as Reset is simply not `primary`.
 
 ### Tabs
 
@@ -1110,7 +1113,7 @@ The controls render from `Preference.get()` and follow `onChange`, so a preferen
 | `siteName` | `String` | Site name label text - see `Menu bar` for how it's interpreted. |
 | `?menuCollapseWidth` | `Int` | Mobile/desktop breakpoint (see `Responsivity`). Defaults to 900. |
 | `?debounceMs` | `Int` | Resize handling debounce interval, in milliseconds (see `Responsivity`). Defaults to 500. |
-| `?appearance` | `AppearanceOverrides` | Theme-wide overrides of the framework's code-side appearance - geometry tokens and `EmphasisStyle` (see `Appearance`). |
+| `?appearance` | `AppearanceOverrides` | Theme-wide overrides of the framework's code-side appearance - geometry tokens, `selectionEmphasis` and `actionEmphasis` (see `Appearance`). |
 | `pages` | `Array<PageDefinition>` | See `Registering pages`. |
 | `menubar` | `MenuBarConfig` (`{left, right}`) | See `Menu bar`. |
 | `?sidebarExtras` | `Array<SidebarGroup>` | See `Side bar`. |
@@ -1177,7 +1180,8 @@ Theming is split by who consumes a value. Colour and typography are consumed by 
 ```haxe
 typedef Appearance = {
     geometry:GeometryTokens,
-    emphasis:EmphasisStyle
+    selectionEmphasis:EmphasisStyle,
+    actionEmphasis:EmphasisStyle
 }
 ```
 
@@ -1185,10 +1189,10 @@ A host overrides any part of it theme-wide through `HaxeFolioConfig.appearance` 
 
 ```haxe
 HaxeFolioConfigBuilder.init("my-app", Preferences)
-    .setAppearance({emphasis: Outlined, geometry: {headerHeight: {expanded: 60, collapsed: 72}}})
+    .setAppearance({selectionEmphasis: Outlined, geometry: {headerHeight: {expanded: 60, collapsed: 72}}})
 ```
 
-- **`EmphasisStyle`** is `Filled` (default) or `Outlined`: which treatment means "primary" - a solid `accent` fill, or an `accentTint` fill with an `accentMuted` border. `ChoiceButton`, `ToggleButton` and the commit button of `CommitTextField` read it when they are built, so they always agree with each other. Colour is still the stylesheet's business: it can restyle both treatments, but only code says which one is in use. There is no CSS channel for selecting it.
+- **`EmphasisStyle`** is `Filled` (default) or `Outlined`: which treatment means "selected"/"primary" - a solid `accent` fill, or an `accentTint` fill with an `accentMuted` border. Two independent roles read it, each keyed by its own `Appearance` field: **`selectionEmphasis`**, read by `ChoiceButton` (a component holding one of several peer values); and **`actionEmphasis`**, read by `ActionButton`'s primary state and `CommitTextField`'s commit button (a single call-to-action). The split exists because a host's accent hue may collide with its content imagery for a persistent chip-like selection without that being a reason to soften an actual call-to-action - a host typically sets `selectionEmphasis: Outlined` alone far more often than it sets `actionEmphasis: Outlined` too, since a screen's one primary action usually still wants full weight. Colour is still the stylesheet's business: it can restyle both treatments, but only code says which one is in use for each role. There is no CSS channel for selecting either.
 - **`GeometryTokens`** is the table of constants the framework's height arithmetic reads - `headerHeight` (60), `actionBarHeight` (68), `tabStripHeight` (44), `searchBarHeight` (52), `fieldHeight` (38), `messageLine` (16), `rowGap` (10) and `padding` (22), the first five being `ByWidth<Int>` so they may differ between expanded and collapsed. They live in code rather than CSS because they are needed before layout, and reading them back out of the style engine would make the arithmetic depend on cascade timing. Overriding a token propagates to every sum that reads it. Note that the built-in components do not yet all consume these tokens; each is wired up as the region that uses it lands.
 
 `AppearanceOverrides` also has an optional `styleClass`; it only has meaning for a per-overlay override and is ignored in `HaxeFolioConfig.appearance`.
@@ -1333,7 +1337,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-field-header-hint` / `.haxefolio-field-header-hint-error` | Its hint; the `-error` variant applies whenever `state == Error`. |
 | `.haxefolio-hint-line` / `.haxefolio-hint-line-error` | A `HintLine`; same `-error` convention. |
 | `.haxefolio-choice-button` / `:hover` / `:down` / `:disabled` | A `ChoiceButton`. `:down` is the selected state, `:disabled` the disabled one, `:down:disabled` a locked-but-selected one (see `ChoiceButton` above). |
-| `.haxefolio-choice-button-outlined` | Carried by a `ChoiceButton`/`ToggleButton` built while the app's `EmphasisStyle` is `Outlined` (see `Appearance`); switches its `:down` treatment from `Filled` to `Outlined`. Set by the framework - not something to add by hand. |
+| `.haxefolio-choice-button-outlined` | Carried by a `ChoiceButton`/`ToggleButton` built while the app's `selectionEmphasis` is `Outlined` (see `Appearance`); switches its `:down` treatment from `Filled` to `Outlined`. Set by the framework - not something to add by hand. |
 | `.haxefolio-choice-row` | A `ChoiceRow`'s own box. |
 | `.haxefolio-commit-button` / `.haxefolio-commit-button-outlined` | A `CommitTextField`'s commit button; the `-outlined` variant is carried while the app's `EmphasisStyle` is `Outlined`. |
 | `.haxefolio-stepper` | A `Stepper`'s row. |
@@ -1352,7 +1356,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-close-button` / `:hover` / `:down` | The header's close control. |
 | `.haxefolio-action-bar` | An `ActionBar`'s row. |
 | `.haxefolio-action-button` / `:hover` / `:disabled` | An `ActionButton`. |
-| `.haxefolio-action-button-primary` / `-outlined` | Additionally on a primary `ActionButton`; `-outlined` is carried while the `EmphasisStyle` is `Outlined`. Set by the framework - not something to add by hand. The `:disabled` rule comes last, so a disabled primary loses both. |
+| `.haxefolio-action-button-primary` / `-outlined` | Additionally on a primary `ActionButton`; `-outlined` is carried while the app's `actionEmphasis` is `Outlined`. Set by the framework - not something to add by hand. The `:disabled` rule comes last, so a disabled primary loses both. |
 | `.haxefolio-scroll-area` | A `ScrollArea`. Also a plain DOM class on its element - that is what the scrollbar rules key on. |
 | `.haxefolio-form-section` | A `FormSection`'s own box; carries the 18px bottom margin. |
 | `.haxefolio-button` / `:hover` / `:down` / `:disabled` | Opt-in look for a plain `Button` (see `Styling plain HaxeUI components the HaxeFolio way`). |

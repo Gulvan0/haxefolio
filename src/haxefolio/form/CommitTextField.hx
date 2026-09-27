@@ -89,7 +89,7 @@ class CommitTextField extends VBox
         commitButton.text = commitLabel;
         commitButton.addClass("haxefolio-commit-button");
 
-        if (AppearanceContext.current.emphasis == Outlined)
+        if (AppearanceContext.current.actionEmphasis == Outlined)
             commitButton.addClass("haxefolio-commit-button-outlined");
 
         row.addComponent(commitButton);

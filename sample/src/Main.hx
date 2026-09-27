@@ -107,10 +107,10 @@ class Main
         HaxeFolioApp.present("custom-long", CustomOverlayContent.buildLong, null, null, () -> Browser.console.log("[overlay-demo] present.onDismissed"));
 
     /*
-        Per-overlay appearance: Outlined emphasis and a style class.
+        Per-overlay appearance: Outlined selection/action emphasis and a style class.
     */
     private static function showAppearanceOverlay():Void
-        HaxeFolioApp.present("custom-appearance", CustomOverlayContent.buildAppearance, null, {emphasis: Outlined, styleClass: "sample-overlay-variant"});
+        HaxeFolioApp.present("custom-appearance", CustomOverlayContent.buildAppearance, null, {selectionEmphasis: Outlined, actionEmphasis: Outlined, styleClass: "sample-overlay-variant"});
 
     /*
         Header without a close control and an action bar with a secondary/primary/disabled mix.

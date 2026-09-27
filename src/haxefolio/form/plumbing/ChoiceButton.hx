@@ -28,7 +28,7 @@ class ChoiceButton extends Button
 
         this.addClass("haxefolio-choice-button");
 
-        if (AppearanceContext.current.emphasis == Outlined)
+        if (AppearanceContext.current.selectionEmphasis == Outlined)
             this.addClass("haxefolio-choice-button-outlined");
 
         this.toggle = true;

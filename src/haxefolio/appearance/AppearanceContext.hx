@@ -68,7 +68,8 @@ class AppearanceContext
 
         return {
             geometry: geometry,
-            emphasis: overrides.emphasis ?? base.emphasis
+            selectionEmphasis: overrides.selectionEmphasis ?? base.selectionEmphasis,
+            actionEmphasis: overrides.actionEmphasis ?? base.actionEmphasis
         };
     }
 
@@ -85,7 +86,8 @@ class AppearanceContext
                 rowGap: 10,
                 padding: 22
             },
-            emphasis: Filled
+            selectionEmphasis: Filled,
+            actionEmphasis: Filled
         };
     }
 }

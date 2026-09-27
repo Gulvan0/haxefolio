@@ -12,8 +12,16 @@ typedef Appearance = {
     geometry:GeometryTokens,
 
     /**
-        Which treatment means "primary" - components that draw a selected/primary state read it so
-        they always agree with each other.
+        Which treatment means "selected" for a component holding one of several peer values
+        (`ChoiceButton`) - components with that role read it so they always agree with each other.
+        See `EmphasisStyle` for why this is split from `actionEmphasis`.
     **/
-    emphasis:EmphasisStyle
+    selectionEmphasis:EmphasisStyle,
+
+    /**
+        Which treatment means "primary" for a single call-to-action (`ActionButton`,
+        `CommitTextField`'s commit button) - components with that role read it so they always agree
+        with each other. See `EmphasisStyle` for why this is split from `selectionEmphasis`.
+    **/
+    actionEmphasis:EmphasisStyle
 }

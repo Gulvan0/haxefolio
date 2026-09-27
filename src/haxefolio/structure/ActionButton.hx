@@ -5,8 +5,8 @@ import haxefolio.appearance.AppearanceContext;
 
 /*
     One button of an ActionBar. Either an ordinary action (the unselected ChoiceButton look) or the
-    primary one, drawn per the app's EmphasisStyle - read from AppearanceContext when built, like
-    the other emphasised components, so it agrees with them.
+    primary one, drawn per the app's `actionEmphasis` - read from AppearanceContext when built, so
+    it agrees with CommitTextField's commit button (the other component sharing that role).
 
     A disabled button loses its emphasis: a primary action that cannot be taken right now must not
     still read as the thing to press (see the `:disabled` rules in main.css).
@@ -34,7 +34,7 @@ class ActionButton extends Button
         {
             this.addClass("haxefolio-action-button-primary");
 
-            if (AppearanceContext.current.emphasis == Outlined)
+            if (AppearanceContext.current.actionEmphasis == Outlined)
                 this.addClass("haxefolio-action-button-outlined");
         }
 
