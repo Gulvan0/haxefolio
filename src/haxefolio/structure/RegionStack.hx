@@ -117,8 +117,8 @@ class RegionStack extends VBox
                 var scrollArea:ScrollArea = new ScrollArea(content);
                 addScrollingComponent(scrollArea);
 
-            case Tabs(role, pages, stripHeight, onSelect):
-                addTabsRegion(role, pages, stripHeight, onSelect);
+            case Tabs(role, pages, stripHeight, onSelect, lock):
+                addTabsRegion(role, pages, stripHeight, onSelect, lock);
         }
     }
 
@@ -138,7 +138,7 @@ class RegionStack extends VBox
         this.addComponent(component);
     }
 
-    private function addTabsRegion(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void):Void
+    private function addTabsRegion(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void, ?lock:TabLock):Void
     {
         claimScrollingArea();
 
@@ -171,7 +171,7 @@ class RegionStack extends VBox
 
             if (onSelect != null)
                 onSelect(index);
-        });
+        }, lock);
         bindings.push(new Detachable(strip.dispose, false));
 
         addFixedRegion(stripHeight ?? AppearanceContext.current.geometry.tabStripHeight, strip, "haxefolio-region-tabs", "tabs");

@@ -820,7 +820,7 @@ enum Region
     Actions(bar:ActionBar, ?height:ByWidth<Int>);
     Custom(height:ByWidth<Int>, content:Component);
     Scroll(content:Component);
-    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void);
+    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void, ?lock:TabLock);
 }
 ```
 
@@ -872,7 +872,7 @@ public var enabled(get, set):Bool
 
 ### Tabs
 
-`Tabs(role, pages, ?stripHeight, ?onSelect)` is a tab strip with, below it, the scrolling area holding the pages. It is one region
+`Tabs(role, pages, ?stripHeight, ?onSelect, ?lock)` is a tab strip with, below it, the scrolling area holding the pages. It is one region
 that contributes two things to the arithmetic above: the strip, a fixed region, and the pages, the scrolling area (so a stack
 has either a `Tabs` or a `Scroll` region, never both). Each page sits in its own `ScrollArea` (see below) inside a slot
 of the scrolling area's height that never changes when the tab is switched - so pages may differ in height, no space is
@@ -941,6 +941,11 @@ if choosing one discards the other, it is `Choose`.
   marker shows a dot after the label for as long as it is `active`. Deciding when a page with several fields is invalid (any of
   them) is the host's; disabling the primary action alongside is too. The dot's space is reserved on every tab that has a marker, so
   its appearing moves nothing. The same class is meant for other containers that can hide an invalid descendant.
+- **`lock`** (a `TabLock`, `haxefolio.structure`) stops the user from switching tabs while its `locked` is true - for a
+  `Choose` region whose active form has a request in flight, where switching would orphan the response or apply it to the
+  wrong form. The host keeps the reference and flips `locked`; meanwhile the strip ignores clicks and greys its labels
+  (`.haxefolio-tab-strip-locked`), the selected tab staying selected. (`new TabLock(locked = false)`, `locked`, `onChange`,
+  the same shape as `ErrorMarker`.)
 - The strip's own component, `TabStrip` (`haxefolio.structure`), is what draws the labels and the selection; a stack disposes
   it with `dispose()`.
 
@@ -1355,6 +1360,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-tab` / `-navigate` / `-choose` | One tab, per role. The selected one additionally carries `.haxefolio-tab-selected` and `.haxefolio-tab-navigate-selected` / `.haxefolio-tab-choose-selected`. Set by the framework - not something to add by hand. |
 | `.haxefolio-tab-content` / `-icon` / `-label` / `-label-selected` | A tab's inner row, its icon, its caption and (while selected) the caption's selected variant. |
 | `.haxefolio-tab-marker` / `-marker-active` | A tab's error marker dot; `-active` while its `ErrorMarker` is. |
+| `.haxefolio-tab-strip-locked` | A `TabStrip` while its `TabLock` is locked. |
 | `.haxefolio-header-bar` / `.haxefolio-header-title` | A `HeaderBar`'s row / its title label. |
 | `.haxefolio-close-button` / `:hover` / `:down` | The header's close control. |
 | `.haxefolio-action-bar` | An `ActionBar`'s row. |

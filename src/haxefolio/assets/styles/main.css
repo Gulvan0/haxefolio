@@ -541,6 +541,15 @@
     color: #1f2126;
 }
 
+/* after the selected rules: a locked strip greys every label, the selected one included */
+.haxefolio-tab-strip-locked .haxefolio-tab {
+    cursor: not-allowed;
+}
+
+.haxefolio-tab-strip-locked .haxefolio-tab-label {
+    color: #9a9ca2;
+}
+
 .switch-button-sub {
     background-color: #cccccc;
 }

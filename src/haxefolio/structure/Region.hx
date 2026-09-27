@@ -49,8 +49,9 @@ enum Region
         `role` says what the tabs mean to each other (see `TabRole`). `onSelect` runs with the page
         index each time the user picks a tab other than the current one - for a `Choose` region, the
         hook for relabelling the host's primary action; it is not called for the initial tab (the first)
-        nor for changes made by the host. A stack has at most one `Tabs` region, and it counts as the
-        stack's scrolling area (see `Scroll`).
+        nor for changes made by the host. `lock`, if given, stops the user from switching tabs while it
+        is locked (see `TabLock`). A stack has at most one `Tabs` region, and it counts as the stack's
+        scrolling area (see `Scroll`).
     **/
-    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void);
+    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void, ?lock:TabLock);
 }

@@ -17,8 +17,9 @@ import morestd.Detachable;
     it; `Choose` divides the strip's width evenly, so its captions have to fit the narrowest share.
 
     A tab whose page has an `ErrorMarker` reserves a small marker lane for its whole life, so the
-    marker appearing never moves a tab or its neighbours. Call `dispose()` once the strip is done
-    with, to release the marker subscriptions.
+    marker appearing never moves a tab or its neighbours. While a given `TabLock` is locked, clicks
+    are ignored and the strip carries `.haxefolio-tab-strip-locked`. Call `dispose()` once the strip
+    is done with, to release the marker and lock subscriptions.
 **/
 class TabStrip extends HBox
 {
@@ -29,7 +30,8 @@ class TabStrip extends HBox
     private final selectionHandler:Int->Void;
     private final tabs:Array<Box> = [];
     private final tabLabels:Array<Label> = [];
-    private final markerBindings:Array<Detachable> = [];
+    private final subscriptions:Array<Detachable> = [];
+    private final lock:Null<TabLock>;
 
     /**
         The selected tab. Assigning it only renders the selection - the change handler is for the
@@ -39,13 +41,15 @@ class TabStrip extends HBox
 
     /**
         `onSelected` receives the index of a tab the user clicked (not the one already selected).
+        `lock`, if given, suppresses those clicks while it is locked.
     **/
-    public function new(role:TabRole, pages:Array<TabPage>, selectedIndex:Int, onSelected:Int->Void)
+    public function new(role:TabRole, pages:Array<TabPage>, selectedIndex:Int, onSelected:Int->Void, ?lock:TabLock)
     {
         super();
 
         this.role = role;
         this.selectionHandler = onSelected;
+        this.lock = lock;
 
         this.percentWidth = 100;
         this.percentHeight = 100;
@@ -81,14 +85,20 @@ class TabStrip extends HBox
         }
 
         this.selectedIndex = selectedIndex;
+
+        if (lock != null)
+        {
+            applyLock(lock.locked);
+            subscriptions.push(lock.onChange(applyLock));
+        }
     }
 
     /**
-        Releases the subscriptions to the pages' error markers.
+        Releases the subscriptions to the pages' error markers and to the lock.
     **/
     public function dispose():Void
     {
-        for (binding in markerBindings)
+        for (binding in subscriptions)
             binding.detach();
     }
 
@@ -138,7 +148,7 @@ class TabStrip extends HBox
             content.addComponent(marker);
 
             applyMarker(marker, page.errorMarker.active);
-            markerBindings.push(page.errorMarker.onChange(active -> applyMarker(marker, active)));
+            subscriptions.push(page.errorMarker.onChange(active -> applyMarker(marker, active)));
         }
 
         return tab;
@@ -146,11 +156,19 @@ class TabStrip extends HBox
 
     private function onTabClicked(index:Int):Void
     {
-        if (index == selectedIndex)
+        if (index == selectedIndex || (lock != null && lock.locked))
             return;
 
         selectedIndex = index;
         selectionHandler(index);
+    }
+
+    private function applyLock(locked:Bool):Void
+    {
+        if (locked)
+            this.addClass("haxefolio-tab-strip-locked");
+        else
+            this.removeClass("haxefolio-tab-strip-locked");
     }
 
     private function applyMarker(marker:Box, active:Bool):Void
