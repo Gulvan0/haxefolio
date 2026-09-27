@@ -184,6 +184,8 @@ enum MenuBarItem
   `NavigateTo` goes through `HaxeFolioApp.navigateTo` just like any other navigation; `Execute` runs an arbitrary function, which may itself call `navigateTo` if it needs to combine navigation with something `NavigateTo` alone doesn't cover (e.g. passing `state`). `Link` opens `url` in a new tab if `newTab` is `true`, or the current one otherwise - a shorthand for an `Execute` whose callback opens `url` via `window.open` with the respective target.
 - **`Widget(componentFactory, ?persistent)`** - a custom component, built by `componentFactory` and added to the menu bar as-is (vertically centred, not wrapped in a menu), e.g. the settings button shown in `Getting started`. The factory is only invoked once the menu bar itself is being built (i.e. after `Toolkit.init()` has run as part of `HaxeFolioApp.init`), since HaxeUI components can't be constructed any earlier.
 
+A `NormalMenu`'s label shows a chevron after its text - pointing down, or up while its dropdown is open - unless `HaxeFolioConfig.menubar.showChevrons` (`HaxeFolioConfigBuilder.setMenubarChevronsShown`) is `false`; omitted, it defaults to `true`.
+
 `hiddenByDefault`, if `true`, starts a `MenuItemDefinition` hidden - in the menu bar and, for a `NormalMenu` item, its mirrored side bar entry too - until `MenuFacade.showMenuItem`/`showSidebarExtraGroupItem` (see `Showing and hiding menu items at runtime` below) makes it visible; omitted, it defaults to `false`.
 
 Additionally, two components are always present as the menu bar's leftmost children, placed there by the framework itself rather than configured as `MenuBarItem`s: a hamburger button - hidden by default, shown once the menu bar collapses to its mobile layout (see `Responsivity`), at which point clicking it opens the side bar - followed by the site name label, showing `HaxeFolioConfig.siteName` (interpreted the same way any HaxeUI `.text` property is, see `Locale utilities`) in its own typeface (see `Typography`) and navigating to the default page when clicked.
@@ -1115,7 +1117,7 @@ The controls render from `Preference.get()` and follow `onChange`, so a preferen
 | `?debounceMs` | `Int` | Resize handling debounce interval, in milliseconds (see `Responsivity`). Defaults to 500. |
 | `?appearance` | `AppearanceOverrides` | Theme-wide overrides of the framework's code-side appearance - geometry tokens, `selectionEmphasis` and `actionEmphasis` (see `Appearance`). |
 | `pages` | `Array<PageDefinition>` | See `Registering pages`. |
-| `menubar` | `MenuBarConfig` (`{left, right}`) | See `Menu bar`. |
+| `menubar` | `MenuBarConfig` (`{left, right, ?showChevrons}`) | See `Menu bar`. |
 | `?sidebarExtras` | `Array<SidebarGroup>` | See `Side bar`. |
 | `?defaultTitleText` | `String` | Fallback tab title text (see `Page title and notifications` for how it's interpreted) for pages that never call `setTitle`; falls back further to `siteName` if omitted too. |
 | `?supportedLocales` | `Map<String, String>` | Locale id -> display name, e.g. `["en" => "English"]`. Only the keys are consulted by the framework itself (see below); display names are for the app's own use, e.g. as option labels for a language preference. Defaults to `["en" => "English"]`. |
@@ -1301,6 +1303,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | Selector | Notes |
 |---|---|
 | `.haxefolio-menubar` | The `MenuBar` itself. Its menu labels are buttons HaxeUI builds itself, carrying its built-in `menubar-button` class (`:down` while the menu is open) - scope overrides with `.haxefolio-menubar > .menubar-button`. |
+| `.haxefolio-menubar-chevrons` | Additionally on the `MenuBar` unless `menubar.showChevrons` is `false`: the chevron icons on its menu labels. Set by the framework. |
 | `.haxefolio-menubar-expanded` / `.haxefolio-menubar-collapsed` | Additionally on the `MenuBar`, per layout (see `Responsivity`): its padding and gaps. Set by the framework - not something to add by hand. |
 | `.haxefolio-hamburger-button` / `#haxefolio-hamburger-button-menubar`, `#haxefolio-hamburger-button-sidebar` | The hamburger button - one instance in the menu bar, one in the side bar; `:down` while pressed. |
 | `.haxefolio-hamburger-button-cross` | Additionally on the side bar's instance, which shows a cross. |

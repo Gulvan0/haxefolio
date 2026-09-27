@@ -41,7 +41,8 @@ class MenuBarBuilder
         var menuBar:MenuBar = new MenuBar();
         menuBar.percentWidth = 100;
         menuBar.addClass("haxefolio-menubar");
-
+        if (config.menubar.showChevrons != false)
+            menuBar.addClass("haxefolio-menubar-chevrons");
 
         // HaxeUI closes a dropdown on an outside click or a selection, but not on Esc
         Browser.document.addEventListener("keydown", (event:KeyboardEvent) -> {

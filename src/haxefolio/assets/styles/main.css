@@ -140,7 +140,8 @@
 /*
     Menu triggers: the buttons MenuBar builds for each menu itself (so reachable only from here, not
     from code). `:down` is the open state. Open, the trigger has no bottom border and square bottom
-    corners: the dropdown attaches below it, joined by HaxeUI's own filler.
+    corners: the dropdown attaches below it, joined by HaxeUI's own filler. The chevrons key on
+    -chevrons, which MenuBarBuilder sets unless `MenuBarConfig.showChevrons` is false.
 */
 
 .haxefolio-menubar > .menubar-button,
@@ -161,7 +162,7 @@
     color: #5f6168;
 }
 
-.haxefolio-menubar > .menubar-button {
+.haxefolio-menubar-chevrons > .menubar-button {
     icon: "haxefolio/images/menu_chevron_down.svg";
     icon-position: right;
     horizontal-spacing: 8px;
@@ -174,8 +175,11 @@
     color: #1f2126;
 }
 
-.haxefolio-menubar > .menubar-button:down {
+.haxefolio-menubar-chevrons > .menubar-button:down {
     icon: "haxefolio/images/menu_chevron_up.svg";
+}
+
+.haxefolio-menubar > .menubar-button:down {
     background-color: #f0f0f1;
     border: 1px solid #d4d4d6;
     border-bottom-width: 0px;

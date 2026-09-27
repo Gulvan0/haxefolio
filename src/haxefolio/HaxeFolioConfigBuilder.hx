@@ -25,6 +25,7 @@ class HaxeFolioConfigBuilder
     private var pages:Array<PageDefinition>;
     private var menubarLeft:Array<MenuBarItem>;
     private var menubarRight:Array<MenuBarItem>;
+    private var menubarChevronsShown:Bool;
     private var sidebarExtras:Array<SidebarGroup>;
     private var defaultTitleText:Null<String>;
     private var supportedLocales:Null<Map<String, String>>;
@@ -42,6 +43,7 @@ class HaxeFolioConfigBuilder
         pages = [];
         menubarLeft = [];
         menubarRight = [];
+        menubarChevronsShown = true;
         sidebarExtras = [];
     }
 
@@ -100,6 +102,15 @@ class HaxeFolioConfigBuilder
     public function addRightMenubarItem(item:MenuBarItem):HaxeFolioConfigBuilder
     {
         menubarRight.push(item);
+        return this;
+    }
+
+    /**
+        See `MenuBarConfig.showChevrons`.
+    **/
+    public function setMenubarChevronsShown(shown:Bool):HaxeFolioConfigBuilder
+    {
+        menubarChevronsShown = shown;
         return this;
     }
 
@@ -178,7 +189,7 @@ class HaxeFolioConfigBuilder
             debounceMs: debounceMs,
             appearance: appearance,
             pages: pages,
-            menubar: {left: menubarLeft, right: menubarRight},
+            menubar: {left: menubarLeft, right: menubarRight, showChevrons: menubarChevronsShown},
             sidebarExtras: sidebarExtras,
             defaultTitleText: defaultTitleText,
             supportedLocales: supportedLocales,

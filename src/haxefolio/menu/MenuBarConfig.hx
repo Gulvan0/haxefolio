@@ -6,5 +6,11 @@ package haxefolio.menu;
 **/
 typedef MenuBarConfig = {
     left:Array<MenuBarItem>,
-    right:Array<MenuBarItem>
+    right:Array<MenuBarItem>,
+
+    /**
+        Whether each `NormalMenu` label shows a chevron (pointing down, or up while its dropdown is
+        open) after its text. Defaults to `true`.
+    **/
+    ?showChevrons:Bool
 }
