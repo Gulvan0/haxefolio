@@ -37,7 +37,7 @@ class ScrollArea extends ScrollView
 
         this.percentWidth = 100;
         this.scrollMode = NATIVE;
-        this.percentContentWidth = 100; // content is laid out against the usable width, so percentages resolve
+        this.percentContentWidth = 100; // with the lane kept out by the contents' padding-right (main.css), percentages resolve against the usable width
         this.addClass("haxefolio-scroll-area");
         this.addComponent(content);
 

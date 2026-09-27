@@ -798,3 +798,14 @@
     border: none;
     background-color: transparent;
 }
+
+/*
+    The content's own padding is the whole inset, and the region arithmetic assumes none is added -
+    except on the right, where the contents stop short of the always-reserved 10px scrollbar lane
+    (ScrollArea): HaxeUI resolves the contents' percentContentWidth against the whole width, lane
+    included, so without this the lane is drawn over the content's right edge.
+*/
+.haxefolio-scroll-area .scrollview-contents {
+    padding: 0;
+    padding-right: 10px;
+}

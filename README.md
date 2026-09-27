@@ -957,7 +957,8 @@ Every scrolling area the framework builds - a `Scroll` region, and every tab pag
 
 - vertical scrolling only;
 - **the scrollbar lane is always reserved** (10px), whether or not the content overflows, so usable width
-  never changes when content grows past the area (which would silently re-wrap percentage-sized rows);
+  never changes when content grows past the area (which would silently re-wrap percentage-sized rows); the content is laid
+  out against the width left of the lane and gets no padding of its own - its own padding is the whole inset;
 - **scrolling that reaches an end stops there** (`overscroll-behavior: contain`) and never scrolls
   the page behind, for wheel, drag and touch momentum alike;
 - the scrollbar is a thin transparent-track bar with a 6px rounded thumb (`#cccdd1`, `#b3b3b6` on hover,
