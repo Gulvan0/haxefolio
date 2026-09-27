@@ -4,6 +4,10 @@ All source lives under `src/haxefolio` (`haxefolio` package and its subpackages)
 
 The library is written in **Haxe**, targeting **HTML5**.
 
+Important decisions, for instance, a selected default theme, are stored in @knowledge/. @knowledge/plans/ is for provisional, not yet implemented design docs.
+
+Keyboard focus is intentionally disabled for HaxeFolio apps. There should be no notion of the "currently selected for keyboard control" element. Reacting to keyboard events is possible (for example, Esc to close the overlay), but not in the terms of the "focus".
+
 ANY AMBIGUITY OR MANUAL GAP SURFACING DURING IMPLEMENTATION SHOULD NOT BE RESOLVED SILENTLY. Instead, explicitly ask the question.
 
 If told to take a dubious or possibly suboptimal approach (whether from the UI/UX or technical standpoint), also ask a question, providing details on why you're uncertain about this and what are the better practices or better ways to solve the problem.
