@@ -738,6 +738,106 @@
     color: #9a9ca2;
 }
 
+.haxefolio-text-input {
+    font-name: $ui-family-regular;
+    font-size: 13px;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 4px;
+    background-color: #ffffff;
+    border: 1px solid #d4d4d6;
+    color: #1f2126;
+}
+
+.haxefolio-text-input-focused {
+    border-color: #8d939e;
+}
+
+/* after -focused, so the error stays visible while the user corrects it */
+.haxefolio-text-input-invalid {
+    border-color: #e3a6a1;
+}
+
+.haxefolio-text-input:disabled {
+    background-color: #f0f0f1;
+    border-color: #e4e4e6;
+    color: #9a9ca2;
+}
+
+/* the glyph is inline SVG in currentColor, so `color` paints it */
+.haxefolio-password-reveal {
+    pointer-events: true;
+    cursor: pointer;
+    background-color: transparent;
+    color: #5f6168;
+}
+
+.haxefolio-password-reveal:hover {
+    color: #1f2126;
+}
+
+.haxefolio-password-reveal:disabled {
+    cursor: not-allowed;
+    color: #9a9ca2;
+}
+
+.haxefolio-check-box-row {
+    pointer-events: true;
+    cursor: pointer;
+}
+
+.haxefolio-check-box-row:disabled {
+    cursor: not-allowed;
+}
+
+.haxefolio-check-box {
+    border-radius: 4px;
+    background-color: #ffffff;
+    border: 1px solid #d4d4d6;
+}
+
+.haxefolio-check-box-row:hover .haxefolio-check-box {
+    border-color: #b3b3b6;
+}
+
+.haxefolio-check-box-row-checked .haxefolio-check-box {
+    background-color: #2f3540;
+    border-color: #2f3540;
+}
+
+.haxefolio-check-box-row-outlined.haxefolio-check-box-row-checked .haxefolio-check-box {
+    background-color: #e7e9ee;
+    border-color: #8d939e;
+}
+
+.haxefolio-check-box-mark {
+    font-name: $ui-family-semibold;
+    font-size: 11px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.haxefolio-check-box-row-outlined .haxefolio-check-box-mark {
+    color: #2f3540;
+}
+
+.haxefolio-check-box-label {
+    font-name: $ui-family-medium;
+    font-size: 13px;
+    font-weight: 500;
+    word-wrap: false;
+    color: #5f6168;
+}
+
+.haxefolio-check-box-row:disabled .haxefolio-check-box {
+    background-color: #f0f0f1;
+    border-color: #e4e4e6;
+}
+
+.haxefolio-check-box-row:disabled .haxefolio-check-box-label {
+    color: #9a9ca2;
+}
+
 .haxefolio-commit-button {
     font-name: $ui-family-medium;
     font-size: 13px;

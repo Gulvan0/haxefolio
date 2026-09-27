@@ -380,7 +380,7 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 `haxefolio.preferences`/`.builder` already use elsewhere in the framework:
 
 - **`haxefolio.form`** - the components a framework user actually reaches for and composes a
-  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `PreviewPane`, `FormSection` below, and more as the library grows.
+  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `TextInputField`, `CheckBoxRow`, `PreviewPane`, `FormSection` below, and more as the library grows.
 - **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on: `SwapSlot` (below), which forms use directly, plus `RegionStack`, `Region`, `ScrollArea`, `TabStrip`, `ErrorMarker` and `EdgePanel` (see `Region stacks`); a form imports it from here, not from `haxefolio.form`.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
@@ -739,6 +739,76 @@ public var enabled(default, set):Bool;
 - The button follows `actionEmphasis`, the same role `ActionButton`'s primary state does (solid
   fill by default, the tinted-and-bordered look under `Outlined`) - not `selectionEmphasis`: it is
   a single call-to-action, not a choice among peers.
+
+### TextInputField
+
+A labelled text input validated live by its host - for a form whose value is simply what is typed
+(credentials, a name), where `CommitTextField`'s explicit commit would be ceremony:
+
+```haxe
+var login:TextInputField = new TextInputField("Login", text -> {
+    var error:Null<String> = validate(text);
+    login.hint = error ?? "2-32 characters";
+    login.hintState = error == null ? Normal : Error;
+    login.invalid = error != null;
+}, submitForm, Plain, 32);
+```
+
+```haxe
+public function new(label:String, onText:String->Void, ?onSubmit:Void->Void, mode:TextInputMode = Plain, ?maxChars:Int, enabled:Bool = true)
+public var currentText(get, set):String
+public var hint(get, set):Null<String>
+public var hintState(get, set):HintState
+public var invalid(default, set):Bool
+public var enabled(default, set):Bool
+public var focused(get, never):Bool
+public var capsLockOn(default, null):Bool
+public var onCapsLockChange:Null<Bool->Void>
+public function focus():Void
+public function dispose():Void
+```
+
+- The header row (a `FieldHeader`, one `messageLine` tall) carries the field's **single message slot** on its right: the
+  constraint while the value is fine, the error while it is not. The slot is always there, so nothing moves between states.
+- The component decides nothing about validity: `onText` reports each user edit (not assignments to `currentText`), and the
+  host writes back `hint`, `hintState` and `invalid` - so when an error is revealed (on first content, after a submit
+  attempt, ...) stays the host's policy.
+- `invalid` gives the input the invalid border, which wins over the focus border so an error stays visible while it is
+  corrected. `enabled = false` greys the input and the label in place.
+- `mode` is `Plain`, `Password` (obscured) or `RevealablePassword`: obscured, with an eye toggle at the input's right
+  edge that shows the text and hides it again (a square lane as tall as the input; the input's right padding is the
+  lane). Pressing it keeps focus and the caret in the input, and it stays out of the tab order. Its glyph is inline SVG
+  in `currentColor`, so `.haxefolio-password-reveal`'s `color` recolours it per state. Its accessible name comes from
+  the host keys `haxefolio.text_input.reveal.show` / `.hide`.
+- `capsLockOn` is whether Caps Lock is on while the input is focused (`false` otherwise), and `onCapsLockChange` is
+  called whenever it changes. Browsers report the lock only with a key or pointer event, so it is known from the first
+  key press or click in the input, not on focus alone. What to say about it (typically in the hint slot) is the host's call.
+- Enter calls `onSubmit`, if given. `focus()` moves keyboard focus into the input (directly on the native element, since
+  HaxeFolio disables HaxeUI's `FocusManager`); the field must already be on screen.
+- The input is `fieldHeight` tall (see `Appearance`); call `dispose()` once the field is removed for good if that token
+  differs between the breakpoint states.
+- Browser autofill doesn't repaint the input (and neither does it in `CommitTextField` or `Stepper`): Chrome's
+  `:-webkit-autofill` tint is covered with the field's own background and ink, as resolved by the stylesheets (host
+  overrides and `:disabled` included). The rules are injected once as a plain document stylesheet, keyed on the DOM class
+  `haxefolio-autofill-neutral` (see `AutofillNeutralTextField`).
+
+### CheckBoxRow
+
+A boolean attribute as a checkbox: a 16px box and a caption on one row, the whole row being the hit target and
+`fieldHeight` tall. Use a `ToggleButton` instead when the boolean is a mode rather than an attribute.
+
+```haxe
+public function new(caption:String, onToggle:Bool->Void, initiallyChecked:Bool = false, initiallyEnabled:Bool = true)
+public var checked(default, set):Bool
+public var enabled(default, set):Bool
+public function dispose():Void
+```
+
+- The checked state follows `selectionEmphasis` (read when the row is built), like a selected `ChoiceButton`: `Filled`
+  fills the box, `Outlined` tints and outlines it.
+- Assigning `checked` renders it without calling `onToggle`. A disabled row greys out in place and ignores input.
+- It is keyboard-reachable on its own (`tabindex`, Space/Enter toggle), since HaxeFolio disables HaxeUI's `FocusManager`.
+- Built from plain boxes rather than HaxeUI's `CheckBox`, whose mark is an image the stylesheet cannot recolour per emphasis.
 
 ### PreviewPane
 
@@ -1201,7 +1271,7 @@ HaxeFolioConfigBuilder.init("my-app", Preferences)
 ```
 
 - **`EmphasisStyle`** is `Filled` (default) or `Outlined`: which treatment means "selected"/"primary" - a solid `accent` fill, or an `accentTint` fill with an `accentMuted` border. Two independent roles read it, each keyed by its own `Appearance` field: **`selectionEmphasis`**, read by `ChoiceButton` (a component holding one of several peer values); and **`actionEmphasis`**, read by `ActionButton`'s primary state and `CommitTextField`'s commit button (a single call-to-action). The split exists because a host's accent hue may collide with its content imagery for a persistent chip-like selection without that being a reason to soften an actual call-to-action - a host typically sets `selectionEmphasis: Outlined` alone far more often than it sets `actionEmphasis: Outlined` too, since a screen's one primary action usually still wants full weight. Colour is still the stylesheet's business: it can restyle both treatments, but only code says which one is in use for each role. There is no CSS channel for selecting either.
-- **`GeometryTokens`** is the table of constants the framework's height arithmetic reads - `headerHeight` (60), `actionBarHeight` (68), `tabStripHeight` (44), `searchBarHeight` (52), `fieldHeight` (38), `messageLine` (16), `rowGap` (10) and `padding` (22), the first five being `ByWidth<Int>` so they may differ between expanded and collapsed. They live in code rather than CSS because they are needed before layout, and reading them back out of the style engine would make the arithmetic depend on cascade timing. Overriding a token propagates to every sum that reads it. Note that the built-in components do not yet all consume these tokens; each is wired up as the region that uses it lands.
+- **`GeometryTokens`** is the table of constants the framework's height arithmetic reads - `headerHeight` (60), `actionBarHeight` (68), `tabStripHeight` (44), `searchBarHeight` (52), `fieldHeight` (38; the height of a `TextInputField`'s input and a `CheckBoxRow`), `messageLine` (16), `rowGap` (10), `padding` (22), and `dialogWidth`/`dialogHeight` (620/720, the dialog presentation's preferred size), the first five being `ByWidth<Int>` so they may differ between expanded and collapsed. They live in code rather than CSS because they are needed before layout, and reading them back out of the style engine would make the arithmetic depend on cascade timing. Overriding a token propagates to every sum that reads it. Note that the built-in components do not yet all consume these tokens; each is wired up as the region that uses it lands.
 
 `AppearanceOverrides` also has an optional `styleClass`; it only has meaning for a per-overlay override and is ignored in `HaxeFolioConfig.appearance`.
 
@@ -1348,7 +1418,11 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-choice-button` / `:hover` / `:down` / `:disabled` | A `ChoiceButton`. `:down` is the selected state, `:disabled` the disabled one, `:down:disabled` a locked-but-selected one (see `ChoiceButton` above). |
 | `.haxefolio-choice-button-outlined` | Carried by a `ChoiceButton`/`ToggleButton` built while the app's `selectionEmphasis` is `Outlined` (see `Appearance`); switches its `:down` treatment from `Filled` to `Outlined`. Set by the framework - not something to add by hand. |
 | `.haxefolio-choice-row` | A `ChoiceRow`'s own box. |
-| `.haxefolio-commit-button` / `.haxefolio-commit-button-outlined` | A `CommitTextField`'s commit button; the `-outlined` variant is carried while the app's `EmphasisStyle` is `Outlined`. |
+| `.haxefolio-text-input-field` / `.haxefolio-text-input` / `-invalid` / `-focused` / `:disabled` | A `TextInputField`'s own box / its input; `-invalid` while `invalid == true`, `-focused` while it has keyboard focus (HaxeUI's `:active` is not delivered, see `TextInputField`). |
+| `.haxefolio-password-reveal` / `:hover` / `:disabled` | A `RevealablePassword` `TextInputField`'s eye toggle; `color` paints its glyph. |
+| `.haxefolio-check-box-row` / `-checked` / `-outlined` / `:hover` / `:disabled` | A `CheckBoxRow`; `-checked` while checked, `-outlined` while built under `selectionEmphasis: Outlined` (set by the framework). |
+| `.haxefolio-check-box` / `-mark` / `-label` | Its box, the check mark inside it, and its caption. |
+| `.haxefolio-commit-button` / `.haxefolio-commit-button-outlined` | A `CommitTextField`'s commit button; the `-outlined` variant is carried while the app's `actionEmphasis` is `Outlined`. |
 | `.haxefolio-stepper` | A `Stepper`'s row. |
 | `.haxefolio-stepper-button` / `:hover` / `:disabled` | Its `-`/`+` buttons. |
 | `.haxefolio-stepper-input` / `-invalid` / `:disabled` | Its text input; `-invalid` applies whenever `invalid == true`. |
@@ -1392,6 +1466,7 @@ A locale entry that's missing entirely does **not** throw - HaxeUI's `LocaleMana
 | `haxefolio.preference.<id>.name` | A preference's display name (the header of its section) |
 | `haxefolio.preference.<id>.value.<value>` | An option (or `locale`) preference's value button label |
 | `haxefolio.toggle.on` / `haxefolio.toggle.off` | A `ToggleButton`'s default caption while on / off (used by the preference window's toggles), unless it is given `ToggleLabels` |
+| `haxefolio.text_input.reveal.show` / `haxefolio.text_input.reveal.hide` | The accessible name of a `RevealablePassword` `TextInputField`'s eye toggle while the text is hidden / shown |
 | `haxefolio.preference.title` | The preference window's title |
 | `haxefolio.preference.reset` | The preference window's reset button label |
 

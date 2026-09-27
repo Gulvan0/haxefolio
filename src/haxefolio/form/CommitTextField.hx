@@ -6,6 +6,7 @@ import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.events.UIEvent;
 import haxefolio.appearance.AppearanceContext;
+import haxefolio.form.plumbing.AutofillNeutralTextField;
 import haxefolio.form.plumbing.CommitResult;
 import haxefolio.form.plumbing.CommitTrigger;
 import haxefolio.form.plumbing.FieldHeader;
@@ -79,7 +80,7 @@ class CommitTextField extends VBox
         row.horizontalSpacing = 6;
         this.addComponent(row);
 
-        input = new TextField();
+        input = new AutofillNeutralTextField();
         input.percentWidth = 100;
         input.addClass("haxefolio-commit-input");
         input.onChange = onInputChanged;

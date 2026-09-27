@@ -38,7 +38,7 @@ class Stepper extends HBox
         decrementButton = createButton("−", buttonWidth, () -> onStep(-1));
         this.addComponent(decrementButton);
 
-        input = new TextField();
+        input = new AutofillNeutralTextField();
         input.percentWidth = 100;
         input.addClass("haxefolio-stepper-input");
         input.onChange = onInputChanged;
