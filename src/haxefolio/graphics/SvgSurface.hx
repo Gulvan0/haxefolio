@@ -4,6 +4,7 @@ import haxe.ui.backend.html5.svg.SVGBuilder;
 import haxe.ui.backend.html5.svg.SVGPathBuilder;
 import haxe.ui.backend.html5.svg.SVGTextBuilder;
 import haxe.ui.backend.html5.svg.SVGImageBuilder;
+import haxe.ui.backend.html5.svg.SVGCircleBuilder;
 import haxe.ui.core.Component;
 import haxe.ui.styles.Style;
 
@@ -22,11 +23,15 @@ class SvgSurface extends Component
 {
     private var svg:SVGBuilder;
     private var aspectRatio:Float;
+    private var viewBoxWidth:Float;
+    private var viewBoxHeight:Float;
 
     public function new(viewBoxWidth:Float, viewBoxHeight:Float)
     {
         super();
 
+        this.viewBoxWidth = viewBoxWidth;
+        this.viewBoxHeight = viewBoxHeight;
         this.aspectRatio = viewBoxWidth / viewBoxHeight;
         this.percentWidth = 100;
 
@@ -94,5 +99,33 @@ class SvgSurface extends Component
     public function svgImage(href:String, x:Float, y:Float, width:Float, height:Float):SVGImageBuilder
     {
         return svg.image(href, x, y, width, height);
+    }
+
+    /**
+        Draws a circle centered at `(x, y)` with radius `r`, all in `viewBox` units. Returns a live
+        handle for later restyling.
+    **/
+    public function svgCircle(x:Float, y:Float, r:Float):SVGCircleBuilder
+    {
+        return svg.circle(x, y, r);
+    }
+
+    /**
+        Converts a raw screen point (as reported by a `MouseEvent`'s `screenX`/`screenY`) into
+        `viewBox` units, reading the SVG element's actual on-screen box on demand rather than
+        trusting any cached size - correct across resizes with no listener of its own. A point
+        outside the surface still converts (as negative units, or units past `viewBoxWidth`/
+        `viewBoxHeight`) rather than clipping - e.g. so a dragged piece keeps following the
+        cursor past the board's own edge; a caller that needs "is this point actually on the
+        surface" checks the returned units against `[0, viewBoxWidth]`/`[0, viewBoxHeight]` itself.
+    **/
+    public function screenPointToViewBox(screenX:Float, screenY:Float):{x:Float, y:Float}
+    {
+        var rect = svg.element.getBoundingClientRect();
+
+        return {
+            x: (screenX - rect.left) * viewBoxWidth / rect.width,
+            y: (screenY - rect.top) * viewBoxHeight / rect.height
+        };
     }
 }
