@@ -46,16 +46,15 @@ class SvgSurface extends Component
     }
 
     /*
-        haxeui-html5's ComponentImpl.handleSize only ever applies a size at all when both `width`
-        and `height` are non-null - a component sized purely by `percentWidth`, with no paired
-        `percentHeight`/explicit `height`, never gets its width applied either. Deriving `height`
-        from the resolved `width` here, rather than depending on CSS `aspect-ratio` alone, is what
-        makes `percentWidth` actually take effect; the `aspect-ratio` declaration above stays as a
-        redundant safety net.
+        handleSize only applies a size when both width and height are non-null, so deriving height
+        from width is what makes percentWidth take effect at all. Must recompute height on every
+        call rather than only when it comes in null: the framework re-passes whatever height this
+        override assigned last time, so guarding on "already have one" would pin the surface's
+        height at its first-render value, silently capping how far it can grow on later resizes.
     */
     private override function handleSize(width:Null<Float>, height:Null<Float>, style:Style):Void
     {
-        if (width != null && width > 0 && (height == null || height <= 0))
+        if (width != null && width > 0)
             height = width / aspectRatio;
 
         super.handleSize(width, height, style);
@@ -111,21 +110,21 @@ class SvgSurface extends Component
     }
 
     /**
-        Converts a raw screen point (as reported by a `MouseEvent`'s `screenX`/`screenY`) into
-        `viewBox` units, reading the SVG element's actual on-screen box on demand rather than
-        trusting any cached size - correct across resizes with no listener of its own. A point
-        outside the surface still converts (as negative units, or units past `viewBoxWidth`/
-        `viewBoxHeight`) rather than clipping - e.g. so a dragged piece keeps following the
-        cursor past the board's own edge; a caller that needs "is this point actually on the
-        surface" checks the returned units against `[0, viewBoxWidth]`/`[0, viewBoxHeight]` itself.
+        Converts a raw screen point (`MouseEvent.screenX`/`screenY`) into `viewBox` units. Uses
+        this component's own `screenLeft`/`screenTop`/`width`/`height`, not the DOM's
+        `getBoundingClientRect()`: haxeui-html5 computes `screenX`/`screenY` pre-`Toolkit.scale`
+        transform, while `getBoundingClientRect()` reports the post-transform box, so the two only
+        agree while `Toolkit.scaleX`/`scaleY` are exactly 1.
+
+        A point outside the surface still converts (negative, or past `viewBoxWidth`/
+        `viewBoxHeight`) rather than clipping, e.g. so a dragged piece keeps following the cursor
+        past the board's own edge.
     **/
     public function screenPointToViewBox(screenX:Float, screenY:Float):{x:Float, y:Float}
     {
-        var rect = svg.element.getBoundingClientRect();
-
         return {
-            x: (screenX - rect.left) * viewBoxWidth / rect.width,
-            y: (screenY - rect.top) * viewBoxHeight / rect.height
+            x: (screenX - screenLeft) * viewBoxWidth / width,
+            y: (screenY - screenTop) * viewBoxHeight / height
         };
     }
 }
