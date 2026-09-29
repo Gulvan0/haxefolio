@@ -110,21 +110,44 @@ class SvgSurface extends Component
     }
 
     /**
-        Converts a raw screen point (`MouseEvent.screenX`/`screenY`) into `viewBox` units. Uses
-        this component's own `screenLeft`/`screenTop`/`width`/`height`, not the DOM's
-        `getBoundingClientRect()`: haxeui-html5 computes `screenX`/`screenY` pre-`Toolkit.scale`
-        transform, while `getBoundingClientRect()` reports the post-transform box, so the two only
-        agree while `Toolkit.scaleX`/`scaleY` are exactly 1.
+        The inverse of `clientPointToViewBox`: converts a point in `viewBox` units into viewport
+        coordinates (`clientX`/`clientY` space). Measured live, so it follows the surface's current
+        on-screen position and size.
+    **/
+    public function viewBoxPointToClient(x:Float, y:Float):{x:Float, y:Float}
+    {
+        var rect = svg.element.getBoundingClientRect();
+        return {
+            x: rect.left + x * rect.width / viewBoxWidth,
+            y: rect.top + y * rect.height / viewBoxHeight
+        };
+    }
+
+    /**
+        How many viewport pixels a single `viewBox` unit currently spans on screen.
+    **/
+    public function viewBoxUnitInPixels():Float
+    {
+        return svg.element.getBoundingClientRect().width / viewBoxWidth;
+    }
+
+    /**
+        Converts a viewport point (a native DOM event's `clientX`/`clientY`) into `viewBox` units.
+        Measured against the element's live `getBoundingClientRect()`, so it stays correct under
+        any scrolling (including native scroll containers, which HaxeUI's own `screenLeft`/
+        `screenTop` don't track) and CSS transforms. Don't feed it HaxeUI's `MouseEvent.screenX`/
+        `screenY` - those are a different coordinate space.
 
         A point outside the surface still converts (negative, or past `viewBoxWidth`/
         `viewBoxHeight`) rather than clipping, e.g. so a dragged piece keeps following the cursor
         past the board's own edge.
     **/
-    public function screenPointToViewBox(screenX:Float, screenY:Float):{x:Float, y:Float}
+    public function clientPointToViewBox(clientX:Float, clientY:Float):{x:Float, y:Float}
     {
+        var rect = svg.element.getBoundingClientRect();
         return {
-            x: (screenX - screenLeft) * viewBoxWidth / width,
-            y: (screenY - screenTop) * viewBoxHeight / height
+            x: (clientX - rect.left) * viewBoxWidth / rect.width,
+            y: (clientY - rect.top) * viewBoxHeight / rect.height
         };
     }
 }
