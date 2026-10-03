@@ -44,13 +44,27 @@ class MenuBarBuilder
         if (config.menubar.showChevrons != false)
             menuBar.addClass("haxefolio-menubar-chevrons");
 
-        // HaxeUI closes a dropdown on an outside click or a selection, but not on Esc
+        var dropdownOpen:Bool = false;
+
+        /*
+            HaxeUI closes a dropdown on an outside click or a selection, but not on Esc. An Esc that
+            closed one is marked handled, so that nothing else on the page reacts to it too.
+        */
         Browser.document.addEventListener("keydown", (event:KeyboardEvent) -> {
-            if (event.key == "Escape")
-                menuBar.closeCurrentMenu();
+            if (event.key != "Escape" || !dropdownOpen)
+                return;
+
+            event.preventDefault();
+            menuBar.closeCurrentMenu();
         });
 
-        menuBar.onMenuOpened = event -> placeOpenDropdown(menuBar, event.menu);
+        menuBar.onMenuOpened = event -> {
+            dropdownOpen = true;
+            placeOpenDropdown(menuBar, event.menu);
+        };
+        menuBar.onMenuClosed = _ -> {
+            dropdownOpen = false;
+        };
 
         var hamburgerButton:Component = new HamburgerButton(SOURCE_REFERENCE, SideBarController.open);
         hamburgerButton.hidden = true;

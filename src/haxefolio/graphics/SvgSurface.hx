@@ -36,13 +36,49 @@ class SvgSurface extends Component
         this.percentWidth = 100;
 
         svg = new SVGBuilder();
-        svg.element.setAttribute("viewBox", '0 0 $viewBoxWidth $viewBoxHeight');
         svg.element.style.display = "block";
         svg.element.style.width = "100%";
         svg.element.style.height = "100%";
+        applyViewBox();
 
-        this.element.style.setProperty("aspect-ratio", '$viewBoxWidth / $viewBoxHeight');
         this.element.appendChild(svg.element);
+    }
+
+    /**
+        Changes the `viewBox` to `(0, 0, viewBoxWidth, viewBoxHeight)`. The surface's height follows
+        the new aspect ratio; shapes already drawn keep their `viewBox` coordinates.
+    **/
+    public function setViewBox(viewBoxWidth:Float, viewBoxHeight:Float):Void
+    {
+        if (viewBoxWidth == this.viewBoxWidth && viewBoxHeight == this.viewBoxHeight)
+            return;
+
+        this.viewBoxWidth = viewBoxWidth;
+        this.viewBoxHeight = viewBoxHeight;
+        this.aspectRatio = viewBoxWidth / viewBoxHeight;
+        applyViewBox();
+
+        // Re-derives the height from the current width (see handleSize).
+        if (this.width != null && this.width > 0)
+            this.height = this.width / aspectRatio;
+    }
+
+    private function applyViewBox():Void
+    {
+        svg.element.setAttribute("viewBox", '0 0 $viewBoxWidth $viewBoxHeight');
+        this.element.style.setProperty("aspect-ratio", '$viewBoxWidth / $viewBoxHeight');
+    }
+
+    /**
+        Adds a new layer on top of everything drawn so far: a group whose shapes paint above
+        those of every previously added layer. Shapes drawn directly through this surface's own
+        builders after this call paint above it as well.
+    **/
+    public function addLayer():SvgLayer
+    {
+        var layer:SvgLayer = new SvgLayer();
+        svg.element.appendChild(layer.element);
+        return layer;
     }
 
     /*
@@ -64,8 +100,8 @@ class SvgSurface extends Component
     }
 
     /**
-        Removes every shape drawn on this surface so far, invalidating any handle returned by
-        `path`/`text`/`image` up to this point.
+        Removes every shape drawn on this surface so far, layers included, invalidating any handle
+        returned by `path`/`text`/`image` (and any layer) up to this point.
     **/
     public function clear():Void
     {

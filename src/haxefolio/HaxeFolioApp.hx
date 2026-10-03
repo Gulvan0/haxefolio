@@ -206,6 +206,39 @@ class HaxeFolioApp
         preference tab and a Reset footer, whose controls apply on change. Customizable through
         `HaxeFolioConfig.preferenceWindowAppearance` and CSS (`#haxefolio-overlay-preference-*`).
     **/
+    /**
+        Whether `node` is bare background of the open page: it lies inside the page area (not the
+        menu bar, an overlay or anything else on `Screen`) and the nearest HaxeUI component it
+        belongs to is a pure layout container - a `Box` (`VBox`, `HBox`, the page itself...) or
+        the page's scroll area - rather than a control. Lets a page tell a press on empty space
+        from a press on something that reacts to it.
+    **/
+    public static function isPageBackground(node:Null<js.html.Node>):Bool
+    {
+        if (node == null || pageContainer == null || !pageContainer.element.contains(node))
+            return false;
+
+        var component:Component = nearestComponent(node);
+        return Std.isOfType(component, Box) || Std.isOfType(component, ScrollArea);
+    }
+
+    /*
+        The deepest component of the page area whose element contains `node`. Searched from the
+        top down: haxeui-html5's own element-to-component map only holds components briefly,
+        while they're being created.
+    */
+    private static function nearestComponent(node:js.html.Node):Component
+    {
+        var current:Component = pageContainer;
+        while (true)
+        {
+            var child:Null<Component> = Lambda.find(current.childComponents, child -> child.element.contains(node));
+            if (child == null)
+                return current;
+            current = child;
+        }
+    }
+
     public static function showPreferences():Void
     {
         present("preference", _ -> PreferenceWindowBuilder.build(config.preferenceTabIcons), null, config.preferenceWindowAppearance);
