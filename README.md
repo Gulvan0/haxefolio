@@ -920,7 +920,7 @@ public var title(get, set):String
 
 public function new(buttons:Array<ActionButton>)                                         // ActionBar
 
-public function new(caption:String, onPress:Void->Void, primary:Bool = false, ?glyph:String, ?widthPercent:Float, initiallyEnabled:Bool = true)   // ActionButton
+public function new(?caption:String, ?onPress:Void->Void, primary:Bool = false, ?glyph:String, ?widthPercent:Float, initiallyEnabled:Bool = true)   // ActionButton
 public var enabled(get, set):Bool
 ```
 
@@ -939,6 +939,9 @@ public var enabled(get, set):Bool
   `selectionEmphasis: Outlined`, so a screen's one primary action stays full weight even where chips are outlined. A disabled
   primary button **loses its emphasis** - it greys out like any other disabled button rather than still reading as the thing
   to press. A secondary action such as Reset is simply not `primary`.
+- `ActionButton` can also be declared in an XML layout as `<action-button>`: every constructor argument is optional, `text`,
+  `primary`, `icon`, `width` and `disabled` are attributes, and the handler is attached in code via `onClick`. `primary` is
+  a property too, read against the current `actionEmphasis` when set.
 
 ### Tabs
 
@@ -1305,6 +1308,7 @@ Nothing else is affected: components HaxeFolio or HaxeUI build themselves (menu 
 `MenuFacade.menuBar` (a `MenuBar`) and `MenuFacade.sideBar` (an `EdgePanel`) are also exposed as static members, letting a framework user reach into either component and adjust properties directly - once, right after `HaxeFolioApp.init` returns (there's no need to account for redraws, since this only runs once at startup). No overlay has an equivalent static member: unlike the menu bar/side bar, an overlay isn't built once at startup - a fresh instance is built on every `present` call instead, since it must pick one of its two presentations depending on the current layout mode (see `Overlays`). An overlay is customized through `present`'s `appearance` argument and CSS.
 
 See `CSS classes and elements` in `Reference` for the full list of selectors HaxeFolio's own components carry.
+
 
 ## Browser utilities
 

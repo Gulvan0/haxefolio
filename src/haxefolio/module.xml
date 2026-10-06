@@ -7,6 +7,10 @@
         <resource path="${module}/assets/layouts" prefix="haxefolio/layouts" />
         <resource path="${module}/assets/styles" prefix="haxefolio/styles" />
     </resources>
+    <components>
+        <!-- classes usable as XML layout tags (each needs a no-argument constructor) -->
+        <class name="haxefolio.structure.ActionButton" />
+    </components>
     <themes>
         <default>
             <var name="ui-family-regular" value="haxefolio/fonts/Onest-Regular.woff2" />

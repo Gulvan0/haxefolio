@@ -20,23 +20,27 @@ class ActionButton extends Button
     public var enabled(get, set):Bool;
 
     /**
-        `widthPercent` is the button's share of its bar's width; leave it out to split whatever
-        the bar's other buttons leave evenly (see `ActionBar`).
+        Whether this is the bar's primary action, drawn per the app's `actionEmphasis` (read from
+        AppearanceContext when set). Settable from XML (`primary="true"`).
     **/
-    public function new(caption:String, onPress:Void->Void, primary:Bool = false, ?glyph:String, ?widthPercent:Float, initiallyEnabled:Bool = true)
+    public var primary(default, set):Bool = false;
+
+    /**
+        All arguments are optional, so the button can also be declared in XML - there, `text`,
+        `primary`, `icon`, `width` and `disabled` are attributes, and the handler is attached in code
+        through `onClick`. `widthPercent` is the button's share of its bar's width; leave it out to
+        split whatever the bar's other buttons leave evenly (see `ActionBar`).
+    **/
+    public function new(?caption:String, ?onPress:Void->Void, primary:Bool = false, ?glyph:String, ?widthPercent:Float, initiallyEnabled:Bool = true)
     {
         super();
 
-        this.text = caption;
         this.addClass("haxefolio-action-button");
 
-        if (primary)
-        {
-            this.addClass("haxefolio-action-button-primary");
+        if (caption != null)
+            this.text = caption;
 
-            if (AppearanceContext.current.actionEmphasis == Outlined)
-                this.addClass("haxefolio-action-button-outlined");
-        }
+        this.primary = primary;
 
         if (glyph != null)
             this.icon = glyph;
@@ -45,7 +49,9 @@ class ActionButton extends Button
             this.percentWidth = widthPercent;
 
         this.disabled = !initiallyEnabled;
-        this.onClick = _ -> onPress();
+
+        if (onPress != null)
+            this.onClick = _ -> onPress();
     }
 
     private function get_enabled():Bool
@@ -56,6 +62,26 @@ class ActionButton extends Button
     private function set_enabled(value:Bool):Bool
     {
         this.disabled = !value;
+        return value;
+    }
+
+    private function set_primary(value:Bool):Bool
+    {
+        primary = value;
+
+        if (value)
+        {
+            this.addClass("haxefolio-action-button-primary");
+
+            if (AppearanceContext.current.actionEmphasis == Outlined)
+                this.addClass("haxefolio-action-button-outlined");
+        }
+        else
+        {
+            this.removeClass("haxefolio-action-button-primary");
+            this.removeClass("haxefolio-action-button-outlined");
+        }
+
         return value;
     }
 }
