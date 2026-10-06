@@ -369,6 +369,23 @@ The returned `EmbeddedOverlay` is a `Detachable`: `detach()` disposes the region
 
 Colour and type are the stylesheet's business, following the same class-vs-id cascade as the rest of HaxeFolio's chrome (see `Styling`): target the generic class for a blanket change across every overlay, or `#haxefolio-overlay-<slug>-*` for a single one. Geometry is not settable from CSS - it goes through `AppearanceOverrides` (see `Appearance`). See `Overlays` in `CSS classes and elements` for the selector list.
 
+## Notifications
+
+`HaxeFolioApp.notify(content, expandedWidth)` shows any component as a non-blocking notification and returns a `haxefolio.notification.Notification` handle:
+
+```haxe
+var notification:Notification = HaxeFolioApp.notify(myCard, 340);
+// later
+notification.dismiss();
+```
+
+The framework only places notifications; it draws nothing around `content`. Its surface, border, shadow, layout and controls are all the host's, so one notification may be a single card and another a whole stack of them.
+
+- **Placement.** Notifications form one column anchored to the bottom of the viewport, 12px from its edges, 10px apart, stacking upward in the order they were shown (the newest at the bottom). While the breakpoint is expanded (see `Responsivity`), the column sits in the bottom-right corner and each notification is its own `expandedWidth` wide, right-aligned. While it is collapsed, every notification spans the viewport width minus the margins. Widths follow the breakpoint live.
+- **Height** is the content's, and may change while it is shown: the column re-anchors so its bottom edge stays put.
+- **Lifetime.** A notification stays until `dismiss()` is called - there is no expiry. `dismiss()` removes the content without disposing it, so the same component may be shown again by a later `notify`; calling it again does nothing. `isShown` tells whether it is still on screen.
+- **Modality.** Notifications are part of the app beneath an overlay or the side bar: both paint above them, and they are inert while either is open. They don't block anything themselves - there is no scrim.
+
 ## Form components
 
 `haxefolio.form` is a small, general-purpose library of form/data-entry components. None of
@@ -1410,6 +1427,12 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-overlay-sheet` | Additionally on the frame of the sheet presentation (top corner radii). |
 | `.haxefolio-overlay-embedded` | On the frame of embedded content (see `Embedded content`; corner radius) instead of a presentation class. It carries `.haxefolio-overlay-frame` and `#haxefolio-overlay-<slug>-frame` too, and has no scrim. |
 | `#haxefolio-overlay-<slug>-header` / `-tabs` / `-actions` / `-scroll` / `-close` | The parts of a presented or embedded overlay's stack, for restyling one overlay: the `Header`, `Tabs` (its strip) and `Actions` slots, the scrolling area (the `Scroll` region's `ScrollArea`, or the slot holding a `Tabs` region's pages), and the header's close control. Present only for the regions the composition has. |
+
+#### Notifications
+
+| Selector | Notes |
+|---|---|
+| `.haxefolio-notification-layer` / `#haxefolio-notification-layer` | The column holding every notification (see `Notifications`). Unpainted; positioned by the framework. |
 
 #### Form components
 

@@ -909,3 +909,85 @@
     padding: 0;
     padding-right: 10px;
 }
+
+/*
+    Notification card (see NotificationCard): frame, header (caption over title, close control),
+    body and action row. Spacing is set here rather than left to HaxeUI's 5px box default. The close
+    control is larger than the caption line it sits on; its negative margins let it overhang
+    instead of growing the header, and keep its glyph centred on that line. Collapsed, the hit area
+    grows to the touch minimum around the same glyph position.
+*/
+
+.haxefolio-notification-card {
+    background-color: #fafafa;
+    border: 1px solid #d4d4d6;
+    border-radius: 9px;
+    padding-top: 14px;
+    padding-bottom: 16px;
+    padding-left: 18px;
+    padding-right: 18px;
+    vertical-spacing: 14px;
+}
+
+.haxefolio-notification-card-header {
+    horizontal-spacing: 8px;
+}
+
+.haxefolio-notification-card-headings {
+    vertical-spacing: 2px;
+}
+
+.haxefolio-notification-card-caption {
+    height: 16px;
+    font-name: $ui-family-medium;
+    font-size: 12px;
+    color: #5f6168;
+    word-wrap: false;
+}
+
+.haxefolio-notification-card-title {
+    height: 22px;
+    font-name: $ui-family-semibold;
+    font-size: 17px;
+    font-weight: 600;
+    color: #1f2126;
+    word-wrap: false;
+}
+
+.haxefolio-notification-card-close {
+    width: 24px;
+    height: 24px;
+    margin-top: -4px;
+    padding: 0;
+    font-name: $ui-family-medium;
+    font-size: 13px;
+    text-align: center;
+    border-radius: 4px;
+    background-color: transparent;
+    border: none;
+    color: #5f6168;
+}
+
+.haxefolio-notification-card-collapsed .haxefolio-notification-card-close {
+    width: 44px;
+    height: 44px;
+    margin-top: -14px;
+    margin-right: -10px;
+}
+
+.haxefolio-notification-card-close:hover {
+    background-color: #f0f0f1;
+    color: #1f2126;
+}
+
+.haxefolio-notification-card-close:down {
+    background-color: #f0f0f1;
+}
+
+.haxefolio-notification-card-body {
+    vertical-spacing: 0;
+}
+
+.haxefolio-notification-card-actions {
+    horizontal-spacing: 10px;
+}

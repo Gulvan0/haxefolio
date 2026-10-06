@@ -17,6 +17,8 @@ import haxefolio.menu.SideBarController;
 import haxefolio.menu.builder.MenuBarBuilder;
 import haxefolio.menu.builder.MenuBarBuilder.MenuBarBuildResult;
 import haxefolio.menu.builder.SideBarBuilder;
+import haxefolio.notification.Notification;
+import haxefolio.notification.NotificationLayer;
 import haxefolio.overlay.EmbeddedOverlay;
 import haxefolio.overlay.OverlayContent;
 import haxefolio.overlay.OverlayController;
@@ -121,8 +123,10 @@ class HaxeFolioApp
 
         Screen.instance.addComponent(root);
 
-        OverlayController.init([root, sideBar]);
-        SideBarController.init(sideBar, [root]);
+        var notificationLayer:Component = NotificationLayer.init();
+
+        OverlayController.init([root, sideBar, notificationLayer]);
+        SideBarController.init(sideBar, [root, notificationLayer]);
 
         var menuCollapseWidth:Int = config.menuCollapseWidth ?? 900;
         var debounceMs:Int = config.debounceMs ?? 500;
@@ -133,6 +137,7 @@ class HaxeFolioApp
 
             OverlayController.resize();
             SideBarController.fit();
+            NotificationLayer.fit();
         });
 
         Browser.window.addEventListener("popstate", _ -> openFromCurrentUrl());
@@ -199,6 +204,22 @@ class HaxeFolioApp
     public static function embed(slug:String, contentFactory:Void->OverlayContent, into:Component, frameHeight:Float, ?appearance:AppearanceOverrides):EmbeddedOverlay
     {
         return OverlayController.embed(slug, contentFactory, into, frameHeight, appearance);
+    }
+
+    /**
+        Shows `content` as a notification: non-blocking, anchored to the bottom of the viewport -
+        the bottom-right corner while the breakpoint is expanded, where the content is
+        `expandedWidth` pixels wide; the full viewport width minus the margins while it is
+        collapsed. Notifications stack upward in the order they were shown, the newest at the
+        bottom, and stay until the returned handle's `dismiss()` is called - there is no expiry.
+
+        The framework draws nothing around `content`: its surface, layout and controls are the
+        host's, and so is its height, which may change while shown (the stack re-anchors). Like
+        the page, notifications are unreachable while an overlay or the side bar is open.
+    **/
+    public static function notify(content:Component, expandedWidth:Float):Notification
+    {
+        return NotificationLayer.show(content, expandedWidth);
     }
 
     /**

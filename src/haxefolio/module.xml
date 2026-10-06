@@ -10,6 +10,7 @@
     <components>
         <!-- classes usable as XML layout tags (each needs a no-argument constructor) -->
         <class name="haxefolio.structure.ActionButton" />
+        <class name="haxefolio.notification.NotificationCard" />
     </components>
     <themes>
         <default>
