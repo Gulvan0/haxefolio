@@ -1,6 +1,7 @@
 package haxefolio;
 
 import haxe.ui.core.Component;
+import haxe.ui.core.Screen;
 import js.Browser;
 import morestd.Detachable;
 import morestd.RefreshableTimer;
@@ -27,6 +28,11 @@ class ResponsivityController
         the current layout mode without duplicating the menuCollapseWidth comparison.
     */
     public static var isCollapsed(default, null):Bool = false;
+
+    /** Carried by every root component while the breakpoint is collapsed **/
+    public static inline final COLLAPSED_CLASS:String = "haxefolio-collapsed";
+    /** Carried by every root component while the breakpoint is expanded **/
+    public static inline final EXPANDED_CLASS:String = "haxefolio-expanded";
 
     private static var collapseChangeListeners:Array<Bool->Void> = [];
 
@@ -70,6 +76,9 @@ class ResponsivityController
         {
             hasAppliedInitialState = true;
             applyMenuCollapseState();
+
+            for (root in Screen.instance.rootComponents)
+                markRoot(root);
         }
         else
             debounceTimer.start();
@@ -95,9 +104,40 @@ class ResponsivityController
 
         hamburgerButton.hidden = !isCollapsed;
 
-        if (changed)
-            for (listener in collapseChangeListeners)
-                listener(isCollapsed);
+        if (!changed)
+            return;
+
+        for (root in Screen.instance.rootComponents)
+            markRoot(root);
+
+        for (listener in collapseChangeListeners)
+            listener(isCollapsed);
+    }
+
+    /*
+        Gives `root`, a Screen root component, the current breakpoint's class. HaxeUI re-matches a
+        component's selectors only when that component's own style is invalidated, so on a change the
+        whole subtree is invalidated, for `.haxefolio-collapsed .foo` rules to apply. HaxeFolio calls
+        this for each root it adds to Screen.
+    */
+    @:allow(haxefolio)
+    private static function markRoot(root:Component):Void
+    {
+        var current:String = isCollapsed ? COLLAPSED_CLASS : EXPANDED_CLASS;
+        if (root.hasClass(current))
+            return;
+
+        root.swapClass(current, isCollapsed ? EXPANDED_CLASS : COLLAPSED_CLASS);
+        invalidateDescendantStyles(root);
+    }
+
+    private static function invalidateDescendantStyles(component:Component):Void
+    {
+        for (child in component.childComponents)
+        {
+            child.invalidateComponentStyle();
+            invalidateDescendantStyles(child);
+        }
     }
 
     /**

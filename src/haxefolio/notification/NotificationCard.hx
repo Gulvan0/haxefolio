@@ -5,7 +5,6 @@ import haxe.ui.components.Label;
 import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
-import haxefolio.ByWidth;
 import haxefolio.ElementShadow;
 import haxefolio.ResponsivityController;
 import haxefolio.appearance.AppearanceContext;
@@ -18,9 +17,8 @@ import morestd.Detachable;
     host's own content, and a row of `ActionButton`s split evenly. Show it with
     `HaxeFolioApp.notify`, alone or as one card of a bigger notification.
 
-    It follows the breakpoint by itself: collapsed, it carries `haxefolio-notification-card-collapsed`
-    (the close control's larger hit area is styled on it) and its buttons take the collapsed
-    `fieldHeight`.
+    It follows the breakpoint by itself: its buttons take the breakpoint's `fieldHeight`, and the
+    close control's hit area is larger under `.haxefolio-collapsed`.
 
     Declared in XML as `<notification-card caption="..." title="...">`, its child elements go into
     the body, except `<action-button>`s, which go into the action row. From code, add content with
@@ -29,8 +27,6 @@ import morestd.Detachable;
 **/
 class NotificationCard extends VBox
 {
-    private static inline final SHADOW:String = "0 8px 28px rgba(24, 26, 31, 0.16)";
-
     /**
         The small line above the title (e.g. "Challenge from"), or null for none. Interpreted like
         any HaxeUI `.text` property (see `LocaleUtils`).
@@ -58,7 +54,6 @@ class NotificationCard extends VBox
     private final actions:HBox;
     private final actionButtons:Array<ActionButton> = [];
 
-    private var breakpointBinding:Detachable;
     private var buttonHeightBinding:Detachable;
 
     public function new()
@@ -67,7 +62,7 @@ class NotificationCard extends VBox
 
         addClass("haxefolio-notification-card");
         percentWidth = 100;
-        ElementShadow.apply(element, SHADOW);
+        ElementShadow.apply(element, AppearanceContext.current.shadows.notificationCard);
 
         var header:HBox = new HBox();
         header.percentWidth = 100;
@@ -112,13 +107,6 @@ class NotificationCard extends VBox
         actions.hidden = true;
         super.addComponent(actions);
 
-        var breakpoint:ByWidth<Bool> = {expanded: false, collapsed: true};
-        breakpointBinding = ResponsivityController.bind(breakpoint, collapsed -> {
-            if (collapsed)
-                addClass("haxefolio-notification-card-collapsed");
-            else
-                removeClass("haxefolio-notification-card-collapsed");
-        });
         buttonHeightBinding = ResponsivityController.bind(AppearanceContext.current.geometry.fieldHeight, applyButtonHeight);
     }
 
@@ -173,7 +161,6 @@ class NotificationCard extends VBox
 
     private override function onDestroy():Void
     {
-        breakpointBinding.detach();
         buttonHeightBinding.detach();
         super.onDestroy();
     }

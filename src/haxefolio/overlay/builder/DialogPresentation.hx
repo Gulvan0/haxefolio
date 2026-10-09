@@ -3,6 +3,8 @@ package haxefolio.overlay.builder;
 import haxe.ui.containers.Box;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Screen;
+import haxefolio.ResponsivityController;
+import haxefolio.Shadow;
 import haxefolio.Viewport;
 import haxefolio.structure.RegionStack;
 import js.html.Element;
@@ -31,13 +33,15 @@ class DialogPresentation extends OverlayPresentation
     private final frame:VBox;
     private final preferredWidth:Int;
     private final preferredHeight:Int;
+    private final shadow:Shadow;
 
-    public function new(slug:String, stack:RegionStack, styleClass:Null<String>, preferredWidth:Int, preferredHeight:Int, onGone:Void->Void)
+    public function new(slug:String, stack:RegionStack, styleClass:Null<String>, preferredWidth:Int, preferredHeight:Int, shadow:Shadow, onGone:Void->Void)
     {
         super(slug, stack, styleClass, onGone);
 
         this.preferredWidth = preferredWidth;
         this.preferredHeight = preferredHeight;
+        this.shadow = shadow;
 
         scrim = new Box();
         scrim.id = 'haxefolio-overlay-$slug-scrim';
@@ -64,8 +68,9 @@ class DialogPresentation extends OverlayPresentation
     public override function show():Void
     {
         Screen.instance.addComponent(scrim);
+        ResponsivityController.markRoot(scrim);
 
-        OverlayPresentation.styleFrameElement(frame.element, "0 8px 28px rgba(24, 26, 31, 0.16)");
+        OverlayPresentation.styleFrameElement(frame.element, shadow);
         fadeIn(scrim.element);
         fadeIn(frame.element);
     }

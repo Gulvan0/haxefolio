@@ -1,6 +1,7 @@
 package haxefolio.overlay.builder;
 
 import haxefolio.ElementShadow;
+import haxefolio.Shadow;
 import haxefolio.structure.RegionStack;
 import js.html.Element;
 
@@ -59,7 +60,7 @@ class OverlayPresentation
         properties did not take effect on the frame from the stylesheet. The shadow goes through
         ElementShadow, since HaxeUI clears an inline one whenever it re-applies the frame's style.
     */
-    private static function styleFrameElement(element:Element, shadow:String):Void
+    private static function styleFrameElement(element:Element, shadow:Shadow):Void
     {
         element.style.overflow = "hidden";
         ElementShadow.apply(element, shadow);

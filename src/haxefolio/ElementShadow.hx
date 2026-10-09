@@ -15,8 +15,8 @@ import morestd.Detachable;
     put on the DOM element itself - which HaxeUI leaves alone, the same way ScrollArea styles its
     scrollbar.
 
-    Rules are never removed from the stylesheet, so the set of distinct shadow strings an app uses
-    should be small and fixed (constants), not computed per element.
+    Rules are never removed from the stylesheet, so the set of distinct shadows an app uses should
+    be small and fixed (constants), not computed per element.
 **/
 class ElementShadow
 {
@@ -24,13 +24,13 @@ class ElementShadow
     private static var styleSheet:Null<CSSStyleSheet> = null;
 
     /**
-        Gives `element` the CSS `box-shadow` `shadow` (e.g. `"0 8px 28px rgba(42, 33, 26, 0.16)"`).
-        The shadow stays for as long as the element exists, unless the returned handle's `detach()`
-        is called, which removes it from this element again (safe to call more than once).
+        Gives `element` the shadow `shadow`. It stays for as long as the element exists, unless the
+        returned handle's `detach()` is called, which removes it from this element again (safe to
+        call more than once).
     **/
-    public static function apply(element:Element, shadow:String):Detachable
+    public static function apply(element:Element, shadow:Shadow):Detachable
     {
-        var className:String = classNameFor(shadow);
+        var className:String = classNameFor(toCss(shadow));
         element.classList.add(className);
 
         return new Detachable(() -> element.classList.remove(className));
@@ -40,10 +40,6 @@ class ElementShadow
     {
         if (classNamesByShadow.exists(shadow))
             return classNamesByShadow.get(shadow);
-
-        // The value is written into a stylesheet rule, so anything that could close it early is out.
-        if (~/[{};]/.match(shadow))
-            throw 'Invalid box-shadow value: $shadow';
 
         if (styleSheet == null)
         {
@@ -57,5 +53,15 @@ class ElementShadow
         styleSheet.insertRule('.$className { box-shadow: $shadow !important; }', styleSheet.cssRules.length);
 
         return className;
+    }
+
+    private static function toCss(shadow:Shadow):String
+    {
+        var red:Int = (shadow.color >> 16) & 0xFF;
+        var green:Int = (shadow.color >> 8) & 0xFF;
+        var blue:Int = shadow.color & 0xFF;
+        var spread:Float = shadow.spread ?? 0.0;
+
+        return '${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px ${spread}px rgba($red, $green, $blue, ${shadow.opacity})';
     }
 }

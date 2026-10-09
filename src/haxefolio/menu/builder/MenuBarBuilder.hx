@@ -9,6 +9,7 @@ import haxe.ui.containers.menus.Menu;
 import haxe.ui.containers.menus.MenuBar;
 import haxe.ui.core.Component;
 import haxefolio.ElementShadow;
+import haxefolio.appearance.AppearanceContext;
 import haxefolio.HaxeFolioApp;
 import haxefolio.HaxeFolioConfig;
 import haxefolio.ResponsivityController;
@@ -179,7 +180,7 @@ class MenuBarBuilder
         {
             case NormalMenu(slug, items, defaultText):
                 var menu:NormalMenu = new NormalMenu(slug, items, defaultText);
-                ElementShadow.apply(menu.element, "0 8px 28px rgba(24, 26, 31, 0.16)");
+                ElementShadow.apply(menu.element, AppearanceContext.current.shadows.menuDropdown);
                 menu.onWidthRefitted = () -> placeOpenDropdown(menuBar, menu);
                 return menu;
             case Widget(componentFactory, _):

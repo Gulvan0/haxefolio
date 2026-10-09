@@ -968,7 +968,7 @@
     color: #5f6168;
 }
 
-.haxefolio-notification-card-collapsed .haxefolio-notification-card-close {
+.haxefolio-collapsed .haxefolio-notification-card-close {
     width: 44px;
     height: 44px;
     margin-top: -14px;

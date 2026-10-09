@@ -2,6 +2,7 @@ package haxefolio.menu;
 
 import haxe.ui.core.Component;
 import haxefolio.ElementShadow;
+import haxefolio.appearance.AppearanceContext;
 import haxefolio.InertHolds;
 import haxefolio.ResponsivityController;
 import haxefolio.Viewport;
@@ -41,7 +42,7 @@ class SideBarController
         SideBarController.panel = panel;
         SideBarController.inertComponents = inertComponents;
 
-        ElementShadow.apply(panel.element, "4px 0 20px rgba(24, 26, 31, 0.18)");
+        ElementShadow.apply(panel.element, AppearanceContext.current.shadows.sideBar);
 
         ResponsivityController.onCollapseChange(collapsed -> {
             if (!collapsed)

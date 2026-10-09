@@ -6,6 +6,7 @@ import haxefolio.InertHolds;
 import haxefolio.appearance.AppearanceContext;
 import haxefolio.appearance.AppearanceOverrides;
 import haxefolio.appearance.GeometryTokens;
+import haxefolio.appearance.ShadowTokens;
 import haxefolio.overlay.builder.DialogPresentation;
 import haxefolio.overlay.builder.OverlayPresentation;
 import haxefolio.overlay.builder.SheetPresentation;
@@ -83,12 +84,14 @@ class OverlayController
         var content:Null<OverlayContent> = null;
         var stack:RegionStack;
         var geometry:Null<GeometryTokens> = null;
+        var shadows:Null<ShadowTokens> = null;
 
         // built under the overlay's own appearance, so every component reads it (see AppearanceContext)
         try
         {
             stack = AppearanceContext.runWith(appearance, () -> {
                 geometry = AppearanceContext.current.geometry;
+                shadows = AppearanceContext.current.shadows;
                 content = factory(dismiss);
                 return new RegionStack(content.regions, 0, dismiss, 'haxefolio-overlay-$slug');
             });
@@ -126,8 +129,8 @@ class OverlayController
         var styleClass:Null<String> = appearance?.styleClass;
 
         presentation = isCollapsed
-            ? new SheetPresentation(slug, stack, styleClass, onGone)
-            : new DialogPresentation(slug, stack, styleClass, geometry.dialogWidth, geometry.dialogHeight, onGone);
+            ? new SheetPresentation(slug, stack, styleClass, shadows.sheet, onGone)
+            : new DialogPresentation(slug, stack, styleClass, geometry.dialogWidth, geometry.dialogHeight, shadows.dialog, onGone);
         requestDismissal = dismiss;
 
         inertHold = InertHolds.hold(inertComponents);

@@ -12,6 +12,11 @@ typedef Appearance = {
     geometry:GeometryTokens,
 
     /**
+        The elevation shadows of the framework's floating surfaces.
+    **/
+    shadows:ShadowTokens,
+
+    /**
         Which treatment means "selected" for a component holding one of several peer values
         (`ChoiceButton`) - components with that role read it so they always agree with each other.
         See `EmphasisStyle` for why this is split from `actionEmphasis`.

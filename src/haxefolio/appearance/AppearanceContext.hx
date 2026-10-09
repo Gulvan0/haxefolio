@@ -68,8 +68,21 @@ class AppearanceContext
                 dialogHeight: geometryOverrides.dialogHeight ?? geometry.dialogHeight
             };
 
+        var shadows:ShadowTokens = base.shadows;
+        var shadowOverrides:Null<PartialShadowTokens> = overrides.shadows;
+
+        if (shadowOverrides != null)
+            shadows = {
+                dialog: shadowOverrides.dialog ?? shadows.dialog,
+                sheet: shadowOverrides.sheet ?? shadows.sheet,
+                sideBar: shadowOverrides.sideBar ?? shadows.sideBar,
+                menuDropdown: shadowOverrides.menuDropdown ?? shadows.menuDropdown,
+                notificationCard: shadowOverrides.notificationCard ?? shadows.notificationCard
+            };
+
         return {
             geometry: geometry,
+            shadows: shadows,
             selectionEmphasis: overrides.selectionEmphasis ?? base.selectionEmphasis,
             actionEmphasis: overrides.actionEmphasis ?? base.actionEmphasis
         };
@@ -89,6 +102,13 @@ class AppearanceContext
                 padding: 22,
                 dialogWidth: 620,
                 dialogHeight: 720
+            },
+            shadows: {
+                dialog: {offsetX: 0, offsetY: 8, blur: 28, color: 0x181A1F, opacity: 0.16},
+                sheet: {offsetX: 0, offsetY: -4, blur: 20, color: 0x181A1F, opacity: 0.18},
+                sideBar: {offsetX: 4, offsetY: 0, blur: 20, color: 0x181A1F, opacity: 0.18},
+                menuDropdown: {offsetX: 0, offsetY: 8, blur: 28, color: 0x181A1F, opacity: 0.16},
+                notificationCard: {offsetX: 0, offsetY: 8, blur: 28, color: 0x181A1F, opacity: 0.16}
             },
             selectionEmphasis: Filled,
             actionEmphasis: Filled

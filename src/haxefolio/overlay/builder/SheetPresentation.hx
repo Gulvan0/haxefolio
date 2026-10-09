@@ -1,5 +1,6 @@
 package haxefolio.overlay.builder;
 
+import haxefolio.Shadow;
 import haxefolio.Viewport;
 import haxefolio.structure.EdgePanel;
 import haxefolio.structure.RegionStack;
@@ -20,10 +21,13 @@ import haxefolio.structure.RegionStack;
 class SheetPresentation extends OverlayPresentation
 {
     private final panel:EdgePanel;
+    private final shadow:Shadow;
 
-    public function new(slug:String, stack:RegionStack, styleClass:Null<String>, onGone:Void->Void)
+    public function new(slug:String, stack:RegionStack, styleClass:Null<String>, shadow:Shadow, onGone:Void->Void)
     {
         super(slug, stack, styleClass, onGone);
+
+        this.shadow = shadow;
 
         panel = new EdgePanel(Bottom, onGone, null, true);
         panel.id = 'haxefolio-overlay-$slug-frame';
@@ -47,7 +51,7 @@ class SheetPresentation extends OverlayPresentation
     {
         panel.open();
 
-        OverlayPresentation.styleFrameElement(panel.element, "0 -4px 20px rgba(24, 26, 31, 0.18)");
+        OverlayPresentation.styleFrameElement(panel.element, shadow);
     }
 
     public override function hide():Void

@@ -284,6 +284,17 @@ Every form component that reflows at the breakpoint (`ChoiceRow`, `ChoiceGrid`, 
 
 Enum constructors inside a `ByWidth` argument resolve unqualified where the expected type is known (`{expanded: Horizontal, collapsed: Vertical}`), but a default argument value can't do this - which is why the `direction` parameters below are optional rather than defaulted.
 
+### Styling by the breakpoint
+
+What only looks different at the threshold - a height, a margin, a larger hit area - needs no code: every root component on screen (the app root, the notification column, overlays, the side bar) carries `haxefolio-collapsed` or `haxefolio-expanded` (`ResponsivityController.COLLAPSED_CLASS` / `EXPANDED_CLASS`), so a descendant selector does it:
+
+```css
+.my-row { height: 40px; }
+.haxefolio-collapsed .my-row { height: 44px; }
+```
+
+HaxeUI re-matches a component's selectors only when its own style is invalidated, so on a flip HaxeFolio invalidates the style of every component under the roots - a cost paid once per flip, not per resize. Roots HaxeFolio doesn't add itself (HaxeUI's own popups, such as a `Menu`'s dropdown) don't carry the class.
+
 ## Overlays
 
 HaxeFolio presents dismissible overlays: a fixed-size frame of `Region`s (see `Region stacks`) over a scrim. Which of two presentations appears is decided internally, by the same breakpoint everything else responds to (`menuCollapseWidth`, see `Responsivity`) - a **dialog** while expanded, a **sheet** while collapsed. A host never names a presentation: it supplies content that is valid in both states, and may branch on the breakpoint state (through `mobileContentFactory`, or a `ByWidth` value), never on the presentation itself.
@@ -331,7 +342,7 @@ HaxeFolioApp.present("my-overlay", dismiss -> {
 - `slug` identifies the overlay for CSS (see `Overlay styling`) and must be unique per call site.
 - `contentFactory` builds the content, and receives a `dismiss` handle for closing the overlay from within it.
 - `mobileContentFactory`, optional - used instead of `contentFactory` while the breakpoint is collapsed, for a genuinely different component tree. The choice is made once, when `present` is called.
-- `appearance`, optional - an `AppearanceOverrides` (see `Appearance`) applying to this overlay only: its geometry, `selectionEmphasis` and `actionEmphasis` are in effect while the content is built, so every component the factory constructs reads them; its `styleClass` is added to the overlay's frame, for a colour variant shared by several overlays.
+- `appearance`, optional - an `AppearanceOverrides` (see `Appearance`) applying to this overlay only: its geometry, `selectionEmphasis` and `actionEmphasis` are in effect while the content is built, so every component the factory constructs reads them; its `shadows` give the frame its shadow (`dialog` or `sheet`); its `styleClass` is added to the overlay's frame, for a colour variant shared by several overlays.
 - `onDismissed`, optional - runs once the overlay is entirely gone (for the sheet, after its slide-out has finished), after the content's own `onDismissed`. It belongs to the host that called `present`.
 
 Only one overlay may be open at a time: calling `present` while one is open (or closing) is a no-op.
@@ -385,6 +396,24 @@ The framework only places notifications; it draws nothing around `content`. Its 
 - **Height** is the content's, and may change while it is shown: the column re-anchors so its bottom edge stays put.
 - **Lifetime.** A notification stays until `dismiss()` is called - there is no expiry. `dismiss()` removes the content without disposing it, so the same component may be shown again by a later `notify`; calling it again does nothing. `isShown` tells whether it is still on screen.
 - **Modality.** Notifications are part of the app beneath an overlay or the side bar: both paint above them, and they are inert while either is open. They don't block anything themselves - there is no scrim.
+
+## Anchoring
+
+`haxefolio.Anchoring.attach(floating, anchor, placement)` keeps a floating component - a popover, a tooltip - against the component it belongs to, re-placing it whenever either changes size and when the breakpoint flips. It returns a `Detachable`; detach it before disposing either component.
+
+```haxe
+var expanded:AnchorPlacement = {side: Left, align: End};
+var collapsed:AnchorPlacement = {side: Above, align: Start, stretch: true};
+var placement:ByWidth<AnchorPlacement> = {expanded: expanded, collapsed: collapsed};
+
+card.attach(popover); // NotificationCard.attach; or addComponent with includeInLayout = false
+var anchoring:Detachable = Anchoring.attach(popover, card, placement);
+```
+
+- **`side`** (`Left`, `Right`, `Above`, `Below`) is the side of `anchor` the floating component sits on, and **`align`** (`Start`, `Center`, `End`) lines the two up along it: left or top edges, centers, right or bottom edges.
+- **`stretch`** makes the floating component as long as that side - as wide as the anchor for `Above`/`Below`, as tall for `Left`/`Right` - overriding its own width (height) until a placement without it applies.
+- **The gap** is the floating component's CSS margin on the side facing the anchor (`margin-right` for `Left`, and so on), which is how it can differ per breakpoint (see `Styling by the breakpoint`).
+- **Adding and removing** the floating component is the caller's. It has to be a child of `anchor` excluded from its layout: positions are relative to the anchor's top-left corner, and may lie outside its bounds, so no ancestor may clip.
 
 ## Form components
 
@@ -1278,12 +1307,13 @@ Theming is split by who consumes a value. Colour and typography are consumed by 
 ```haxe
 typedef Appearance = {
     geometry:GeometryTokens,
+    shadows:ShadowTokens,
     selectionEmphasis:EmphasisStyle,
     actionEmphasis:EmphasisStyle
 }
 ```
 
-A host overrides any part of it theme-wide through `HaxeFolioConfig.appearance` (or `HaxeFolioConfigBuilder.setAppearance`), an `AppearanceOverrides` - the same shape with every field optional, `geometry` itself partial - applied over the built-in defaults by `HaxeFolioApp.init`:
+A host overrides any part of it theme-wide through `HaxeFolioConfig.appearance` (or `HaxeFolioConfigBuilder.setAppearance`), an `AppearanceOverrides` - the same shape with every field optional, `geometry` and `shadows` themselves partial - applied over the built-in defaults by `HaxeFolioApp.init`:
 
 ```haxe
 HaxeFolioConfigBuilder.init("my-app", Preferences)
@@ -1292,6 +1322,8 @@ HaxeFolioConfigBuilder.init("my-app", Preferences)
 
 - **`EmphasisStyle`** is `Filled` (default) or `Outlined`: which treatment means "selected"/"primary" - a solid `accent` fill, or an `accentTint` fill with an `accentMuted` border. Two independent roles read it, each keyed by its own `Appearance` field: **`selectionEmphasis`**, read by `ChoiceButton` (a component holding one of several peer values); and **`actionEmphasis`**, read by `ActionButton`'s primary state and `CommitTextField`'s commit button (a single call-to-action). The split exists because a host's accent hue may collide with its content imagery for a persistent chip-like selection without that being a reason to soften an actual call-to-action - a host typically sets `selectionEmphasis: Outlined` alone far more often than it sets `actionEmphasis: Outlined` too, since a screen's one primary action usually still wants full weight. Colour is still the stylesheet's business: it can restyle both treatments, but only code says which one is in use for each role. There is no CSS channel for selecting either.
 - **`GeometryTokens`** is the table of constants the framework's height arithmetic reads - `headerHeight` (60), `actionBarHeight` (68), `tabStripHeight` (44), `searchBarHeight` (52), `fieldHeight` (38; the height of a `TextInputField`'s input and a `CheckBoxRow`), `messageLine` (16), `rowGap` (10), `padding` (22), and `dialogWidth`/`dialogHeight` (620/720, the dialog presentation's preferred size), the first five being `ByWidth<Int>` so they may differ between expanded and collapsed. They live in code rather than CSS because they are needed before layout, and reading them back out of the style engine would make the arithmetic depend on cascade timing. Overriding a token propagates to every sum that reads it. Note that the built-in components do not yet all consume these tokens; each is wired up as the region that uses it lands.
+
+- **`ShadowTokens`** are the elevation shadows of the framework's own floating surfaces: `dialog`, `sheet`, `sideBar`, `menuDropdown` and `notificationCard`, each a `haxefolio.Shadow` - `{offsetX, offsetY, blur, ?spread, color, opacity}`, in pixels, `color` as `0xRRGGBB`. They are code-side because HaxeUI can't draw a shadow from a stylesheet; a host typically overrides them all to tint them with its own ink. A host's own floating components get theirs from `ElementShadow.apply(element, shadow)`, which takes the same `Shadow` - keep the set of distinct shadows small and constant, as each one becomes a stylesheet rule that is never removed. A per-overlay `appearance` sets that overlay's `dialog`/`sheet` shadow.
 
 `AppearanceOverrides` also has an optional `styleClass`; it only has meaning for a per-overlay override and is ignored in `HaxeFolioConfig.appearance`.
 

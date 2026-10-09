@@ -6,6 +6,7 @@ package haxefolio.appearance;
 **/
 typedef AppearanceOverrides = {
     ?geometry:PartialGeometryTokens,
+    ?shadows:PartialShadowTokens,
     ?selectionEmphasis:EmphasisStyle,
     ?actionEmphasis:EmphasisStyle,
 

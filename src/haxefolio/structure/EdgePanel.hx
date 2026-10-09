@@ -4,6 +4,7 @@ import haxe.Timer;
 import haxe.ui.containers.Box;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Screen;
+import haxefolio.ResponsivityController;
 import haxefolio.Viewport;
 import js.html.Element;
 import js.html.Event;
@@ -90,6 +91,8 @@ class EdgePanel extends VBox
         fit();
         Screen.instance.addComponent(scrim);
         Screen.instance.addComponent(this);
+        ResponsivityController.markRoot(scrim);
+        ResponsivityController.markRoot(this);
 
         // start from the closed position without a transition, so the slide has somewhere to come from
         applyState(false, false);
