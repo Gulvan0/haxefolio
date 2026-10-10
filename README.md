@@ -194,6 +194,21 @@ A `NormalMenu` opens on a click on its label, and closes on a click outside it, 
 
 Closing on Esc and on the breakpoint relies on `MenuBar.closeCurrentMenu()`, and sizing the dropdown on `Menu.openPopup()`, neither of which is in stock `haxeui-core` yet: they need https://github.com/haxeui/haxeui-core/pull/715 and https://github.com/haxeui/haxeui-core/pull/701 (both in the `Gulvan0/haxeui-core` fork).
 
+### Dropdown widgets
+
+`haxefolio.menu.DropdownWidget` is a ready-made `Widget`: a 44px square target showing an icon and an optional count badge, opening a dropdown with the host's content. Give it to the menu bar as a persistent widget:
+
+```haxe
+var widget:DropdownWidget = new DropdownWidget(icon, content, 372); // expanded width
+config.addRightMenubarItem(Widget(() -> widget, true));
+```
+
+- **Badge.** `setBadgeCount(count)` shows a pill at the target's top-right corner (3px from the top, 2px from the right); 0 hides it. `setAccessibleName(name)` sets the target's `aria-label`.
+- **Dropdown.** While expanded (see `Responsivity`), the frame is the given width, right-aligned to the target; while collapsed, it spans the viewport minus 12px on each side. It sits 6px under the menu bar, takes the `menuDropdown` shadow token (see `Appearance`), and is as tall as `content`, up to 18px (expanded) or 12px (collapsed) above the bottom of the viewport, past which `content` scrolls in a `ScrollArea` (see `ScrollArea`). `content` is laid out at the frame's width, less the scrollbar lane.
+- **Opening and closing.** A click on the target toggles it; `open()`/`close()`, `isOpen`, `onOpened`/`onClosed`. It closes on a pointer press outside the target and the frame, **Esc**, a breakpoint flip, navigation, an overlay being presented, the side bar opening, and another dropdown widget opening.
+- **Beyond the content.** `attach(component)`/`detach(component)` add a component outside the frame's layout, positioned against `frame` (e.g. a popover beside it, with `Anchoring`); `setCover(component)` shows one over the top of the frame at its full width, above the scrolling content, which keeps its scroll position (`null` removes it).
+- **Styling.** `.haxefolio-dropdown-widget` (the target; `-open` while open), `.haxefolio-dropdown-widget-badge`, `.haxefolio-dropdown-widget-frame`.
+
 ### Updating menu bar labels at runtime
 
 `MenuFacade` (`haxefolio.menu.MenuFacade`) exposes:

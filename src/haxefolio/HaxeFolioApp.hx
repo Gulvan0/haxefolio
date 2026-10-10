@@ -12,6 +12,7 @@ import haxe.ui.core.Screen;
 import haxefolio.appearance.AppearanceContext;
 import haxefolio.appearance.AppearanceOverrides;
 import js.Browser;
+import haxefolio.menu.DropdownWidget;
 import haxefolio.menu.MenuFacade;
 import haxefolio.menu.SideBarController;
 import haxefolio.menu.builder.MenuBarBuilder;
@@ -369,6 +370,7 @@ class HaxeFolioApp
         // an open overlay belongs to the page it was opened over; don't leave it dangling over the next one
         OverlayController.dismissIfOpen();
         SideBarController.close();
+        DropdownWidget.closeOpen();
 
         var page:PageBase = definition.factory(params);
 

@@ -203,6 +203,40 @@
     with -flipped). The shadow is set on the DOM element on every open, see MenuBarBuilder.
 */
 
+/* DropdownWidget: a square target with an icon and a count badge, and a frame under the menu bar */
+.haxefolio-dropdown-widget {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    pointer-events: true;
+}
+
+.haxefolio-dropdown-widget:hover,
+.haxefolio-dropdown-widget-open {
+    background-color: #f0f0f1;
+}
+
+.haxefolio-dropdown-widget-badge {
+    height: 16px;
+    min-width: 16px;
+    padding-left: 4px;
+    padding-right: 4px;
+    margin-top: 3px;
+    margin-right: 2px;
+    border-radius: 8px;
+    border: 1.5px solid #fafafa;
+    background-color: #1f2126;
+    color: #fafafa;
+    font-size: 10px;
+    text-align: center;
+}
+
+.haxefolio-dropdown-widget-frame {
+    background-color: #fafafa;
+    border: 1px solid #d4d4d6;
+    border-radius: 8px;
+}
+
 .haxefolio-normal-menu {
     min-width: 232px;
     padding: 6px;

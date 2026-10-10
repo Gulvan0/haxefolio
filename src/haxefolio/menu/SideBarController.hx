@@ -56,6 +56,8 @@ class SideBarController
         if (panel.isOnScreen && !panel.isClosing)
             return;
 
+        DropdownWidget.closeOpen();
+
         if (inertHold == null)
         {
             inertHold = InertHolds.hold(inertComponents);

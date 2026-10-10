@@ -3,6 +3,7 @@ package haxefolio.overlay;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
 import haxefolio.InertHolds;
+import haxefolio.menu.DropdownWidget;
 import haxefolio.appearance.AppearanceContext;
 import haxefolio.appearance.AppearanceOverrides;
 import haxefolio.appearance.GeometryTokens;
@@ -54,6 +55,8 @@ class OverlayController
     {
         if (isOpen)
             return;
+
+        DropdownWidget.closeOpen();
 
         isOpen = true;
 
