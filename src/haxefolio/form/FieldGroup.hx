@@ -22,6 +22,10 @@ import morestd.Detachable;
     in place: that approach measured the container's own `percentWidth` against its children's
     resolved size instead of the other way around (`percentWidth` children inflated the container
     far past its intended 100%). A genuine `HBox`/`VBox` does not have that problem.
+
+    `inset = false` keeps the arrangement but drops the inset box (no fill, no padding), for fields
+    that share a parameter's row without forming a group of their own. `gap`, if given, is the
+    space between the fields in either direction.
 */
 class FieldGroup extends VBox
 {
@@ -29,15 +33,18 @@ class FieldGroup extends VBox
     private final horizontalPercentWidths:Array<Null<Float>>;
     private final directionBinding:Detachable;
     private final heightBinding:Null<Detachable>;
+    private final gap:Null<Int>;
     private var content:Null<Component>;
 
-    public function new(fields:Array<Component>, ?direction:ByWidth<FieldGroupDirection>, ?fixedHeight:ByWidth<Int>)
+    public function new(fields:Array<Component>, ?direction:ByWidth<FieldGroupDirection>, ?fixedHeight:ByWidth<Int>, inset:Bool = true, ?gap:Int)
     {
         super();
 
         this.percentWidth = 100;
-        this.addClass("haxefolio-field-group");
+        if (inset)
+            this.addClass("haxefolio-field-group");
         this.fields = fields;
+        this.gap = gap;
         this.horizontalPercentWidths = [for (field in fields) field.percentWidth];
 
         var resolvedDirection:ByWidth<FieldGroupDirection> = FieldGroupDirection.Vertical;
@@ -76,6 +83,11 @@ class FieldGroup extends VBox
 
         content = horizontal ? new HBox() : new VBox();
         content.percentWidth = 100;
+        if (gap != null)
+        {
+            content.horizontalSpacing = gap;
+            content.verticalSpacing = gap;
+        }
         this.addComponent(content);
 
         for (i in 0...fields.length)

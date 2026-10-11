@@ -19,20 +19,24 @@ import morestd.Detachable;
     exactly one button selected at a time, so this component does no selection bookkeeping of
     its own.
 
-    Locking (`locked`/`lockReason`) disables every button in place - never hides the row - and
-    states the reason via the header's own hint, per Lockable.
+    Locking (`locked`/`lockReason`, or `setLocked` later) disables every button in place - never
+    hides the row - and states the reason via the header's own hint, per Lockable.
+
+    A `null` label leaves the header out, for a row labelled by its surroundings (e.g. a switch
+    sitting in a section's heading); such a row has nowhere to state a lock reason.
 */
 class ChoiceRow<T> extends VBox
 {
     private static var nextGroupId:Int = 0;
 
+    private final header:Null<FieldHeader>;
     private final buttonRow:HBox;
     private final buttons:Array<ChoiceButton> = [];
     private final optionValues:Array<T> = [];
     private final optionCount:Int;
     private final directionBinding:Detachable;
 
-    public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByWidth<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
+    public function new(label:Null<String>, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByWidth<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
     {
         super();
 
@@ -41,7 +45,13 @@ class ChoiceRow<T> extends VBox
         this.addClass("haxefolio-choice-row");
         this.optionCount = options.length;
 
-        this.addComponent(new FieldHeader(label, locked ? lockReason : null, Normal, locked));
+        if (label != null)
+        {
+            header = new FieldHeader(label, locked ? lockReason : null, Normal, locked);
+            this.addComponent(header);
+        }
+        else
+            header = null;
 
         buttonRow = new HBox();
         buttonRow.percentWidth = 100;
@@ -88,6 +98,22 @@ class ChoiceRow<T> extends VBox
             throw 'ChoiceRow.select: no option holds value "$value"';
 
         buttons[index].selected = true;
+    }
+
+    /**
+        Locks the row (every button disabled in place, `lockReason` as the header's hint) or unlocks
+        it. The selection is kept either way: `select` what a lock puts into effect, and back.
+    **/
+    public function setLocked(locked:Bool, ?lockReason:String):Void
+    {
+        if (header != null)
+        {
+            header.locked = locked;
+            header.hint = locked ? lockReason : null;
+        }
+
+        for (button in buttons)
+            button.disabled = locked;
     }
 
     /**

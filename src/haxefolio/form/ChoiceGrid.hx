@@ -8,6 +8,7 @@ import haxefolio.form.plumbing.ChoiceButton;
 import haxefolio.form.plumbing.ChoiceGridSelection;
 import haxefolio.form.plumbing.ChoiceOption;
 import haxefolio.form.plumbing.FieldHeader;
+import haxefolio.form.plumbing.IconAlign;
 import morestd.Detachable;
 
 /*
@@ -33,7 +34,9 @@ import morestd.Detachable;
     the set of checked options.
 
     Locking (`locked`/`lockReason`) disables every button in place, and states the reason via the
-    header's hint, per Lockable.
+    header's hint, per Lockable. As in ChoiceRow, a `null` label leaves the header out.
+
+    `iconAlign` places every option's icon (see IconAlign).
 */
 class ChoiceGrid<T> extends VBox
 {
@@ -46,7 +49,7 @@ class ChoiceGrid<T> extends VBox
     private var selectedSingle:Null<T>;
     private var selectedMulti:Array<T>;
 
-    public function new(label:String, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ByWidth<Int>, gap:Int = 6, locked:Bool = false, ?lockReason:String)
+    public function new(label:Null<String>, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ByWidth<Int>, gap:Int = 6, locked:Bool = false, ?lockReason:String, iconAlign:IconAlign = Leading)
     {
         super();
 
@@ -67,7 +70,8 @@ class ChoiceGrid<T> extends VBox
                 selectedMulti = selected.copy();
         }
 
-        this.addComponent(new FieldHeader(label, locked ? lockReason : null, Normal, locked));
+        if (label != null)
+            this.addComponent(new FieldHeader(label, locked ? lockReason : null, Normal, locked));
 
         rowContainer = new VBox();
         rowContainer.percentWidth = 100;
@@ -76,7 +80,7 @@ class ChoiceGrid<T> extends VBox
 
         for (option in options)
         {
-            var button:ChoiceButton = new ChoiceButton(option.label, () -> onCellClicked(option.value), option.icon, Leading, false, !locked);
+            var button:ChoiceButton = new ChoiceButton(option.label, () -> onCellClicked(option.value), option.icon, iconAlign, false, !locked);
             buttons.push(button);
         }
 

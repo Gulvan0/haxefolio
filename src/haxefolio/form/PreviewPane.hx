@@ -14,9 +14,9 @@ import haxe.ui.core.Component;
     every mode, including the default one - so a host swaps `content` rather than adding/removing
     the pane.
 
-    The caption row is reserved (fixed height) whenever the pane is constructed with a caption or
-    an icon, even if that caption is later set to an empty string, so a caption changing never
-    moves the area. A pane constructed with neither has no caption row at all.
+    The caption is centred over the area. Its row is reserved (fixed height) whenever the pane is
+    constructed with a caption or an icon, even if that caption is later set to an empty string, so
+    a caption changing never moves the area. A pane constructed with neither has no caption row.
 
     The area clips (`clip: true`) rather than measuring around its content: content that does not
     fit the given size is a design error to fix, not a case to accommodate.
@@ -25,6 +25,7 @@ class PreviewPane extends VBox
 {
     private final area:Box;
     private final captionLabel:Null<Label>;
+    private final captionImage:Null<Image>;
     private var currentContent:Component;
 
     /**
@@ -32,6 +33,12 @@ class PreviewPane extends VBox
         (there is no reserved row to put it in).
     **/
     public var caption(get, set):String;
+
+    /**
+        The caption's icon. Throws if the pane was constructed without one (there is no slot for it
+        in the reserved row).
+    **/
+    public var captionIcon(get, set):String;
 
     /**
         The hosted component. Assigning detaches the previous one (without disposing it, so the
@@ -50,24 +57,31 @@ class PreviewPane extends VBox
         if (caption != null || captionIcon != null)
         {
             var captionRow:HBox = new HBox();
-            captionRow.percentWidth = 100;
+            captionRow.horizontalAlign = "center";
             captionRow.horizontalSpacing = 6;
             captionRow.addClass("haxefolio-preview-pane-caption-row");
             this.addComponent(captionRow);
 
             if (captionIcon != null)
             {
-                var icon:Image = new Image();
-                icon.resource = captionIcon;
-                icon.verticalAlign = "center";
-                captionRow.addComponent(icon);
+                captionImage = new Image();
+                captionImage.resource = captionIcon;
+                captionImage.verticalAlign = "center";
+                captionRow.addComponent(captionImage);
             }
+            else
+                captionImage = null;
 
             captionLabel = new Label();
             captionLabel.text = caption ?? "";
             captionLabel.verticalAlign = "center";
             captionLabel.addClass("haxefolio-preview-pane-caption");
             captionRow.addComponent(captionLabel);
+        }
+        else
+        {
+            captionLabel = null;
+            captionImage = null;
         }
 
         area = new Box();
@@ -93,6 +107,23 @@ class PreviewPane extends VBox
             throw "PreviewPane: constructed without a caption or an icon, so it has no caption row";
 
         captionLabel.text = value;
+        return value;
+    }
+
+    private function get_captionIcon():String
+    {
+        if (captionImage == null)
+            throw "PreviewPane: constructed without a caption icon";
+
+        return captionImage.resource;
+    }
+
+    private function set_captionIcon(value:String):String
+    {
+        if (captionImage == null)
+            throw "PreviewPane: constructed without a caption icon";
+
+        captionImage.resource = value;
         return value;
     }
 

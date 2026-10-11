@@ -12,46 +12,64 @@ import haxefolio.form.plumbing.CommitTrigger;
 import haxefolio.form.plumbing.FieldHeader;
 import haxefolio.form.plumbing.HintLine;
 
+private enum CommitFieldState
+{
+    Idle;
+    Pending;
+    Applied;
+    Rejected(message:String);
+}
+
 /*
     A text input whose value applies on an explicit action, for inputs too expensive or too
-    error-prone to validate per keystroke. Its HintLine cycles through three messages - the
-    idle instruction, the success confirmation and the rejection reason - and that line is why
-    the component exists: a commit button with silent failure is worse than live validation.
+    error-prone to validate per keystroke. Its HintLine cycles through the idle instruction, the
+    success confirmation and the rejection reason - and that line is why the component exists: a
+    commit button with silent failure is worse than live validation.
 
     Any edit returns the line to the idle instruction (the applied/rejected message described a
     value the field no longer holds). `onCommit` returns a CommitResult rather than throwing, so
     a host's validator stays a pure function.
+
+    Given a `pendingHint`, the field also tells an edit that has not been applied yet: while the
+    text differs from the last applied (or assigned) one, the line shows `pendingHint` and the
+    input a pending border, and the commit button is enabled only then - there is nothing to apply
+    otherwise, nor after a rejection until the next edit.
 
     Blur is deliberately not a commit trigger: HaxeFolio disables HaxeUI's FocusManager, so no
     focus-out event is delivered, and a blur-commit would in any case fire before the click on
     the commit button and commit twice.
 
     The commit button flexes the other way round from the input: the input takes whatever width
-    the button leaves (the same direction Stepper uses).
+    the button leaves (the same direction Stepper uses). A `null` label leaves the header out.
 */
 class CommitTextField extends VBox
 {
     private final input:TextField;
     private final commitButton:Button;
-    private final header:FieldHeader;
+    private final header:Null<FieldHeader>;
     private final hintLine:HintLine;
     private final onTextChange:String->Void;
     private final onCommit:String->CommitResult;
-    private final idleHint:String;
     private final appliedHint:String;
+    private final pendingHint:Null<String>;
     private var renderedText:String = "";
+    private var appliedText:String = "";
+    private var state:CommitFieldState = Idle;
 
     /**
-        Reading returns what the input currently holds. Assigning renders the text without
-        calling `onText` (the assigner already knows) and returns the hint line to the idle
+        Reading returns what the input currently holds. Assigning renders the text as applied
+        without calling `onText` (the assigner already knows) and returns the hint line to the idle
         instruction.
     **/
     public var currentText(get, set):String;
 
+    /** The instruction shown while there is nothing else to say **/
+    public var idleHint(default, set):String;
+
     public var enabled(default, set):Bool;
 
     public function new(
-        label:String,
+        label:Null<String>,
         initialText:String,
         onText:String->Void,
         onCommit:String->CommitResult,
@@ -59,7 +77,8 @@ class CommitTextField extends VBox
         idleHint:String,
         appliedHint:String,
         commitTrigger:CommitTrigger = ButtonAndEnter,
-        enabled:Bool = true
+        enabled:Bool = true,
+        ?pendingHint:String
     )
     {
         super();
@@ -69,11 +88,16 @@ class CommitTextField extends VBox
         this.addClass("haxefolio-commit-text-field");
         this.onTextChange = onText;
         this.onCommit = onCommit;
-        this.idleHint = idleHint;
         this.appliedHint = appliedHint;
+        this.pendingHint = pendingHint;
 
-        header = new FieldHeader(label);
-        this.addComponent(header);
+        if (label != null)
+        {
+            header = new FieldHeader(label);
+            this.addComponent(header);
+        }
+        else
+            header = null;
 
         var row:HBox = new HBox();
         row.percentWidth = 100;
@@ -107,6 +131,7 @@ class CommitTextField extends VBox
         hintLine.addClass("haxefolio-commit-hint");
         this.addComponent(hintLine);
 
+        this.idleHint = idleHint;
         this.currentText = initialText;
         this.enabled = enabled;
     }
@@ -119,8 +144,16 @@ class CommitTextField extends VBox
     private function set_currentText(value:String):String
     {
         renderedText = value;
+        appliedText = value;
         input.text = value;
-        showIdle();
+        setState(Idle);
+        return value;
+    }
+
+    private function set_idleHint(value:String):String
+    {
+        idleHint = value;
+        render();
         return value;
     }
 
@@ -128,8 +161,11 @@ class CommitTextField extends VBox
     {
         enabled = value;
         input.disabled = !value;
-        commitButton.disabled = !value;
-        header.locked = !value;
+
+        if (header != null)
+            header.locked = !value;
+
+        render();
         return value;
     }
 
@@ -147,29 +183,54 @@ class CommitTextField extends VBox
             return;
 
         renderedText = current;
-        showIdle();
+        setState(pendingHint != null && current != appliedText ? Pending : Idle);
         onTextChange(current);
     }
 
     private function commit():Void
     {
-        switch onCommit(currentText)
+        if (!enabled || (pendingHint != null && state != Pending))
+            return;
+
+        var text:String = currentText;
+
+        switch onCommit(text)
         {
             case Applied:
-                input.removeClass("haxefolio-commit-input-invalid");
-                hintLine.text = appliedHint;
-                hintLine.state = Normal;
+                appliedText = text;
+                setState(Applied);
             case Rejected(message):
-                input.addClass("haxefolio-commit-input-invalid");
-                hintLine.text = message;
-                hintLine.state = Error;
+                setState(Rejected(message));
         }
     }
 
-    private function showIdle():Void
+    private function setState(value:CommitFieldState):Void
+    {
+        state = value;
+        render();
+    }
+
+    private function render():Void
     {
         input.removeClass("haxefolio-commit-input-invalid");
-        hintLine.text = idleHint;
+        input.removeClass("haxefolio-commit-input-pending");
         hintLine.state = Normal;
+
+        switch state
+        {
+            case Idle:
+                hintLine.text = idleHint;
+            case Pending:
+                hintLine.text = pendingHint;
+                input.addClass("haxefolio-commit-input-pending");
+            case Applied:
+                hintLine.text = appliedHint;
+            case Rejected(message):
+                hintLine.text = message;
+                hintLine.state = Error;
+                input.addClass("haxefolio-commit-input-invalid");
+        }
+
+        commitButton.disabled = !enabled || (pendingHint != null && state != Pending);
     }
 }

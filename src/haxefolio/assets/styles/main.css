@@ -762,6 +762,11 @@
     color: #2f3540;
 }
 
+/* an edit not applied yet */
+.haxefolio-commit-input-pending {
+    border-color: #8d939e;
+}
+
 .haxefolio-commit-input-invalid {
     border-color: #e3a6a1;
 }
@@ -796,6 +801,13 @@
     background-color: #f0f0f1;
     border-color: #e4e4e6;
     color: #9a9ca2;
+}
+
+.haxefolio-text-input-prefix {
+    padding-left: 10px;
+    font-name: $ui-family-medium;
+    font-size: 13px;
+    color: #5f6168;
 }
 
 /* the glyph is inline SVG in currentColor, so `color` paints it */

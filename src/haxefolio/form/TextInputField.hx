@@ -1,5 +1,6 @@
 package haxefolio.form;
 
+import haxe.ui.components.Label;
 import haxe.ui.components.TextField;
 import haxe.ui.containers.Box;
 import haxe.ui.containers.VBox;
@@ -31,11 +32,16 @@ import morestd.Detachable;
     tall as the input; the input's right padding is that lane, so text never runs under the glyph.
     Caps Lock is reported the same way as text, through `onCapsLockChange`, and what to say about it
     is again the host's call.
+
+    `setPrefix` draws a fixed, non-editable text at the input's left edge (a unit, a namespace like
+    "Guest"), the input's left padding reserving its lane so typed text never runs under it.
 */
 class TextInputField extends VBox
 {
     private final header:FieldHeader;
+    private final inputBox:Box;
     private final input:TextField;
+    private var prefixLabel:Null<Label> = null;
     private final onTextChange:String->Void;
     private final heightBinding:Detachable;
     private final revealButton:Null<PasswordRevealButton>;
@@ -104,7 +110,7 @@ class TextInputField extends VBox
         this.addComponent(header);
 
         // the input and the reveal lane share one box, the lane drawn over the input's right edge
-        var inputBox:Box = new Box();
+        inputBox = new Box();
         inputBox.percentWidth = 100;
         this.addComponent(inputBox);
 
@@ -175,6 +181,54 @@ class TextInputField extends VBox
             input.validateNow();
 
         (cast native : Dynamic).focus({preventScroll: true});
+    }
+
+    /**
+        Shows `text` inside the input at its left edge, the input's left padding set to `laneWidth`
+        so typed text starts past it. The lane is not measured: give it room for the widest
+        translation. `null` removes the prefix and restores the padding.
+    **/
+    public function setPrefix(text:Null<String>, laneWidth:Int = 0):Void
+    {
+        if (text == null)
+        {
+            if (prefixLabel != null)
+            {
+                inputBox.removeComponent(prefixLabel);
+                prefixLabel = null;
+                input.paddingLeft = null;
+            }
+            return;
+        }
+
+        if (prefixLabel == null)
+        {
+            prefixLabel = new Label();
+            prefixLabel.verticalAlign = "center";
+            prefixLabel.addClass("haxefolio-text-input-prefix");
+            prefixLabel.element.style.pointerEvents = "none"; // a click on it lands on the input
+            inputBox.addComponent(prefixLabel);
+        }
+
+        prefixLabel.text = text;
+        input.paddingLeft = laneWidth;
+    }
+
+    /**
+        Whether touch devices bring up a numeric keyboard for the input (`inputmode="numeric"`). It
+        only changes the keyboard: what may be typed is still the host's to validate.
+    **/
+    public function setNumericKeyboard(numeric:Bool):Void
+    {
+        var native:Null<Element> = nativeInput();
+
+        if (native == null)
+            return;
+
+        if (numeric)
+            native.setAttribute("inputmode", "numeric");
+        else
+            native.removeAttribute("inputmode");
     }
 
     private function applyFieldHeight(height:Int):Void

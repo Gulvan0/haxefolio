@@ -35,7 +35,7 @@ class ChoiceButton extends Button
         this.text = label;
         this.selected = selected;
         this.disabled = !enabled;
-        this.iconPosition = iconAlign == Leading ? "left" : "right";
+        this.iconPosition = iconAlign == Leading ? "left" : "far-right";
 
         if (icon != null)
             this.icon = icon;
