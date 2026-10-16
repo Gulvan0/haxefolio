@@ -17,11 +17,17 @@ import js.html.StyleElement;
     drag and touch momentum alike, and an always-shown, styled scrollbar keeps its lane whether or
     not the content overflows. HaxeUI's own scrollbars can do neither.
 
-    The scrollbar is a thin permanent lane (10px, 6px thumb) drawn with `::-webkit-scrollbar`,
-    which HaxeUI's stylesheets cannot reach - so its rules are injected once as a plain document
-    stylesheet, keyed on a marker class this component puts on its own DOM element. Firefox has
-    no equivalent of those pseudo-elements: it gets a thin scrollbar with the same colours, whose
-    exact width is the browser's.
+    With a fine pointer, the scrollbar is a thin permanent lane (10px, 6px thumb) drawn with
+    `::-webkit-scrollbar`, which HaxeUI's stylesheets cannot reach - so its rules are injected once
+    as a plain document stylesheet, keyed on a marker class this component puts on its own DOM
+    element. Firefox has no equivalent of those pseudo-elements: it gets a thin scrollbar with the
+    same colours, whose exact width is the browser's. With a coarse pointer the browser's own
+    scrollbar is kept: on phones and tablets it overlays the content and takes no width.
+
+    The contents are sized explicitly to the area's width less the lane's measured width. As a
+    percentage, HaxeUI would resolve them against the whole width, lane included, and take a
+    further native scrollbar's width off them whenever they overflow - so the usable width would
+    change when the content grows past the area.
 */
 class ScrollArea extends ScrollView
 {
@@ -37,7 +43,7 @@ class ScrollArea extends ScrollView
 
         this.percentWidth = 100;
         this.scrollMode = NATIVE;
-        this.percentContentWidth = 100; // with the lane kept out by the contents' padding-right (main.css), percentages resolve against the usable width
+        this.percentContentWidth = 100; // until the lane can be measured
         this.addClass("haxefolio-scroll-area");
         this.addComponent(content);
 
@@ -56,6 +62,24 @@ class ScrollArea extends ScrollView
         nativeElement.style.overflowX = "hidden";
         nativeElement.style.overflowY = "scroll";
         (cast nativeElement.style : Dynamic).overscrollBehavior = "contain";
+        fitContentsToLane();
+    }
+
+    private override function onResized():Void
+    {
+        super.onResized();
+        fitContentsToLane();
+    }
+
+    private function fitContentsToLane():Void
+    {
+        if (contents == null || this.componentWidth <= 0)
+            return;
+
+        var laneWidth:Float = this.element.offsetWidth - this.element.clientWidth;
+        var usableWidth:Float = this.componentWidth - laneWidth;
+        if (this.percentContentWidth != null || this.contentWidth != usableWidth)
+            this.contentWidth = usableWidth;
     }
 
     private static function injectStyleOnce():Void
@@ -67,12 +91,14 @@ class ScrollArea extends ScrollView
 
         var style:StyleElement = Browser.document.createStyleElement();
         style.textContent = '
-            .$MARKER_CLASS::-webkit-scrollbar { width: 10px; background: transparent; }
-            .$MARKER_CLASS::-webkit-scrollbar-track { background: transparent; }
-            .$MARKER_CLASS::-webkit-scrollbar-thumb { background-color: #cccdd1; background-clip: padding-box; border: 2px solid transparent; border-radius: 6px; min-height: 32px; }
-            .$MARKER_CLASS::-webkit-scrollbar-thumb:hover { background-color: #b3b3b6; }
-            .$MARKER_CLASS::-webkit-scrollbar-thumb:active { background-color: #90929a; }
-            @supports not selector(::-webkit-scrollbar) { .$MARKER_CLASS { scrollbar-width: thin; scrollbar-color: #cccdd1 transparent; } }
+            @media not (pointer: coarse) {
+                .$MARKER_CLASS::-webkit-scrollbar { width: 10px; background: transparent; }
+                .$MARKER_CLASS::-webkit-scrollbar-track { background: transparent; }
+                .$MARKER_CLASS::-webkit-scrollbar-thumb { background-color: #cccdd1; background-clip: padding-box; border: 2px solid transparent; border-radius: 6px; min-height: 32px; }
+                .$MARKER_CLASS::-webkit-scrollbar-thumb:hover { background-color: #b3b3b6; }
+                .$MARKER_CLASS::-webkit-scrollbar-thumb:active { background-color: #90929a; }
+                @supports not selector(::-webkit-scrollbar) { .$MARKER_CLASS { scrollbar-width: thin; scrollbar-color: #cccdd1 transparent; } }
+            }
         ';
         Browser.document.head.appendChild(style);
     }

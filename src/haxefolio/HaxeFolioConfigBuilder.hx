@@ -20,6 +20,7 @@ class HaxeFolioConfigBuilder
     private var appIcon:Null<String>;
     private var siteName:Null<String>;
     private var menuCollapseWidth:Int;
+    private var widthTiers:Array<WidthTier>;
     private var debounceMs:Int;
     private var appearance:Null<AppearanceOverrides>;
     private var pages:Array<PageDefinition>;
@@ -39,6 +40,7 @@ class HaxeFolioConfigBuilder
         this.appSlug = appSlug;
         this.preferences = preferences;
         menuCollapseWidth = 900;
+        widthTiers = [];
         debounceMs = 500;
         pages = [];
         menubarLeft = [];
@@ -72,6 +74,13 @@ class HaxeFolioConfigBuilder
     public function setMenuCollapseWidth(menuCollapseWidth:Int):HaxeFolioConfigBuilder
     {
         this.menuCollapseWidth = menuCollapseWidth;
+        return this;
+    }
+
+    /** Adds to the tier scale `scale` a tier named `name` starting at `minWidth`, optionally narrowed by `fits` (see `HaxeFolioConfig.widthTiers`) **/
+    public function addWidthTier(scale:String, name:String, minWidth:Int, ?fits:(width:Float, height:Float)->Bool):HaxeFolioConfigBuilder
+    {
+        widthTiers.push({scale: scale, name: name, minWidth: minWidth, fits: fits});
         return this;
     }
 
@@ -186,6 +195,7 @@ class HaxeFolioConfigBuilder
             appIcon: appIcon,
             siteName: siteName,
             menuCollapseWidth: menuCollapseWidth,
+            widthTiers: widthTiers,
             debounceMs: debounceMs,
             appearance: appearance,
             pages: pages,

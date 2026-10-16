@@ -35,6 +35,15 @@ typedef HaxeFolioConfig = {
     ?menuCollapseWidth:Int,
 
     /**
+        Viewport tier scales, independent of each other and of `menuCollapseWidth`: the tiers
+        sharing a `scale` form one, and each scale has its own current tier (see
+        `ResponsivityController.currentTier`). Every scale needs a tier starting at 0, its fallback,
+        which must not have `fits`; within a scale, names must be unique and widths non-negative
+        and distinct. None by default.
+    **/
+    ?widthTiers:Array<WidthTier>,
+
+    /**
         Debounce interval, in milliseconds, applied to viewport resize handling (see
         `ResponsivityController`) - a drag-resize is applied once no further resize has been
         observed for this long. Defaults to 500.

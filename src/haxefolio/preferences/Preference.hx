@@ -92,8 +92,7 @@ class Preference<T>
     {
         this.backend = backend;
 
-        var storedValue:Null<String> = backend.read(id);
-        this.value = storedValue != null ? deserialize(storedValue) : defaultValue;
+        this.value = valueOf(backend.read(id));
 
         backend.addExternalChangeHandler(id, applyExternalChange);
     }
@@ -106,10 +105,20 @@ class Preference<T>
     */
     private function applyExternalChange(newValue:Null<String>):Void
     {
-        value = newValue != null ? deserialize(newValue) : defaultValue;
+        value = valueOf(newValue);
 
         for (hook in hooks)
             hook(value);
+    }
+
+    // a stored value no longer among the declared ones (say, a dropped option) gives way to the default
+    private function valueOf(storedValue:Null<String>):T
+    {
+        if (storedValue == null)
+            return defaultValue;
+
+        var parsed:T = deserialize(storedValue);
+        return values == null || values.indexOf(parsed) != -1 ? parsed : defaultValue;
     }
 
     /*

@@ -12,6 +12,7 @@ import haxefolio.form.plumbing.HintState;
 import haxefolio.form.plumbing.PasswordRevealButton;
 import js.Browser;
 import js.html.Element;
+import js.html.Event;
 import js.html.InputElement;
 import js.html.KeyboardEvent;
 import js.html.MouseEvent;
@@ -140,9 +141,9 @@ class TextInputField extends VBox
         input.element.addEventListener("focusin", () -> input.addClass("haxefolio-text-input-focused"));
         input.element.addEventListener("focusout", () -> input.removeClass("haxefolio-text-input-focused"));
 
-        input.element.addEventListener("keydown", (event:KeyboardEvent) -> setCapsLockOn(event.getModifierState("CapsLock")));
-        input.element.addEventListener("keyup", (event:KeyboardEvent) -> setCapsLockOn(event.getModifierState("CapsLock")));
-        input.element.addEventListener("mousedown", (event:MouseEvent) -> setCapsLockOn(event.getModifierState("CapsLock")));
+        input.element.addEventListener("keydown", updateCapsLock);
+        input.element.addEventListener("keyup", updateCapsLock);
+        input.element.addEventListener("mousedown", updateCapsLock);
         input.element.addEventListener("focusout", () -> setCapsLockOn(false));
 
         heightBinding = ResponsivityController.bind(AppearanceContext.current.geometry.fieldHeight, applyFieldHeight);
@@ -241,6 +242,15 @@ class TextInputField extends VBox
         revealButton.width = height;
         revealButton.height = height;
         input.paddingRight = height;
+    }
+
+    // browser autofill dispatches plain `Event`s under these names, which carry no modifier state
+    private function updateCapsLock(event:Event):Void
+    {
+        if (Std.isOfType(event, KeyboardEvent))
+            setCapsLockOn((cast event : KeyboardEvent).getModifierState("CapsLock"));
+        else if (Std.isOfType(event, MouseEvent))
+            setCapsLockOn((cast event : MouseEvent).getModifierState("CapsLock"));
     }
 
     private function setCapsLockOn(value:Bool):Void

@@ -71,6 +71,7 @@ class HaxeFolioApp
     **/
     public static function init(config:HaxeFolioConfig):Void
     {
+        Toolkit.autoScale = false; // the browser already maps CSS pixels to device pixels
         Toolkit.init();
         AppearanceContext.init(config.appearance);
         FocusManager.instance.enabled = false;
@@ -132,7 +133,7 @@ class HaxeFolioApp
         var menuCollapseWidth:Int = config.menuCollapseWidth ?? 900;
         var debounceMs:Int = config.debounceMs ?? 500;
 
-        ResponsivityController.init(pageContainer, menuBarBuildResult.hamburgerButton, menuBarBuildResult.collapsibleComponents, menuCollapseWidth, debounceMs, (width, height) -> {
+        ResponsivityController.init(pageContainer, menuBarBuildResult.hamburgerButton, menuBarBuildResult.collapsibleComponents, menuCollapseWidth, config.widthTiers ?? [], debounceMs, (width, height) -> {
             if (currentPage != null)
                 currentPage.onResize(currentPageScrollArea.element.clientWidth, currentPageScrollArea.element.clientHeight);
 

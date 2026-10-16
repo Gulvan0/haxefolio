@@ -945,15 +945,9 @@
     background-color: transparent;
 }
 
-/*
-    The content's own padding is the whole inset, and the region arithmetic assumes none is added -
-    except on the right, where the contents stop short of the always-reserved 10px scrollbar lane
-    (ScrollArea): HaxeUI resolves the contents' percentContentWidth against the whole width, lane
-    included, so without this the lane is drawn over the content's right edge.
-*/
+/* the content's own padding is the whole inset, and the region arithmetic assumes none is added */
 .haxefolio-scroll-area .scrollview-contents {
     padding: 0;
-    padding-right: 10px;
 }
 
 /*
@@ -1036,4 +1030,23 @@
 
 .haxefolio-notification-card-actions {
     horizontal-spacing: 10px;
+}
+
+/*
+    HaxeUI's tooltips. Unlike everything above, not opt-in: ToolTipManager builds the tooltip
+    itself, so there is no component to put a class on.
+*/
+.tooltip {
+    background-color: #2f3540;
+    border: 0px solid #2f3540;
+    border-radius: 5px;
+    padding: 5px 8px;
+    filter: none;
+}
+
+.tooltip .label {
+    font-name: $ui-family-medium;
+    font-size: 12px;
+    font-weight: 500;
+    color: #ffffff;
 }

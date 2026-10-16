@@ -48,8 +48,8 @@ class PageBase extends Box
         Called by the framework when the container is resized, after the debounce period. A
         framework user may override this to respond to size changes. `width` and `height` are the
         new dimensions in pixels of the area the page is laid out in: the page container minus the
-        scrollbar lane, which is always reserved (see `ScrollArea`) - so `width` is the width the
-        page can actually use.
+        scrollbar lane, if any (see `ScrollArea`) - so `width` is the width the page can actually
+        use.
     **/
     private function onResize(width:Float, height:Float):Void
     {

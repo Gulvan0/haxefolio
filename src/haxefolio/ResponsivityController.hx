@@ -33,6 +33,13 @@ class ResponsivityController
     public static inline final COLLAPSED_CLASS:String = "haxefolio-collapsed";
     /** Carried by every root component while the breakpoint is expanded **/
     public static inline final EXPANDED_CLASS:String = "haxefolio-expanded";
+    /** Every root component carries, per tier scale, this prefix followed by `<scale>-<tier>` for the scale's current tier **/
+    public static inline final TIER_CLASS_PREFIX:String = "haxefolio-tier-";
+
+    // per scale: its tiers ascending by minWidth, the one in effect, and who follows it
+    private static var tierScales:Null<Map<String, Array<WidthTier>>> = null;
+    private static var currentTiers:Map<String, String> = [];
+    private static var tierChangeListeners:Map<String, Array<String->Void>> = [];
 
     private static var collapseChangeListeners:Array<Bool->Void> = [];
 
@@ -43,10 +50,17 @@ class ResponsivityController
     private static var onDebouncedResize:Float->Float->Void;
     private static var debounceTimer:RefreshableTimer;
     private static var latestWidth:Float;
+    private static var latestHeight:Float;
     private static var hasAppliedInitialState:Bool;
 
-    public static function init(pageContainer:Component, hamburgerButton:Component, collapsibleMenuBarComponents:Array<Component>, menuCollapseWidth:Int, debounceMs:Int, onDebouncedResize:Float->Float->Void):Void
+    public static function init(pageContainer:Component, hamburgerButton:Component, collapsibleMenuBarComponents:Array<Component>, menuCollapseWidth:Int, widthTiers:Array<WidthTier>, debounceMs:Int, onDebouncedResize:Float->Float->Void):Void
     {
+        tierScales = buildTierScales(widthTiers);
+        for (scale => tiers in tierScales)
+        {
+            currentTiers.set(scale, tiers[0].name); // until the first measurement
+            tierChangeListeners.set(scale, []);
+        }
         ResponsivityController.pageContainer = pageContainer;
         ResponsivityController.hamburgerButton = hamburgerButton;
         ResponsivityController.collapsibleMenuBarComponents = collapsibleMenuBarComponents;
@@ -71,11 +85,13 @@ class ResponsivityController
     {
         var contentRect:Dynamic = entries[0].contentRect;
         latestWidth = contentRect.width;
+        latestHeight = contentRect.height;
 
         if (!hasAppliedInitialState)
         {
             hasAppliedInitialState = true;
             applyMenuCollapseState();
+            applyTiers();
 
             for (root in Screen.instance.rootComponents)
                 markRoot(root);
@@ -89,6 +105,7 @@ class ResponsivityController
         debounceTimer.stop();
 
         applyMenuCollapseState();
+        applyTiers();
         onDebouncedResize(pageContainer.element.offsetWidth, pageContainer.element.offsetHeight);
     }
 
@@ -114,21 +131,94 @@ class ResponsivityController
             listener(isCollapsed);
     }
 
+    private static function applyTiers():Void
+    {
+        var changedScales:Array<String> = [];
+        for (scale => tiers in tierScales)
+        {
+            var newTier:String = tiers[0].name;
+            for (tier in tiers)
+                if (latestWidth >= tier.minWidth && (tier.fits == null || tier.fits(latestWidth, latestHeight)))
+                    newTier = tier.name;
+
+            if (newTier != currentTiers.get(scale))
+            {
+                currentTiers.set(scale, newTier);
+                changedScales.push(scale);
+            }
+        }
+        if (changedScales.length == 0)
+            return;
+
+        for (root in Screen.instance.rootComponents)
+            markRoot(root);
+
+        for (scale in changedScales)
+            for (listener in tierChangeListeners.get(scale).copy())
+                listener(currentTiers.get(scale));
+    }
+
+    private static function buildTierScales(widthTiers:Array<WidthTier>):Map<String, Array<WidthTier>>
+    {
+        var result:Map<String, Array<WidthTier>> = [];
+        for (tier in widthTiers)
+        {
+            if (tier.minWidth < 0)
+                throw 'ResponsivityController: width tier "${tier.scale}/${tier.name}" must not start below 0.';
+            if (tier.minWidth == 0 && tier.fits != null)
+                throw 'ResponsivityController: width tier "${tier.scale}/${tier.name}" starts at 0, so it is the fallback and must not have `fits`.';
+
+            var tiers:Array<WidthTier> = result.get(tier.scale) ?? [];
+            for (existing in tiers)
+            {
+                if (existing.name == tier.name)
+                    throw 'ResponsivityController: width tier name "${tier.name}" is used twice in scale "${tier.scale}".';
+                if (existing.minWidth == tier.minWidth)
+                    throw 'ResponsivityController: width tiers "${existing.name}" and "${tier.name}" of scale "${tier.scale}" start at the same width.';
+            }
+            tiers.push(tier);
+            result.set(tier.scale, tiers);
+        }
+
+        for (scale => tiers in result)
+        {
+            tiers.sort((a, b) -> a.minWidth - b.minWidth);
+            if (tiers[0].minWidth != 0)
+                throw 'ResponsivityController: tier scale "${scale}" must have a tier starting at 0.';
+        }
+        return result;
+    }
+
     /*
-        Gives `root`, a Screen root component, the current breakpoint's class. HaxeUI re-matches a
-        component's selectors only when that component's own style is invalidated, so on a change the
-        whole subtree is invalidated, for `.haxefolio-collapsed .foo` rules to apply. HaxeFolio calls
+        Gives `root`, a Screen root component, the current breakpoint's class and each scale's tier class. HaxeUI
+        re-matches a component's selectors only when that component's own style is invalidated, so on
+        a change the whole subtree is invalidated, for `.haxefolio-collapsed .foo` rules to apply. HaxeFolio calls
         this for each root it adds to Screen.
     */
     @:allow(haxefolio)
     private static function markRoot(root:Component):Void
     {
         var current:String = isCollapsed ? COLLAPSED_CLASS : EXPANDED_CLASS;
-        if (root.hasClass(current))
+        var upToDate:Bool = root.hasClass(current);
+        for (scale => tier in currentTiers)
+            upToDate = upToDate && root.hasClass(tierClass(scale, tier));
+        if (upToDate)
             return;
 
         root.swapClass(current, isCollapsed ? EXPANDED_CLASS : COLLAPSED_CLASS);
+        if (tierScales != null) // roots marked before init carry no tier classes yet
+            for (scale => tiers in tierScales)
+                for (tier in tiers)
+                    if (tier.name != currentTiers.get(scale))
+                        root.removeClass(tierClass(scale, tier.name), false);
+        for (scale => tier in currentTiers)
+            root.addClass(tierClass(scale, tier));
         invalidateDescendantStyles(root);
+    }
+
+    private static function tierClass(scale:String, tier:String):String
+    {
+        return TIER_CLASS_PREFIX + scale + "-" + tier;
     }
 
     private static function invalidateDescendantStyles(component:Component):Void
@@ -159,6 +249,33 @@ class ResponsivityController
         }
 
         return onCollapseChange(collapsed -> apply(value.resolve(collapsed)));
+    }
+
+    /**
+        The tier of `scale` currently in effect: the one with the greatest `minWidth` the viewport
+        reaches whose `fits`, if any, holds. Throws for a scale not declared in `HaxeFolioConfig.widthTiers`.
+    **/
+    public static function currentTier(scale:String):String
+    {
+        var tier:Null<String> = currentTiers.get(scale);
+        if (tier == null)
+            throw 'ResponsivityController: no tier scale "${scale}".';
+        return tier;
+    }
+
+    /**
+        Calls `apply` with the current tier of `scale` immediately, then whenever it changes - after
+        the root classes are updated, and after the `bind` subscribers if the collapse state flipped
+        too. Detach the returned handle once the subscriber is disposed.
+    **/
+    public static function bindTier(scale:String, apply:String->Void):Detachable
+    {
+        var tier:String = currentTier(scale);
+        var listeners:Array<String->Void> = tierChangeListeners.get(scale);
+        listeners.push(apply);
+        apply(tier);
+
+        return new Detachable(() -> listeners.remove(apply), false);
     }
 
     /*

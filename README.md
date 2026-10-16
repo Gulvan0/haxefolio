@@ -55,7 +55,7 @@ class GamePage extends PageBase
 ```
 
 - `init` runs once the page has been added to the container - the place for a page's own setup, rather than its constructor. May throw; `HaxeFolioApp.navigateTo` may also be called from here to redirect elsewhere before the page finishes opening.
-- `onResize(width, height)` runs whenever the page container's size changes, debounced (see `Responsivity`), with the pixel dimensions of the area the page is laid out in: the container's, minus the always-reserved scrollbar lane (see `Page scrolling` below) - so `width` is the width the page can actually use.
+- `onResize(width, height)` runs whenever the page container's size changes, debounced (see `Responsivity`), with the pixel dimensions of the area the page is laid out in: the container's, minus the scrollbar lane, if any (see `Page scrolling` below) - so `width` is the width the page can actually use.
 - `onClose` runs right before the page is torn down and the user is navigated away - the place for cleanup such as detaching preference `onChange` handlers (see `Preferences`) or cancelling pending requests. Calling `navigateTo` from here is not supported.
 
 If a page's factory (see below) or `init` throws, the framework redirects to the default page instead - except when the default page's own factory/`init` is what throws, in which case the exception is left uncaught.
@@ -64,7 +64,7 @@ Each page is isolated: nothing a page does affects any other page. Pages are als
 
 ### Page scrolling
 
-The page is mounted in a `ScrollArea` (see `ScrollArea` under `Region stacks`) inside the page container, so a page taller than the container scrolls vertically while the menu bar stays put - a page needs no scrolling code of its own. The `ScrollArea` treatment applies as it does everywhere: scrolling stops at the end of the page rather than continuing into the browser page behind it, and the scrollbar lane is always reserved (10px, at the right edge of the container), so a page is the same width whether or not it overflows; the scrollbar thumb itself only appears when it does. A fresh area is created for every navigation, so a page always opens scrolled to the top.
+The page is mounted in a `ScrollArea` (see `ScrollArea` under `Region stacks`) inside the page container, so a page taller than the container scrolls vertically while the menu bar stays put - a page needs no scrolling code of its own. The `ScrollArea` treatment applies as it does everywhere: scrolling stops at the end of the page rather than continuing into the browser page behind it, and the scrollbar lane is always reserved (at the right edge of the container; see `ScrollArea` for its width), so a page is the same width whether or not it overflows; the scrollbar thumb itself only appears when it does. A fresh area is created for every navigation, so a page always opens scrolled to the top.
 
 Horizontal overflow is not scrollable: a page is expected to fit the width it's given (its percentage-sized children resolve against the width excluding the lane), and anything wider is clipped.
 
@@ -276,6 +276,13 @@ Below `HaxeFolioConfig.menuCollapseWidth` (an author-chosen width past which the
 
 Independently of that threshold, every time the page container is resized, the active page's `onResize(width, height)` is called with the new pixel dimensions of the area it is laid out in (see `Pages`) - overriding it to react to size changes is the framework user's responsibility.
 
+A page's own layout can follow either of two mechanisms, chosen page by page:
+
+- **The menu breakpoint** (`menuCollapseWidth`): the simple path, and enough for most pages - a mobile and a desktop layout, switching where the menu bar collapses. It needs no setup, and the framework's own parts (menu bar, overlays, side bar) follow it too. See `Reacting to the collapse threshold directly` and `Styling by the breakpoint`.
+- **Tier scales**: for advanced layout planning - more than two layouts, breakpoints that don't coincide with the menu's, or ones that depend on the viewport's height as well. See `Tier scales`.
+
+Nothing makes a host pick one app-wide: some pages may follow the menu breakpoint while others subscribe to a tier scale, and a host that never declares a scale just uses the breakpoint everywhere.
+
 ### Reacting to the collapse threshold directly
 
 Beyond the menu bar itself, any component whose own layout should change at the same threshold - e.g. a row of controls that stacks vertically once space is tight - can react to it directly, rather than inventing a second, competing breakpoint. A value that differs between the two states is a `ByWidth<T>` (`haxefolio.ByWidth`): either one value, used in both, or an `{expanded:T, collapsed:T}` pair, both converting implicitly:
@@ -309,6 +316,35 @@ What only looks different at the threshold - a height, a margin, a larger hit ar
 ```
 
 HaxeUI re-matches a component's selectors only when its own style is invalidated, so on a flip HaxeFolio invalidates the style of every component under the roots - a cost paid once per flip, not per resize. Roots HaxeFolio doesn't add itself (HaxeUI's own popups, such as a `Menu`'s dropdown) don't carry the class.
+
+### Tier scales
+
+The breakpoint above is the menu's, and everything framework-side follows it alone. It's the simplest way for a page to adapt, and pages that only need a mobile and a desktop layout should stick with it. Tier scales are opt-in, for pages whose layouts need more planning: a host declares them (`HaxeFolioConfig.widthTiers`, `HaxeFolioConfigBuilder.addWidthTier(scale, name, minWidth, ?fits)`). A scale is a set of named tiers, each starting at its `minWidth`; the one starting at 0 is the scale's fallback. A tier can also depend on the viewport's height through a `fits` condition: while it's false, the tier is passed over as if its `minWidth` weren't reached.
+
+```haxe
+builder
+    .addWidthTier("board", "compact", 0) // the fallback, so no `fits`
+    .addWidthTier("board", "medium", 600, (width, height) -> width >= height)
+    .addWidthTier("board", "wide", 1240)
+    .addWidthTier("dashboard", "narrow", 0)
+    .addWidthTier("dashboard", "roomy", 1100);
+```
+
+Scales are independent of each other and of `menuCollapseWidth`: each has its own current tier, the one with the greatest `minWidth` the viewport reaches whose `fits`, if any, holds. So pages with different layouts each break where suits them, by subscribing to their own scale. Every scale needs a tier starting at 0, which must not have `fits`; within a scale, names must be unique and widths non-negative and distinct (`HaxeFolioApp.init` throws otherwise).
+
+```haxe
+class ResponsivityController
+{
+    public static function currentTier(scale:String):String
+    public static function bindTier(scale:String, apply:String->Void):Detachable
+}
+```
+
+`bindTier` calls `apply` with the scale's current tier immediately and again whenever it changes, under the same debounced resize handling as `bind`; when the collapse state flips at the same time, `bind` subscribers are notified first. Both throw for an undeclared scale. Every root component also carries `haxefolio-tier-<scale>-<tier>` (`TIER_CLASS_PREFIX`) for each scale's current tier, so styling by tier works the same way as by the breakpoint:
+
+```css
+.haxefolio-tier-board-wide .my-row { height: 48px; }
+```
 
 ## Overlays
 
@@ -1090,16 +1126,17 @@ Every scrolling area the framework builds - a `Scroll` region, and every tab pag
 `height`). It is HaxeUI's `ScrollView` in native scroll mode with a fixed treatment:
 
 - vertical scrolling only;
-- **the scrollbar lane is always reserved** (10px), whether or not the content overflows, so usable width
-  never changes when content grows past the area (which would silently re-wrap percentage-sized rows); the content is laid
+- **the scrollbar lane is always reserved** (10px with a fine pointer; with a coarse one, whatever the browser's
+  own scrollbar takes - nothing where it overlays the content, as on phones and tablets), whether or not the
+  content overflows, so usable width never changes when content grows past the area (which would silently re-wrap percentage-sized rows); the content is laid
   out against the width left of the lane and gets no padding of its own - its own padding is the whole inset;
 - **scrolling that reaches an end stops there** (`overscroll-behavior: contain`) and never scrolls
   the page behind, for wheel, drag and touch momentum alike;
-- the scrollbar is a thin transparent-track bar with a 6px rounded thumb (`#cccdd1`, `#b3b3b6` on hover,
+- with a fine pointer, the scrollbar is a thin transparent-track bar with a 6px rounded thumb (`#cccdd1`, `#b3b3b6` on hover,
   `#90929a` while dragged) - drawn with `::-webkit-scrollbar`, which HaxeUI stylesheets can't reach, so
   its rules are injected once as a plain document stylesheet, keyed on the DOM class
   `haxefolio-scroll-area`. Firefox has no such pseudo-elements: it gets a thin scrollbar of the same
-  colours, with its own width.
+  colours, with its own width. With a coarse pointer the browser's own scrollbar is kept.
 
 ### EdgePanel
 
@@ -1254,6 +1291,7 @@ The controls render from `Preference.get()` and follow `onChange`, so a preferen
 | `appIcon` | `String` | Icon path for the `HaxeUIApp`/browser tab. |
 | `siteName` | `String` | Site name label text - see `Menu bar` for how it's interpreted. |
 | `?menuCollapseWidth` | `Int` | Mobile/desktop breakpoint (see `Responsivity`). Defaults to 900. |
+| `?widthTiers` | `Array<WidthTier>` (`{scale, name, minWidth, ?fits}`) | Tier scales, independent of each other and of the menu breakpoint (see `Tier scales`). None by default. |
 | `?debounceMs` | `Int` | Resize handling debounce interval, in milliseconds (see `Responsivity`). Defaults to 500. |
 | `?appearance` | `AppearanceOverrides` | Theme-wide overrides of the framework's code-side appearance - geometry tokens, `selectionEmphasis` and `actionEmphasis` (see `Appearance`). |
 | `pages` | `Array<PageDefinition>` | See `Registering pages`. |
