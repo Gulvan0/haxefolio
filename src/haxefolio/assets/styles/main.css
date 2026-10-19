@@ -827,6 +827,44 @@
     color: #9a9ca2;
 }
 
+/*
+    SearchBar. The default top inset centres a bare input (no message line) in the default
+    `searchBarHeight` (52 - 38) / 2.
+*/
+
+.haxefolio-search-bar {
+    padding-top: 7px;
+    vertical-spacing: 5px;
+}
+
+/* the glyphs are inline SVG in currentColor, so `color` paints them */
+.haxefolio-search-magnifier {
+    color: #5f6168;
+}
+
+.haxefolio-search-placeholder {
+    font-name: $ui-family-regular;
+    font-size: 13px;
+    color: #9a9ca2;
+}
+
+.haxefolio-clear-button {
+    padding: 0;
+    cursor: pointer;
+    background-color: transparent;
+    border: none;
+    color: #5f6168;
+}
+
+.haxefolio-clear-button:hover {
+    background-color: transparent;
+    color: #1f2126;
+}
+
+.haxefolio-clear-button:down {
+    background-color: transparent;
+}
+
 .haxefolio-check-box-row {
     pointer-events: true;
     cursor: pointer;

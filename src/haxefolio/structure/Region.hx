@@ -6,12 +6,18 @@ import haxe.ui.core.Component;
     One region of a `RegionStack`. Every region but the scrolling one has a constant, declared
     height; the scrolling one takes whatever the frame has left.
 
-    Only the regions that can be built from what exists today are listed. `Search` joins as its
+    Only the regions that can be built from what exists today are listed. A new one joins as its
     component is built - a constructor here plus a token it reads its height from (see
     `GeometryTokens`), and nothing in `RegionStack`'s arithmetic changes.
 **/
 enum Region
 {
+    /**
+        A search input (see `SearchBar`). `height` overrides the `searchBarHeight` token for this
+        instance only.
+    **/
+    Search(bar:SearchBar, ?height:ByWidth<Int>);
+
     /**
         The title row (see `HeaderBar`): `title`, interpreted like any HaxeUI `.text` property, and a
         close control that dismisses the overlay. `height` overrides the `headerHeight` token for

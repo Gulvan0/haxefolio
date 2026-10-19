@@ -983,6 +983,7 @@ public function dispose():Void
 ```haxe
 enum Region
 {
+    Search(bar:SearchBar, ?height:ByWidth<Int>);
     Header(title:String, ?height:ByWidth<Int>, ?hideClose:Bool);
     Actions(bar:ActionBar, ?height:ByWidth<Int>);
     Custom(height:ByWidth<Int>, content:Component);
@@ -995,7 +996,7 @@ enum Region
 close control. `idPrefix` names the parts for a stylesheet (see `Overlays` in `CSS classes and elements`) - `present` and
 `embed` pass `haxefolio-overlay-<slug>`.
 
-- **Every height is declared, never measured.** `Custom` regions have the `height` they are given, `Header`, `Actions` and `Tabs` (its strip) ones the `headerHeight`/`actionBarHeight`/`tabStripHeight` token of the `Appearance` in effect when the stack is built (60, 68 and 44 by default; `height`/`stripHeight` overrides it for one instance) - all of them (a
+- **Every height is declared, never measured.** `Custom` regions have the `height` they are given, `Header`, `Search`, `Actions` and `Tabs` (its strip) ones the `headerHeight`/`searchBarHeight`/`actionBarHeight`/`tabStripHeight` token of the `Appearance` in effect when the stack is built (60, 52, 68 and 44 by default; `height`/`stripHeight` overrides it for one instance) - all of them (a
   `ByWidth`, so it may differ between the expanded and collapsed states; content that doesn't fit is
   cut off, not accommodated), and the frame has `frameHeight`. The scrolling area (a `Scroll` region, or the pages of a `Tabs` one) gets
   `scrollHeight = frameHeight - sum of the fixed heights`, recomputed when `frameHeight` or the breakpoint
@@ -1003,7 +1004,7 @@ close control. `idPrefix` names the parts for a stylesheet (see `Overlays` in `C
   content to one region never moves another.
 - A stack has at most one scrolling area - a `Scroll` or a `Tabs` region, never both (more throws) - and may have none. If the fixed regions alone
   exceed the frame, the scrolling area is hidden rather than overflowing - a design error to correct.
-- Only these five regions exist so far. `Search` is added when its component is built; it reads its height
+- Only these six regions exist so far. A new one is added when its component is built; it reads its height
   from `GeometryTokens` (see `Appearance`), so the arithmetic above doesn't change.
 
 ### Header and Actions
@@ -1039,6 +1040,30 @@ public var enabled(get, set):Bool
 - `ActionButton` can also be declared in an XML layout as `<action-button>`: every constructor argument is optional, `text`,
   `primary`, `icon`, `width` and `disabled` are attributes, and the handler is attached in code via `onClick`. `primary` is
   a property too, read against the current `actionEmphasis` when set.
+
+### Search
+
+`Search(bar, ?height)` holds a `SearchBar`: a text input with a magnifier on the left and, while it holds text, a clear
+control on the right, optionally over a message line (a `HintLine`, for a result count or the like).
+
+```haxe
+public function new(placeholder:String, onQuery:String->Void, withMessageLine:Bool = false, ?maxChars:Int)
+public var query(get, set):String
+public var message(get, set):Null<String>
+public function focus():Void
+public function dispose():Void
+```
+
+- Every user edit goes to `onQuery`, clearing included (the clear control keeps focus and the caret in the input).
+  Assigning `query` renders it without calling `onQuery`. When and how to search - debouncing, requests, results - is the
+  host's: the bar only reports the text.
+- `placeholder` (interpreted like any HaxeUI `.text` property) is drawn over the empty input as a label of its own, since
+  HaxeUI's own placeholder depends on the focus state the framework does not deliver.
+- The input is `fieldHeight` tall and the bar is padded by `padding` on both sides. Its top inset and the gap between the
+  input and the message line are stylesheet values (`.haxefolio-search-bar`'s `padding-top`, default 7px, and
+  `vertical-spacing`, default 5px): the region's height is declared, so fit the two into `searchBarHeight` together.
+- `focus()` moves keyboard focus into the input, the bar already being on screen; `dispose()` detaches the input's
+  breakpoint subscription once the bar is gone for good.
 
 ### Tabs
 
@@ -1511,7 +1536,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-overlay-dialog` | Additionally on the frame of the dialog presentation (corner radius). |
 | `.haxefolio-overlay-sheet` | Additionally on the frame of the sheet presentation (top corner radii). |
 | `.haxefolio-overlay-embedded` | On the frame of embedded content (see `Embedded content`; corner radius) instead of a presentation class. It carries `.haxefolio-overlay-frame` and `#haxefolio-overlay-<slug>-frame` too, and has no scrim. |
-| `#haxefolio-overlay-<slug>-header` / `-tabs` / `-actions` / `-scroll` / `-close` | The parts of a presented or embedded overlay's stack, for restyling one overlay: the `Header`, `Tabs` (its strip) and `Actions` slots, the scrolling area (the `Scroll` region's `ScrollArea`, or the slot holding a `Tabs` region's pages), and the header's close control. Present only for the regions the composition has. |
+| `#haxefolio-overlay-<slug>-header` / `-search` / `-tabs` / `-actions` / `-scroll` / `-close` | The parts of a presented or embedded overlay's stack, for restyling one overlay: the `Header`, `Search`, `Tabs` (its strip) and `Actions` slots, the scrolling area (the `Scroll` region's `ScrollArea`, or the slot holding a `Tabs` region's pages), and the header's close control. Present only for the regions the composition has. |
 
 #### Notifications
 
@@ -1542,6 +1567,11 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-field-group` | A `FieldGroup`'s own box. `SwapSlot` carries no styling of its own - it's a bare `Stack`. |
 | `.haxefolio-region-stack` / `.haxefolio-region-custom` | A `RegionStack`'s own box / one of its `Custom` regions' slots. |
 | `.haxefolio-region-header` / `.haxefolio-region-tabs` / `.haxefolio-region-actions` | The slot of a `Header` / `Tabs` (its strip) / `Actions` region: fill and the hairline. |
+| `.haxefolio-region-search` | The slot of a `Search` region (no default styling). |
+| `.haxefolio-search-bar` | A `SearchBar`'s own box: `padding-top` is the input's top inset, `vertical-spacing` the gap above the message line. |
+| `.haxefolio-search-input` | Its input, which also carries the `TextInputField` input's `.haxefolio-text-input` / `-focused`. |
+| `.haxefolio-search-magnifier` / `.haxefolio-search-placeholder` / `.haxefolio-search-message` | Its magnifier lane (`color` paints the glyph), the placeholder label, and the message line (also a `.haxefolio-hint-line`). |
+| `.haxefolio-clear-button` / `:hover` | Its clear control; `color` paints the glyph. |
 | `.haxefolio-tab-strip` / `-navigate` / `-choose` | A `TabStrip`'s row, per `TabRole`. |
 | `.haxefolio-tab-track` | The recessed track of a `Choose` strip. |
 | `.haxefolio-tab` / `-navigate` / `-choose` | One tab, per role. The selected one additionally carries `.haxefolio-tab-selected` and `.haxefolio-tab-navigate-selected` / `.haxefolio-tab-choose-selected`. Set by the framework - not something to add by hand. |
@@ -1579,6 +1609,7 @@ A locale entry that's missing entirely does **not** throw - HaxeUI's `LocaleMana
 | `haxefolio.preference.<id>.value.<value>` | An option (or `locale`) preference's value button label |
 | `haxefolio.toggle.on` / `haxefolio.toggle.off` | A `ToggleButton`'s default caption while on / off (used by the preference window's toggles), unless it is given `ToggleLabels` |
 | `haxefolio.text_input.reveal.show` / `haxefolio.text_input.reveal.hide` | The accessible name of a `RevealablePassword` `TextInputField`'s eye toggle while the text is hidden / shown |
+| `haxefolio.search.clear` | The accessible name of a `SearchBar`'s clear control |
 | `haxefolio.preference.title` | The preference window's title |
 | `haxefolio.preference.reset` | The preference window's reset button label |
 

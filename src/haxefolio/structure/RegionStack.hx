@@ -21,9 +21,9 @@ import morestd.Detachable;
     If the fixed regions alone exceed the frame, the scrolling area is squeezed to zero rather than
     overflowing - a design error to correct, not a case to accommodate.
 
-    A `Header`, `Actions` or `Tabs` region takes its height from the `AppearanceContext` in effect when
-    the stack is built (the `headerHeight`/`actionBarHeight`/`tabStripHeight` token) unless it names
-    one of its own.
+    A `Header`, `Search`, `Actions` or `Tabs` region takes its height from the `AppearanceContext` in
+    effect when the stack is built (the `headerHeight`/`searchBarHeight`/`actionBarHeight`/
+    `tabStripHeight` token) unless it names one of its own.
 
     Call `dispose()` once the stack is done with, to detach its breakpoint subscriptions.
 **/
@@ -48,7 +48,7 @@ class RegionStack extends VBox
     /**
         `dismiss` is what a `Header` region's close control calls; without it (nothing to dismiss)
         there is no close control. `idPrefix`, if given, names the parts for a stylesheet: the
-        regions get the ids `<idPrefix>-header`, `-tabs` (the strip), `-actions` and `-scroll` (the
+        regions get the ids `<idPrefix>-header`, `-search`, `-tabs` (the strip), `-actions` and `-scroll` (the
         scrolling area, the pages' slot for a `Tabs` region), the close control `-close`.
     **/
     public function new(regions:Array<Region>, frameHeight:Float, ?dismiss:Void->Void, ?idPrefix:String)
@@ -107,6 +107,9 @@ class RegionStack extends VBox
 
             case Actions(bar, height):
                 addFixedRegion(height ?? AppearanceContext.current.geometry.actionBarHeight, bar, "haxefolio-region-actions", "actions");
+
+            case Search(bar, height):
+                addFixedRegion(height ?? AppearanceContext.current.geometry.searchBarHeight, bar, "haxefolio-region-search", "search");
 
             case Custom(height, content):
                 addFixedRegion(height, content, "haxefolio-region-custom");
