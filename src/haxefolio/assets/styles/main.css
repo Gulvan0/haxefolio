@@ -810,6 +810,61 @@
     color: #5f6168;
 }
 
+.haxefolio-text-input-suffix {
+    padding-right: 10px;
+    font-name: $ui-family-medium;
+    font-size: 12px;
+    color: #5f6168;
+}
+
+.haxefolio-copy-field-row {
+    horizontal-spacing: 10px;
+}
+
+.haxefolio-copy-field-area {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.haxefolio-color-field-box {
+    horizontal-spacing: 8px;
+    padding-left: 7px;
+    padding-right: 10px;
+    border-radius: 4px;
+    background-color: #ffffff;
+    border: 1px solid #d4d4d6;
+}
+
+.haxefolio-color-field-box-focused {
+    border-color: #8d939e;
+}
+
+/* after -focused, so the error stays visible while the user corrects it */
+.haxefolio-color-field-box-invalid {
+    border-color: #e3a6a1;
+}
+
+.haxefolio-color-field-box-disabled {
+    background-color: #f0f0f1;
+    border-color: #e4e4e6;
+}
+
+.haxefolio-color-field-input {
+    padding: 0;
+    border: none;
+    filter: none;
+    background-color: transparent;
+    font-name: $ui-family-regular;
+    font-size: 13px;
+    color: #1f2126;
+}
+
+.haxefolio-color-field-input:disabled {
+    background-color: transparent;
+    filter: none;
+    color: #9a9ca2;
+}
+
 /* the glyph is inline SVG in currentColor, so `color` paints it */
 .haxefolio-password-reveal {
     pointer-events: true;

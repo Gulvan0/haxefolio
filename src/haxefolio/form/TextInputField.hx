@@ -35,7 +35,8 @@ import morestd.Detachable;
     is again the host's call.
 
     `setPrefix` draws a fixed, non-editable text at the input's left edge (a unit, a namespace like
-    "Guest"), the input's left padding reserving its lane so typed text never runs under it.
+    "Guest"), the input's left padding reserving its lane so typed text never runs under it;
+    `setSuffix` does the same at the right edge.
 */
 class TextInputField extends VBox
 {
@@ -43,6 +44,7 @@ class TextInputField extends VBox
     private final inputBox:Box;
     private final input:TextField;
     private var prefixLabel:Null<Label> = null;
+    private var suffixLabel:Null<Label> = null;
     private final onTextChange:String->Void;
     private final heightBinding:Detachable;
     private final revealButton:Null<PasswordRevealButton>;
@@ -213,6 +215,39 @@ class TextInputField extends VBox
 
         prefixLabel.text = text;
         input.paddingLeft = laneWidth;
+    }
+
+    /**
+        Shows `text` inside the input at its right edge (a unit), the input's right padding set to
+        `laneWidth` so typed text ends before it. The lane is not measured: give it room for the
+        widest translation. `null` removes the suffix and restores the padding. Not for a
+        `RevealablePassword` field, whose right edge is the reveal toggle's.
+    **/
+    public function setSuffix(text:Null<String>, laneWidth:Int = 0):Void
+    {
+        if (text == null)
+        {
+            if (suffixLabel != null)
+            {
+                inputBox.removeComponent(suffixLabel);
+                suffixLabel = null;
+                input.paddingRight = null;
+            }
+            return;
+        }
+
+        if (suffixLabel == null)
+        {
+            suffixLabel = new Label();
+            suffixLabel.horizontalAlign = "right";
+            suffixLabel.verticalAlign = "center";
+            suffixLabel.addClass("haxefolio-text-input-suffix");
+            suffixLabel.element.style.pointerEvents = "none"; // a click on it lands on the input
+            inputBox.addComponent(suffixLabel);
+        }
+
+        suffixLabel.text = text;
+        input.paddingRight = laneWidth;
     }
 
     /**

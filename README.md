@@ -90,7 +90,7 @@ typedef PageDefinition = {
 
 Navigating between pages is done by calling `HaxeFolioApp.navigateTo(path)` from anywhere - a page's own lifecycle methods, a menu callback, or any other user code - where `path` is matched against the registered templates above. `HaxeFolioApp.navigateToDefault()` is a shorthand for navigating to the default page specifically, without needing to know or hardcode its path.
 
-Every navigation updates the URL to `https://<host>:<port>/?p=<path>`, pushed onto the browser's history so back/forward navigation works as expected. Loading the site with no `p` parameter, an unresolvable one, or navigating back/forward to one, all fall back to the default page (updating the URL to match it). Since `.../?p=user/alice` and `.../?p=user/bob` are different paths, moving between them via back/forward destroys and recreates the page just like an explicit `navigateTo` call would.
+Every navigation updates the URL to `https://<host>:<port>/?p=<path>`, pushed onto the browser's history so back/forward navigation works as expected. `HaxeFolioApp.pageUrl(path, ?fragment)` returns that absolute URL without navigating, for a link to a page shared outside the app. Loading the site with no `p` parameter, an unresolvable one, or navigating back/forward to one, all fall back to the default page (updating the URL to match it). Since `.../?p=user/alice` and `.../?p=user/bob` are different paths, moving between them via back/forward destroys and recreates the page just like an explicit `navigateTo` call would.
 
 #### Passing state and a fragment
 
@@ -477,7 +477,7 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 `haxefolio.preferences`/`.builder` already use elsewhere in the framework:
 
 - **`haxefolio.form`** - the components a framework user actually reaches for and composes a
-  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `TextInputField`, `CheckBoxRow`, `PreviewPane`, `FormSection` below, and more as the library grows.
+  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `TextInputField`, `CopyField`, `ColorField`, `CheckBoxRow`, `PreviewPane`, `FormSection` below, and more as the library grows.
 - **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on: `SwapSlot` (below), which forms use directly, plus `RegionStack`, `Region`, `ScrollArea`, `TabStrip`, `ErrorMarker` and `EdgePanel` (see `Region stacks`); a form imports it from here, not from `haxefolio.form`.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
@@ -862,6 +862,9 @@ public var focused(get, never):Bool
 public var capsLockOn(default, null):Bool
 public var onCapsLockChange:Null<Bool->Void>
 public function focus():Void
+public function setPrefix(text:Null<String>, laneWidth:Int = 0):Void
+public function setSuffix(text:Null<String>, laneWidth:Int = 0):Void
+public function setNumericKeyboard(numeric:Bool):Void
 public function dispose():Void
 ```
 
@@ -884,10 +887,62 @@ public function dispose():Void
   HaxeFolio disables HaxeUI's `FocusManager`); the field must already be on screen.
 - The input is `fieldHeight` tall (see `Appearance`); call `dispose()` once the field is removed for good if that token
   differs between the breakpoint states.
+- `setPrefix`/`setSuffix` draw a fixed, non-editable text inside the input at its left/right edge (a namespace, a unit),
+  the input's padding on that side set to `laneWidth` so typed text never runs under it. The lane is not measured: give it
+  room for the widest translation. `null` removes it. A suffix is not for a `RevealablePassword` field, whose right edge is
+  the reveal toggle's. Styled by `.haxefolio-text-input-prefix`/`-suffix`.
 - Browser autofill doesn't repaint the input (and neither does it in `CommitTextField` or `Stepper`): Chrome's
   `:-webkit-autofill` tint is covered with the field's own background and ink, as resolved by the stylesheets (host
   overrides and `:disabled` included). The rules are injected once as a plain document stylesheet, keyed on the DOM class
   `haxefolio-autofill-neutral` (see `AutofillNeutralTextField`).
+
+### CopyField
+
+A value to be copied rather than edited (a link, a notation string): a `FieldHeader` over a read-only input and, beside
+it, a Copy button.
+
+```haxe
+public function new(label:String, value:String, buttonWidth:Int, ?multilineHeight:Int)
+public var copiedText(default, set):String
+public function dispose():Void
+```
+
+- The input selects its whole text on focus. `multilineHeight`, if given, makes it a multiline box of that height that
+  scrolls inside, the button aligned to its top; otherwise it is one line, `fieldHeight` tall like the button.
+- Copying relabels the button from the host key `haxefolio.copy_field.copy` to `haxefolio.copy_field.copied` for 1.6 s.
+  The button is `buttonWidth` wide, so the relabel moves nothing: give it room for the longer label in every locale.
+- When the Clipboard API refuses (no permission, an insecure origin) the text is selected and copied with
+  `execCommand("copy")` instead.
+- The input carries `.haxefolio-text-input` (plus `-copy-field-input`/`-copy-field-area`), so it looks like any other
+  input; `dispose()` stops a pending relabel and the height binding.
+
+### ColorField
+
+A colour typed as `#rrggbb` or picked with the browser's native swatch, both in one input-like box under a
+`FieldHeader`:
+
+```haxe
+public function new(label:String, initialText:String, onText:String->Void, disabledPlaceholder:String)
+public var currentText(get, set):String
+public var hint(get, set):Null<String>
+public var hintState(get, set):HintState
+public var invalid(default, set):Bool
+public var enabled(default, set):Bool
+public var locked(default, set):Bool
+public function dispose():Void
+```
+
+- Validity is the host's, as in `TextInputField`: every edit reaches `onText` - typed, or picked with the swatch, which
+  writes the picked hex (lower case) into the text - and the host writes back `hint`, `hintState` and `invalid`. The
+  swatch follows the text whenever it parses. Assigning `currentText` renders without calling `onText`.
+- `enabled = false` greys the box, dims the swatch and replaces the text with `disabledPlaceholder`; the text is kept
+  and returns on re-enabling - for a colour that doesn't apply (a transparent background). The label is left as it is,
+  since what switches the colour off (a "Transparent" toggle) usually sits under the same label. `locked = true` greys
+  the box and the label but keeps the text shown - for a colour that applies but can't be changed right now.
+- The box (`.haxefolio-color-field-box`, with `-focused`, `-invalid`, `-disabled`) is `fieldHeight` tall; the text input
+  (`.haxefolio-color-field-input`) carries `-unused` while disabled, for styling the placeholder apart from the hex; the swatch is
+  22 px. Its native chrome is styled by a plain document stylesheet injected once (`.haxefolio-color-field-native-swatch`),
+  since HaxeUI's style engine can't reach vendor pseudo-elements.
 
 ### CheckBoxRow
 
@@ -1491,6 +1546,17 @@ class Clipboard
 ```
 
 Writes `text` to the system clipboard via the browser's asynchronous Clipboard API. `onSuccess` runs if the write succeeds, `onError` if it's rejected (e.g. the page lacks clipboard permission); both are optional, and `onError` is passed the underlying rejection reason.
+
+### FileDownload
+
+```haxe
+class FileDownload
+{
+    public static function save(blob:Blob, fileName:String):Void
+}
+```
+
+Hands `blob` to the browser as a download named `fileName`, through a temporary object URL and a hidden `download` anchor.
 
 ## Reference
 

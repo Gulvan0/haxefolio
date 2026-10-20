@@ -62,6 +62,11 @@ class PageRouter
         Browser.window.history.replaceState(state, "", buildUrl(path, fragment));
     }
 
+    public static function absoluteUrl(path:String, ?fragment:String):String
+    {
+        return Browser.window.location.origin + buildUrl(path, fragment);
+    }
+
     private static function buildUrl(path:String, ?fragment:String):String
     {
         var url:String = '${Browser.window.location.pathname}?p=$path';

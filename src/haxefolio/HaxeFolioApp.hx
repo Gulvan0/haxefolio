@@ -168,6 +168,15 @@ class HaxeFolioApp
     }
 
     /**
+        The absolute URL that navigating to `path` (with `fragment`) shows in the address bar - for
+        a link to a page shared outside the app. `path` isn't resolved against the registered pages.
+    **/
+    public static function pageUrl(path:String, ?fragment:String):String
+    {
+        return PageRouter.absoluteUrl(path, fragment);
+    }
+
+    /**
         Presents an overlay: a frame holding the regions of the `OverlayContent` that
         `contentFactory` builds, over a scrim covering the whole screen - a centred dialog while
         the breakpoint is expanded, a bottom sheet while it is collapsed. Which one is decided
