@@ -115,6 +115,23 @@ HaxeFolioApp.setFragment(?fragment:String, keepInHistory:Bool = false):Void
 
 By default this uses `history.replaceState`, so it doesn't create its own back/forward entry; pass `keepInHistory: true` to use `history.pushState` instead, for the rare case where a fragment change (e.g. switching between tabs within a page) should itself be reachable via the back button. Calling `setFragment` from a page's own `init` overrides whatever fragment `navigateTo` was originally given. When no fragment is set for a page, `fragment` is `null`.
 
+### Page links
+
+A component whose sole purpose is to open a page (a button, a nickname label, a list row) should be a real link, not an `onClick` calling `navigateTo`: only a link offers "Open in new tab" and "Copy link address" in the context menu and shows its target URL on hover.
+
+```haxe
+var link:PageLink = PageLink.attach(component:Component, path:Null<String>, ?fragment:String, ?state:Dynamic, ?onFollowed:Void->Void);
+link.setPath(path:Null<String>, ?fragment:String, ?state:Dynamic):Void
+link.keepInteractive(descendant:Component):Void
+link.detach():Void
+```
+
+`attach` covers the component with an invisible `<a href>` (`HaxeFolioApp.pageUrl`) that always spans its bounds. An unmodified left click navigates through `navigateTo` - the app keeps running - after calling `onFollowed`, if given. Every other click (Ctrl/Cmd/Shift/Alt, middle button) is left to the browser, which opens the page by its URL in a fresh load. The component's own click handler is not involved, so don't assign one. The anchor cannot be dragged or focused with the keyboard.
+
+The anchor takes pointer events away from the component's descendants. `keepInteractive` raises a descendant above it, for a control inside a link (a button in a row) or a child with a tooltip; the descendant must not sit inside an ancestor that forms its own stacking context (opacity, transform, mask...) - raise that ancestor instead.
+
+`setPath(null)` removes the link, leaving the component and its descendants plain. A disabled component swallows clicks on its link, but still shows the link in its context menu: `setPath(null)` while it is disabled. `HaxeFolioApp.defaultPagePath` is the path of the default page, to link to it.
+
 ### Page title and notifications
 
 `PageBase` exposes three methods for controlling the browser tab title, and blinking it as a notification:

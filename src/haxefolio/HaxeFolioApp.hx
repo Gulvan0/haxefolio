@@ -167,6 +167,14 @@ class HaxeFolioApp
         openDefaultPage(true);
     }
 
+    /** The path of the default page (the one registered with `isDefault: true`) **/
+    public static var defaultPagePath(get, never):String;
+
+    private static function get_defaultPagePath():String
+    {
+        return PageRouter.defaultPageDefinition.path;
+    }
+
     /**
         The absolute URL that navigating to `path` (with `fragment`) shows in the address bar - for
         a link to a page shared outside the app. `path` isn't resolved against the registered pages.
