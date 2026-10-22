@@ -1,5 +1,6 @@
 package haxefolio.overlay.builder;
 
+import haxe.ui.core.Component;
 import haxefolio.ElementShadow;
 import haxefolio.Shadow;
 import haxefolio.structure.RegionStack;
@@ -42,6 +43,23 @@ class OverlayPresentation
         Starts taking the overlay off screen; calls `onGone` once it is entirely gone.
     **/
     public function hide():Void
+    {
+        throw "abstract";
+    }
+
+    /**
+        The screen components that make this overlay up (frame and scrim): what an overlay presented
+        over this one marks inert.
+    **/
+    public function roots():Array<Component>
+    {
+        throw "abstract";
+    }
+
+    /**
+        The frame's rectangle in screen coordinates: what an overlay presented over this one covers.
+    **/
+    public function frameRect():{left:Float, top:Float, width:Float, height:Float}
     {
         throw "abstract";
     }

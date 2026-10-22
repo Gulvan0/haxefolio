@@ -17,17 +17,22 @@ import js.html.KeyboardEvent;
 import morestd.Detachable;
 
 /*
-    The framework's single overlay at a time: builds the content, picks a presentation, and owns
-    everything that is the same in both - the no-op while one is already open, Esc, and making the
-    rest of the app unreachable. HaxeFolioApp.present/dismissing on navigation are thin wrappers
-    over this.
+    The framework's open overlays: builds the content, picks a presentation, and owns everything
+    that is the same in both - the no-op while one is already open, Esc, and making the rest of
+    the app unreachable. HaxeFolioApp.present/dismissing on navigation are thin wrappers over this.
+
+    Normally there is one overlay at a time. A host that needs a second one over the first (a
+    picker opened from a form) presents it `nested`: it stacks on the topmost overlay, which is
+    made unreachable like the app, and only the topmost reacts to Esc. Dismissing an overlay
+    dismisses those above it first.
 
     Making the rest of the app unreachable is done by marking its root components `inert`, rather
     than by a scrim's pointer-events: `inert` takes them out of hit-testing, the tab order and
     assistive technology at once - which is the scrim, focus trap and scroll lock of a modal in one
     attribute, and holds for the whole show -> gone window, sheet slide-out included. The frame and
-    scrim are Screen root components of their own, so they are not affected. The attribute goes
-    through InertHolds, since the menu side bar makes the app inert too.
+    scrim are Screen root components of their own, so they are not affected; a nested overlay marks
+    the roots of the one beneath it. The attribute goes through InertHolds, since the menu side bar
+    makes the app inert too.
 
     Presentation (dialog or sheet) is picked once, by ResponsivityController.isCollapsed at the
     moment of presenting, and fixed for that overlay's lifetime: swapping live would have to rebuild
@@ -36,11 +41,11 @@ import morestd.Detachable;
 class OverlayController
 {
     private static var inertComponents:Array<Component> = [];
+    private static var openOverlays:Array<OpenOverlay> = []; // bottom to top, closing ones included
+
     // open or closing; read by the menu side bar, which leaves Esc to an overlay presented over it
     @:allow(haxefolio)
-    private static var isOpen:Bool = false;
-    private static var presentation:Null<OverlayPresentation> = null;
-    private static var requestDismissal:Null<Void->Void> = null;
+    private static var isOpen(get, never):Bool;
 
     /*
         Registers the app's own root components, which are marked inert while an overlay is open.
@@ -51,32 +56,41 @@ class OverlayController
         OverlayController.inertComponents = inertComponents;
     }
 
-    public static function present(slug:String, contentFactory:(Void->Void)->OverlayContent, ?mobileContentFactory:(Void->Void)->OverlayContent, ?appearance:AppearanceOverrides, ?onDismissed:Void->Void):Void
+    public static function present(slug:String, contentFactory:(Void->Void)->OverlayContent, ?mobileContentFactory:(Void->Void)->OverlayContent, ?appearance:AppearanceOverrides, ?onDismissed:Void->Void, nested:Bool = false):Void
     {
-        if (isOpen)
+        var below:Null<OpenOverlay> = openOverlays[openOverlays.length - 1];
+
+        if (nested ? (below == null || below.isClosing || isOpenWithSlug(slug)) : below != null)
             return;
 
         DropdownWidget.closeOpen();
 
-        isOpen = true;
-
         var isCollapsed:Bool = ResponsivityController.isCollapsed;
         var factory:(Void->Void)->OverlayContent = (isCollapsed && mobileContentFactory != null) ? mobileContentFactory : contentFactory;
 
-        var isClosing:Bool = false;
+        var overlay:OpenOverlay = new OpenOverlay(slug);
+        openOverlays.push(overlay);
 
         function dismiss():Void
         {
-            if (isClosing || presentation == null)
+            if (overlay.isClosing || overlay.presentation == null)
                 return;
 
-            isClosing = true;
-            presentation.hide();
+            // what is above goes first: it was opened from this one
+            var above:Array<OpenOverlay> = openOverlays.slice(openOverlays.indexOf(overlay) + 1);
+            above.reverse();
+            for (other in above)
+                other.requestDismissal();
+
+            overlay.isClosing = true;
+            overlay.presentation.hide();
         }
+
+        overlay.requestDismissal = dismiss;
 
         function onKeyDown(event:KeyboardEvent):Void
         {
-            if (event.key != "Escape")
+            if (event.key != "Escape" || openOverlays[openOverlays.length - 1] != overlay)
                 return;
 
             event.preventDefault();
@@ -101,7 +115,7 @@ class OverlayController
         }
         catch (e:Dynamic)
         {
-            isOpen = false;
+            openOverlays.remove(overlay);
 
             if (content != null && content.onDismissed != null)
                 content.onDismissed();
@@ -118,9 +132,8 @@ class OverlayController
 
             Browser.document.removeEventListener("keydown", onKeyDown, true);
 
-            isOpen = false;
-            presentation = null;
-            requestDismissal = null;
+            openOverlays.remove(overlay);
+            overlay.presentation = null;
 
             if (content.onDismissed != null)
                 content.onDismissed();
@@ -131,17 +144,16 @@ class OverlayController
 
         var styleClass:Null<String> = appearance?.styleClass;
 
-        presentation = isCollapsed
-            ? new SheetPresentation(slug, stack, styleClass, shadows.sheet, onGone)
-            : new DialogPresentation(slug, stack, styleClass, geometry.dialogWidth, geometry.dialogHeight, shadows.dialog, onGone);
-        requestDismissal = dismiss;
+        overlay.presentation = isCollapsed
+            ? new SheetPresentation(slug, stack, styleClass, shadows.sheet, below != null, onGone)
+            : new DialogPresentation(slug, stack, styleClass, geometry.dialogWidth, geometry.dialogHeight, shadows.dialog, below?.presentation, onGone);
 
-        inertHold = InertHolds.hold(inertComponents);
+        inertHold = InertHolds.hold(below != null ? below.presentation.roots() : inertComponents);
 
         // capture phase, so Esc reaches this before anything inside the overlay can swallow it
         Browser.document.addEventListener("keydown", onKeyDown, true);
 
-        presentation.show();
+        overlay.presentation.show();
     }
 
     /*
@@ -201,22 +213,51 @@ class OverlayController
     }
 
     /*
-        Closes the open overlay, if any - used when the page changes underneath it. Safe to call
+        Closes every open overlay, if any - used when the page changes underneath them. Safe to call
         while one is already closing.
     */
     public static function dismissIfOpen():Void
     {
-        if (requestDismissal != null)
-            requestDismissal();
+        for (overlay in openOverlays.copy())
+            overlay.requestDismissal();
     }
 
     /*
-        Re-fits the open overlay's frame to the viewport, if any. Called off the same debounced
-        resize signal ResponsivityController already computes.
+        Re-fits the open overlays' frames to the viewport, bottom to top, each nested one against
+        the frame beneath it. Called off the same debounced resize signal ResponsivityController
+        already computes.
     */
     public static function resize():Void
     {
-        if (presentation != null)
-            presentation.resize();
+        for (overlay in openOverlays)
+            if (overlay.presentation != null)
+                overlay.presentation.resize();
+    }
+
+    private static function isOpenWithSlug(slug:String):Bool
+    {
+        for (overlay in openOverlays)
+            if (overlay.slug == slug)
+                return true;
+
+        return false;
+    }
+
+    private static function get_isOpen():Bool
+    {
+        return openOverlays.length > 0;
+    }
+}
+
+private class OpenOverlay
+{
+    public final slug:String;
+    public var presentation:Null<OverlayPresentation> = null;
+    public var requestDismissal:Void->Void;
+    public var isClosing:Bool = false;
+
+    public function new(slug:String)
+    {
+        this.slug = slug;
     }
 }

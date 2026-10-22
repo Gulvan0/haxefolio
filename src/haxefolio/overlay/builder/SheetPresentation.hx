@@ -1,5 +1,6 @@
 package haxefolio.overlay.builder;
 
+import haxe.ui.core.Component;
 import haxefolio.Shadow;
 import haxefolio.Viewport;
 import haxefolio.structure.EdgePanel;
@@ -16,18 +17,25 @@ import haxefolio.structure.RegionStack;
     click-outside-to-dismiss. (The sheet itself covers the whole viewport once open, so the scrim is
     only ever visible mid-slide.)
 
+    Presented over another overlay, it leaves a strip of `NESTED_TOP_INSET` pixels of that one visible
+    above it.
+
     A fresh panel is built per overlay and disposed once gone.
 */
 class SheetPresentation extends OverlayPresentation
 {
     private final panel:EdgePanel;
-    private final shadow:Shadow;
+    private static inline var NESTED_TOP_INSET:Int = 24;
 
-    public function new(slug:String, stack:RegionStack, styleClass:Null<String>, shadow:Shadow, onGone:Void->Void)
+    private final shadow:Shadow;
+    private final nested:Bool;
+
+    public function new(slug:String, stack:RegionStack, styleClass:Null<String>, shadow:Shadow, nested:Bool, onGone:Void->Void)
     {
         super(slug, stack, styleClass, onGone);
 
         this.shadow = shadow;
+        this.nested = nested;
 
         panel = new EdgePanel(Bottom, onGone, null, true);
         panel.id = 'haxefolio-overlay-$slug-frame';
@@ -59,6 +67,16 @@ class SheetPresentation extends OverlayPresentation
         panel.close();
     }
 
+    public override function roots():Array<Component>
+    {
+        return [panel, panel.scrim];
+    }
+
+    public override function frameRect():{left:Float, top:Float, width:Float, height:Float}
+    {
+        return {left: panel.screenLeft, top: panel.screenTop, width: panel.width, height: panel.height};
+    }
+
     public override function resize():Void
     {
         applySize();
@@ -67,7 +85,7 @@ class SheetPresentation extends OverlayPresentation
     private function applySize():Void
     {
         var width:Float = Viewport.width();
-        var height:Float = Viewport.height();
+        var height:Float = Viewport.height() - (nested ? NESTED_TOP_INSET : 0);
 
         panel.width = width;
         stack.frameHeight = height;

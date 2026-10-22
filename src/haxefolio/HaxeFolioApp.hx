@@ -207,6 +207,18 @@ class HaxeFolioApp
     }
 
     /**
+        `present` over the overlay that is open (a picker opened from a form): it stacks on top of
+        it, dimming and covering only that overlay - its frame, not the whole screen - or, as a
+        sheet, leaving a strip of it visible. Only the topmost overlay reacts to Esc, and
+        dismissing an overlay dismisses those above it. A no-op while no overlay is open, or the
+        topmost is closing or has the same `slug`.
+    **/
+    public static function presentOver(slug:String, contentFactory:(Void->Void)->OverlayContent, ?mobileContentFactory:(Void->Void)->OverlayContent, ?appearance:AppearanceOverrides, ?onDismissed:Void->Void):Void
+    {
+        OverlayController.present(slug, contentFactory, mobileContentFactory, appearance, onDismissed, true);
+    }
+
+    /**
         Embeds the regions of the `OverlayContent` that `contentFactory` builds in `into`, as a
         bordered frame of `frameHeight` pixels and the full width of `into` - the region model of
         `present` without a presentation: no scrim, no Esc, nothing made inert, and it neither
