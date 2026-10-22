@@ -7,6 +7,7 @@ import haxe.ui.containers.VBox;
 import haxe.ui.events.UIEvent;
 import haxefolio.appearance.AppearanceContext;
 import haxefolio.form.plumbing.AutofillNeutralTextField;
+import haxefolio.form.plumbing.FieldActionButton;
 import haxefolio.form.plumbing.FieldHeader;
 import haxefolio.form.plumbing.HintState;
 import haxefolio.form.plumbing.PasswordRevealButton;
@@ -37,6 +38,9 @@ import morestd.Detachable;
     `setPrefix` draws a fixed, non-editable text at the input's left edge (a unit, a namespace like
     "Guest"), the input's left padding reserving its lane so typed text never runs under it;
     `setSuffix` does the same at the right edge.
+
+    `setAction` puts a glyph button in the same lane as the reveal toggle (so not on a
+    RevealablePassword field): the hook for a helper like a picker that fills the field.
 */
 class TextInputField extends VBox
 {
@@ -48,6 +52,7 @@ class TextInputField extends VBox
     private final onTextChange:String->Void;
     private final heightBinding:Detachable;
     private final revealButton:Null<PasswordRevealButton>;
+    private var actionButton:Null<FieldActionButton> = null;
     private var renderedText:String = "";
 
     /**
@@ -93,6 +98,11 @@ class TextInputField extends VBox
         Called whenever `capsLockOn` changes.
     **/
     public var onCapsLockChange:Null<Bool->Void> = null;
+
+    /**
+        Whether focusing the input selects its whole text, so a paste replaces the previous value.
+    **/
+    public var selectAllOnFocus:Bool = false;
 
     /**
         `maxChars` caps what can be typed (`null` for no cap); `mode` says whether the input is
@@ -142,6 +152,7 @@ class TextInputField extends VBox
         // HaxeUI's own :active (focused) state is driven by the FocusManager, which HaxeFolio disables
         input.element.addEventListener("focusin", () -> input.addClass("haxefolio-text-input-focused"));
         input.element.addEventListener("focusout", () -> input.removeClass("haxefolio-text-input-focused"));
+        input.element.addEventListener("focusin", selectAllIfRequested);
 
         input.element.addEventListener("keydown", updateCapsLock);
         input.element.addEventListener("keyup", updateCapsLock);
@@ -251,6 +262,24 @@ class TextInputField extends VBox
     }
 
     /**
+        Shows a square button at the input's right edge, drawing `glyphPaths` (markup in a 16x16
+        viewBox, stroked in the text colour), named `label` for assistive technology; the input's
+        right padding is its lane. `onActivate` runs on a click while the field is enabled.
+    **/
+    public function setAction(glyphPaths:String, label:String, onActivate:Void->Void):Void
+    {
+        if (actionButton != null)
+            inputBox.removeComponent(actionButton);
+
+        actionButton = new FieldActionButton(glyphPaths, label, onActivate);
+        actionButton.horizontalAlign = "right";
+        actionButton.verticalAlign = "center";
+        actionButton.disabled = !enabled;
+        inputBox.addComponent(actionButton);
+        applyFieldHeight(Std.int(input.height));
+    }
+
+    /**
         Whether touch devices bring up a numeric keyboard for the input (`inputmode="numeric"`). It
         only changes the keyboard: what may be typed is still the host's to validate.
     **/
@@ -270,6 +299,13 @@ class TextInputField extends VBox
     private function applyFieldHeight(height:Int):Void
     {
         input.height = height;
+
+        if (actionButton != null)
+        {
+            actionButton.width = height;
+            actionButton.height = height;
+            input.paddingRight = height;
+        }
 
         if (revealButton == null)
             return;
@@ -297,6 +333,20 @@ class TextInputField extends VBox
 
         if (onCapsLockChange != null)
             onCapsLockChange(value);
+    }
+
+    // deferred, as the click that focused the input would otherwise collapse the selection on mouseup
+    private function selectAllIfRequested():Void
+    {
+        if (!selectAllOnFocus)
+            return;
+
+        Browser.window.setTimeout(() -> {
+            var native:Null<Element> = nativeInput();
+
+            if (native != null && focused)
+                (cast native : InputElement).select();
+        }, 0);
     }
 
     private function nativeInput():Null<Element>
@@ -364,6 +414,8 @@ class TextInputField extends VBox
         header.locked = !value;
         if (revealButton != null)
             revealButton.disabled = !value;
+        if (actionButton != null)
+            actionButton.disabled = !value;
         return value;
     }
 

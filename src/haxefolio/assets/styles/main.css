@@ -866,18 +866,21 @@
 }
 
 /* the glyph is inline SVG in currentColor, so `color` paints it */
-.haxefolio-password-reveal {
+.haxefolio-password-reveal,
+.haxefolio-text-input-action {
     pointer-events: true;
     cursor: pointer;
     background-color: transparent;
     color: #5f6168;
 }
 
-.haxefolio-password-reveal:hover {
+.haxefolio-password-reveal:hover,
+.haxefolio-text-input-action:hover {
     color: #1f2126;
 }
 
-.haxefolio-password-reveal:disabled {
+.haxefolio-password-reveal:disabled,
+.haxefolio-text-input-action:disabled {
     cursor: not-allowed;
     color: #9a9ca2;
 }
