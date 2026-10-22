@@ -1546,12 +1546,12 @@ A static property wrapping the page's `<link rel="icon">` element. Reading it re
 ```haxe
 class ActivityTracker
 {
-    public static function activate():Void
+    public static function activate(?idleThresholdSecs:Int = 0, ?onResumeAfterIdle:Void->Void):Void
     public static function getLastActivityTs():Int
 }
 ```
 
-Tracks the Unix timestamp (in seconds) of the user's last interaction with the page. `activate()` attaches document-level listeners for `mousedown`, `mousemove`, `keypress`, `scroll` and `touchstart`, each updating the tracked timestamp; call it once, typically at startup - calling it again has no effect. `getLastActivityTs()` returns the tracked timestamp, or `0` if `activate()` was never called or no tracked event has fired yet.
+Tracks the Unix timestamp (in seconds) of the user's last interaction with the page. `activate()` attaches document-level listeners for `mousedown`, `mousemove`, `keypress`, `scroll` and `touchstart`, each updating the tracked timestamp; call it once, typically at startup - calling it again has no effect. If `onResumeAfterIdle` is given, it is called when the user interacts after at least `idleThresholdSecs` without any tracked interaction (never for the first interaction ever seen). `getLastActivityTs()` returns the tracked timestamp, or `0` if `activate()` was never called or no tracked event has fired yet.
 
 ### Clipboard
 
