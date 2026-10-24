@@ -12,6 +12,7 @@ import haxe.ui.core.Screen;
 import haxefolio.appearance.AppearanceContext;
 import haxefolio.appearance.AppearanceOverrides;
 import js.Browser;
+import morestd.Throttler;
 import haxefolio.menu.DropdownWidget;
 import haxefolio.menu.MenuFacade;
 import haxefolio.menu.SideBarController;
@@ -35,10 +36,11 @@ using StringTools;
 class HaxeFolioApp
 {
     /**
-        Holds the state passed to `navigateTo` while a transition is in progress, since at that
-        point it has not been pushed to `history.state` yet. Outside of an in-progress transition
-        (in particular, right after a plain reload or a back/forward navigation), this is null and
-        `navigationState` instead reads the browser-preserved `history.state` directly.
+        Holds the state passed to `navigateTo` (or later set via `setState`) while a transition is
+        in progress or a throttled `setState` write is waiting, since at that point it has not been
+        written to `history.state` yet. Otherwise (in particular, right after a plain reload or a
+        back/forward navigation), `navigationState` reads the browser-preserved `history.state`
+        directly.
     **/
     public static var navigationState(get, never):Dynamic;
 
@@ -55,8 +57,19 @@ class HaxeFolioApp
     **/
     public static var valueStorage(default, null):StorageBackend;
 
+    private static inline var DEFAULT_LEAVE_CONFIRM_TEXT:String = "Changes you made may not be saved. Leave this page?";
+
     private static var pendingNavigationState:Dynamic;
+    private static var hasPendingNavigationState:Bool = false;
+    private static var stateThrottler:Throttler;
+    private static var pageEpoch:Int = 0;
+    private static var transitionInProgress:Bool = false;
     private static var pendingFragment:Null<String>;
+
+    // The address bar's entry for the current page, to restore it when a back/forward navigation is refused
+    private static var committedPath:Null<String>;
+    private static var committedState:Dynamic;
+    private static var committedFragment:Null<String>;
     private static var config:HaxeFolioConfig;
     private static var pageContainer:Box;
     private static var currentPage:PageBase;
@@ -89,6 +102,7 @@ class HaxeFolioApp
 
         PageRouter.init(config.pages);
         HaxeFolioApp.config = config;
+        stateThrottler = new Throttler(config.stateThrottleMs ?? 1000);
 
         valueStorage = new StorageBackend(config.appSlug);
         PreferenceRegistry.provideBackend(valueStorage);
@@ -157,6 +171,17 @@ class HaxeFolioApp
     public static function navigateTo(path:String, ?state:Dynamic, ?fragment:String):Void
     {
         openPath(path, true, state, fragment);
+    }
+
+    /**
+        Replaces the current page's path in the address bar with `path`, without navigating: the
+        page stays as it is, its `navigationState` and fragment are kept, and no back/forward entry
+        is added. For a page whose content now lives at another path (a draft that got saved under
+        an id). `path` isn't resolved against the registered pages.
+    **/
+    public static function replacePath(path:String):Void
+    {
+        PageRouter.replaceUrl(path, navigationState, PageRouter.readFragmentFromUrl());
     }
 
     /**
@@ -308,11 +333,52 @@ class HaxeFolioApp
     public static function setFragment(?fragment:String, keepInHistory:Bool = false):Void
     {
         pendingFragment = fragment;
+        committedFragment = fragment;
 
         if (keepInHistory)
             PageRouter.pushUrl(PageRouter.readPathFromUrl(), navigationState, fragment);
         else
             PageRouter.replaceUrl(PageRouter.readPathFromUrl(), navigationState, fragment);
+    }
+
+    /**
+        Replaces the `navigationState` of the current page in place, without a full navigation -
+        the path and fragment are left untouched. Like `navigateTo`'s `state`, it must be plain,
+        structured-clone-compatible data. `navigationState` reflects the new value immediately,
+        but the write to the browser history is throttled (`HaxeFolioConfig.stateThrottleMs`,
+        1000 by default) since browsers rate-limit `history.replaceState`/`pushState`: calls in
+        quick succession collapse into one write of the latest state. By default the write uses
+        `history.replaceState`; pass `keepInHistory: true` to use `history.pushState` instead.
+        A write still waiting when the user navigates to another page is dropped. Safe to call
+        from a page's own `init`, in which case the enclosing transition writes the state
+        unthrottled.
+    **/
+    public static function setState(?state:Dynamic, keepInHistory:Bool = false):Void
+    {
+        pendingNavigationState = state;
+        hasPendingNavigationState = true;
+
+        if (transitionInProgress)
+            return;
+
+        var epoch:Int = pageEpoch;
+
+        stateThrottler.run(() -> {
+            if (epoch != pageEpoch || !hasPendingNavigationState)
+                return;
+
+            var path:Null<String> = PageRouter.readPathFromUrl();
+            var fragment:Null<String> = PageRouter.readFragmentFromUrl();
+
+            if (keepInHistory)
+                PageRouter.pushUrl(path, pendingNavigationState, fragment);
+            else
+                PageRouter.replaceUrl(path, pendingNavigationState, fragment);
+
+            committedState = pendingNavigationState;
+            pendingNavigationState = null;
+            hasPendingNavigationState = false;
+        });
     }
 
     /*
@@ -350,30 +416,51 @@ class HaxeFolioApp
         openPath(path, false);
     }
 
+    /*
+        Asks the current page whether it may be left and, if it objects, the user. A refused
+        back/forward navigation has already changed the address bar, so the current page's entry
+        is pushed back over it.
+    */
+    private static function mayLeaveCurrentPage(isExplicitNavigation:Bool):Bool
+    {
+        if (currentPage == null || currentPage.canLeave())
+            return true;
+
+        var text:String = LocaleUtils.resolveText(config.leaveConfirmText ?? DEFAULT_LEAVE_CONFIRM_TEXT);
+
+        if (Browser.window.confirm(text))
+            return true;
+
+        if (!isExplicitNavigation)
+            PageRouter.pushUrl(committedPath, committedState, committedFragment);
+
+        return false;
+    }
+
     private static function openPath(path:String, isExplicitNavigation:Bool, ?state:Dynamic, ?fragment:String):Void
     {
+        if (!mayLeaveCurrentPage(isExplicitNavigation))
+            return;
+
         var resolution:Null<PageResolution> = PageRouter.resolve(path);
 
         if (resolution != null)
         {
-            pendingNavigationState = state;
-            pendingFragment = fragment;
+            beginTransition(isExplicitNavigation ? state : Browser.window.history.state, fragment); // a reload or back/forward keeps the entry's own state
 
             try
             {
                 switchToPage(resolution.definition, resolution.params);
 
                 if (isExplicitNavigation)
-                    PageRouter.pushUrl(path, state, pendingFragment);
+                    PageRouter.pushUrl(path, pendingNavigationState, pendingFragment);
 
-                pendingNavigationState = null;
-                pendingFragment = null;
+                endTransition();
                 return;
             }
             catch (e:Dynamic)
             {
-                pendingNavigationState = null;
-                pendingFragment = null;
+                endTransition();
 
                 if (resolution.definition == PageRouter.defaultPageDefinition)
                     throw e;
@@ -385,13 +472,46 @@ class HaxeFolioApp
 
     private static function openDefaultPage(isExplicitNavigation:Bool):Void
     {
-        switchToPage(PageRouter.defaultPageDefinition, []);
+        if (!mayLeaveCurrentPage(isExplicitNavigation))
+            return;
+
+        beginTransition(null, null);
+
+        try
+        {
+            switchToPage(PageRouter.defaultPageDefinition, []);
+        }
+        catch (e:Dynamic)
+        {
+            endTransition();
+            throw e;
+        }
 
         if (isExplicitNavigation)
-            PageRouter.pushUrl(PageRouter.defaultPageDefinition.path, null, pendingFragment)
+            PageRouter.pushUrl(PageRouter.defaultPageDefinition.path, pendingNavigationState, pendingFragment)
         else
-            PageRouter.replaceUrl(PageRouter.defaultPageDefinition.path, null, pendingFragment);
+            PageRouter.replaceUrl(PageRouter.defaultPageDefinition.path, pendingNavigationState, pendingFragment);
 
+        endTransition();
+    }
+
+    private static function beginTransition(state:Dynamic, fragment:Null<String>):Void
+    {
+        transitionInProgress = true;
+        pageEpoch++;
+        pendingNavigationState = state;
+        hasPendingNavigationState = true;
+        pendingFragment = fragment;
+    }
+
+    private static function endTransition():Void
+    {
+        committedPath = PageRouter.readPathFromUrl();
+        committedState = Browser.window.history.state;
+        committedFragment = PageRouter.readFragmentFromUrl();
+        transitionInProgress = false;
+        pendingNavigationState = null;
+        hasPendingNavigationState = false;
         pendingFragment = null;
     }
 
@@ -448,7 +568,7 @@ class HaxeFolioApp
 
     private static function get_navigationState():Dynamic
     {
-        return pendingNavigationState ?? Browser.window.history.state;
+        return hasPendingNavigationState ? pendingNavigationState : Browser.window.history.state;
     }
 
     private static function get_fragment():Null<String>

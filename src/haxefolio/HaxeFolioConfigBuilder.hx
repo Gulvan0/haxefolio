@@ -29,6 +29,7 @@ class HaxeFolioConfigBuilder
     private var menubarChevronsShown:Bool;
     private var sidebarExtras:Array<SidebarGroup>;
     private var defaultTitleText:Null<String>;
+    private var leaveConfirmText:Null<String>;
     private var supportedLocales:Null<Map<String, String>>;
     private var preferenceTabIcons:Null<Map<String, String>>;
     private var preferenceWindowAppearance:Null<AppearanceOverrides>;
@@ -151,6 +152,12 @@ class HaxeFolioConfigBuilder
         return this;
     }
 
+    public function setLeaveConfirmText(leaveConfirmText:String):HaxeFolioConfigBuilder
+    {
+        this.leaveConfirmText = leaveConfirmText;
+        return this;
+    }
+
     public function addLocale(code:String, displayName:String):HaxeFolioConfigBuilder
     {
         if (supportedLocales == null)
@@ -202,6 +209,7 @@ class HaxeFolioConfigBuilder
             menubar: {left: menubarLeft, right: menubarRight, showChevrons: menubarChevronsShown},
             sidebarExtras: sidebarExtras,
             defaultTitleText: defaultTitleText,
+            leaveConfirmText: leaveConfirmText,
             supportedLocales: supportedLocales,
             preferenceTabIcons: preferenceTabIcons,
             preferenceWindowAppearance: preferenceWindowAppearance,

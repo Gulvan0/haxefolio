@@ -115,6 +115,20 @@ HaxeFolioApp.setFragment(?fragment:String, keepInHistory:Bool = false):Void
 
 By default this uses `history.replaceState`, so it doesn't create its own back/forward entry; pass `keepInHistory: true` to use `history.pushState` instead, for the rare case where a fragment change (e.g. switching between tabs within a page) should itself be reachable via the back button. Calling `setFragment` from a page's own `init` overrides whatever fragment `navigateTo` was originally given. When no fragment is set for a page, `fragment` is `null`.
 
+A page whose content moves to another path while it stays open (a draft saved under a new id) swaps the address bar's path in place, keeping `navigationState` and the fragment and adding no back/forward entry:
+
+```haxe
+HaxeFolioApp.replacePath(path:String):Void
+```
+
+A page can replace its own `navigationState` after it has loaded (e.g. to persist a selected tab or a scroll position across reloads):
+
+```haxe
+HaxeFolioApp.setState(?state:Dynamic, keepInHistory:Bool = false):Void
+```
+
+`navigationState` returns the new value at once, but the write to the browser history is throttled, since browsers rate-limit the history API: calls within `HaxeFolioConfig.stateThrottleMs` (1000 by default) of the previous write collapse into a single write of the latest state. By default it uses `history.replaceState`; `keepInHistory: true` uses `pushState`. A write still pending when the user navigates elsewhere is dropped. Called from `init`, the state is simply written along with the transition.
+
 ### Page links
 
 A component whose sole purpose is to open a page (a button, a nickname label, a list row) should be a real link, not an `onClick` calling `navigateTo`: only a link offers "Open in new tab" and "Copy link address" in the context menu and shows its target URL on hover.
@@ -494,7 +508,7 @@ The package splits into two layers, the same split `haxefolio.menu`/`.builder` a
 `haxefolio.preferences`/`.builder` already use elsewhere in the framework:
 
 - **`haxefolio.form`** - the components a framework user actually reaches for and composes a
-  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `TextInputField`, `CopyField`, `ColorField`, `CheckBoxRow`, `PreviewPane`, `FormSection` below, and more as the library grows.
+  form from: `ChoiceRow`, `ChoiceGrid`, `ToggleButton`, `FieldGroup`, `SteppedValueField` (with `IntField`/`DurationField`), `CommitTextField`, `TextInputField`, `TextAreaField`, `CopyField`, `ColorField`, `CheckBoxRow`, `PreviewPane`, `FormSection` below, and more as the library grows.
 - **`haxefolio.structure`** - layout building blocks that are not form-specific and that the overlay region model builds on: `SwapSlot` (below), which forms use directly, plus `RegionStack`, `Region`, `ScrollArea`, `TabStrip`, `ErrorMarker` and `EdgePanel` (see `Region stacks`); a form imports it from here, not from `haxefolio.form`.
 - **`haxefolio.form.plumbing`** - the primitives those components are built from
   (`FieldHeader`, `HintLine`, `ChoiceButton`, `Stepper`) and the shared model types (`HintState`,
@@ -878,6 +892,7 @@ public var enabled(default, set):Bool
 public var focused(get, never):Bool
 public var capsLockOn(default, null):Bool
 public var onCapsLockChange:Null<Bool->Void>
+public var placeholder(get, set):Null<String>
 public function focus():Void
 public function setPrefix(text:Null<String>, laneWidth:Int = 0):Void
 public function setSuffix(text:Null<String>, laneWidth:Int = 0):Void
@@ -912,6 +927,18 @@ public function dispose():Void
   `:-webkit-autofill` tint is covered with the field's own background and ink, as resolved by the stylesheets (host
   overrides and `:disabled` included). The rules are injected once as a plain document stylesheet, keyed on the DOM class
   `haxefolio-autofill-neutral` (see `AutofillNeutralTextField`).
+
+### TextAreaField
+
+The multi-line sibling of `TextInputField`: a `FieldHeader` over a full-width text area of a fixed height (the header
+excluded) that scrolls its own text. Validation works the same way - every user edit reaches `onText`, and the host writes
+back `hint`, `hintState` and `invalid`; `currentText` assigns without calling `onText`. Enter inserts a line break; there is
+no submit hook. `maxChars` caps the length, `placeholder` shows while empty. Styled by `.haxefolio-text-area-field` and, on
+the area, `.haxefolio-text-input` (with `-invalid` / `-focused` / `:disabled`) plus `.haxefolio-text-area`.
+
+```haxe
+var description:TextAreaField = new TextAreaField("Description", text -> description.hint = '${text.length} of 2000', 132, 2000);
+```
 
 ### CopyField
 
@@ -1639,6 +1666,7 @@ Ids marked `<...>` are per-instance (built from a slug/id supplied in config); c
 | `.haxefolio-choice-button-outlined` | Carried by a `ChoiceButton`/`ToggleButton` built while the app's `selectionEmphasis` is `Outlined` (see `Appearance`); switches its `:down` treatment from `Filled` to `Outlined`. Set by the framework - not something to add by hand. |
 | `.haxefolio-choice-row` | A `ChoiceRow`'s own box. |
 | `.haxefolio-text-input-field` / `.haxefolio-text-input` / `-invalid` / `-focused` / `:disabled` | A `TextInputField`'s own box / its input; `-invalid` while `invalid == true`, `-focused` while it has keyboard focus (HaxeUI's `:active` is not delivered, see `TextInputField`). |
+| `.haxefolio-text-input-placeholder` | The `placeholder` of a `TextInputField` or `TextAreaField`: a label over the input, shown while it is empty (HaxeUI's own placeholder is written into the value). `TextAreaField`'s also carries `.haxefolio-text-area-placeholder`. |
 | `.haxefolio-password-reveal` / `:hover` / `:disabled` | A `RevealablePassword` `TextInputField`'s eye toggle; `color` paints its glyph. |
 | `.haxefolio-check-box-row` / `-checked` / `-outlined` / `:hover` / `:disabled` | A `CheckBoxRow`; `-checked` while checked, `-outlined` while built under `selectionEmphasis: Outlined` (set by the framework). |
 | `.haxefolio-check-box` / `-mark` / `-label` | Its box, the check mark inside it, and its caption. |

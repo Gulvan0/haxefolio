@@ -51,6 +51,13 @@ typedef HaxeFolioConfig = {
     ?debounceMs:Int,
 
     /**
+        Minimum interval, in milliseconds, between two writes of `HaxeFolioApp.setState` to the
+        browser history; calls in between collapse into one write of the latest state. Defaults to
+        1000.
+    **/
+    ?stateThrottleMs:Int,
+
+    /**
         Theme-wide overrides of the framework's `Appearance` - the geometry tokens its height
         arithmetic reads, and the `EmphasisStyle` its components agree on - applied over the
         built-in defaults. `styleClass` is ignored here. Colour and typography are not part of it;
@@ -81,6 +88,13 @@ typedef HaxeFolioConfig = {
         is used instead.
     **/
     ?defaultTitleText:String,
+
+    /**
+        Text (interpreted as for `defaultTitleText`) of the native confirmation dialog shown when a
+        page's `canLeave` returns `false` and the user navigates away within the app. Defaults to
+        "Changes you made may not be saved. Leave this page?".
+    **/
+    ?leaveConfirmText:String,
 
     /**
         Maps each locale id the app provides strings for (the `id` declared under `<locales>` in

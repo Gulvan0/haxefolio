@@ -65,6 +65,19 @@ class PageBase extends Box
     }
 
     /**
+        Called by the framework before navigating away from this page within the app (a link, a
+        menu item, `HaxeFolioApp.navigateTo`, the back/forward buttons). Return `false` if leaving
+        would lose something - the framework then asks the user to confirm with the browser's
+        native confirmation dialog (text: `HaxeFolioConfig.leaveConfirmText`) and cancels the
+        navigation unless they agree. Not consulted for leaving the site itself: use a
+        `beforeunload` listener for that. Returns `true` by default.
+    **/
+    private function canLeave():Bool
+    {
+        return true;
+    }
+
+    /**
         Assigns `document.title` to `LocaleUtils.resolveText(text, param0, param1, param2, param3)` -
         see `LocaleUtils.resolveText` for exactly how `text`/`param0`-`param3` are interpreted. Callable
         from `init` or at any later point (e.g. once data that only becomes available
