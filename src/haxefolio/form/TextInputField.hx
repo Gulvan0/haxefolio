@@ -49,6 +49,7 @@ class TextInputField extends VBox
     private final input:TextField;
     private var prefixLabel:Null<Label> = null;
     private var suffixLabel:Null<Label> = null;
+    private var placeholderLabel:Null<Label> = null;
     private final onTextChange:String->Void;
     private final heightBinding:Detachable;
     private final revealButton:Null<PasswordRevealButton>;
@@ -103,6 +104,12 @@ class TextInputField extends VBox
         Whether focusing the input selects its whole text, so a paste replaces the previous value.
     **/
     public var selectAllOnFocus:Bool = false;
+
+    /**
+        Shown in the input while it is empty, interpreted like any HaxeUI `.text` property. Drawn as a
+        label over the input, since HaxeUI's own placeholder is written into the input's value.
+    **/
+    public var placeholder(get, set):Null<String>;
 
     /**
         `maxChars` caps what can be typed (`null` for no cap); `mode` says whether the input is
@@ -370,7 +377,48 @@ class TextInputField extends VBox
     {
         renderedText = value;
         input.text = value;
+        var native:Null<Element> = nativeInput();
+        if (native != null)
+            (cast native : InputElement).value = value; // HaxeUI writes it only on its next validation, which typing can overtake
+        refreshPlaceholder();
         return value;
+    }
+
+    private function get_placeholder():Null<String>
+    {
+        return placeholderLabel != null ? placeholderLabel.text : null;
+    }
+
+    private function set_placeholder(value:Null<String>):Null<String>
+    {
+        if (value == null)
+        {
+            if (placeholderLabel != null)
+            {
+                inputBox.removeComponent(placeholderLabel);
+                placeholderLabel = null;
+            }
+            return value;
+        }
+
+        if (placeholderLabel == null)
+        {
+            placeholderLabel = new Label();
+            placeholderLabel.verticalAlign = "center";
+            placeholderLabel.addClass("haxefolio-text-input-placeholder");
+            placeholderLabel.element.style.pointerEvents = "none"; // a click on it lands on the input
+            inputBox.addComponent(placeholderLabel);
+        }
+
+        placeholderLabel.text = value;
+        refreshPlaceholder();
+        return value;
+    }
+
+    private function refreshPlaceholder():Void
+    {
+        if (placeholderLabel != null)
+            placeholderLabel.hidden = currentText.length > 0;
     }
 
     private function get_hint():Null<String>
@@ -431,6 +479,7 @@ class TextInputField extends VBox
             return;
 
         renderedText = current;
+        refreshPlaceholder();
         onTextChange(current);
     }
 }

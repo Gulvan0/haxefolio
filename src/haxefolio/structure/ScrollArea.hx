@@ -28,6 +28,11 @@ import js.html.StyleElement;
     percentage, HaxeUI would resolve them against the whole width, lane included, and take a
     further native scrollbar's width off them whenever they overflow - so the usable width would
     change when the content grows past the area.
+
+    HaxeUI's HTML5 backend marks every component `touch-action: none` unless its own scrollers are
+    native, which stops the browser from panning this area by touch; the same stylesheet restores
+    vertical panning for the area and everything inside it. Components that need raw touch input
+    (the board) set `touch-action` inline, which still wins.
 */
 class ScrollArea extends ScrollView
 {
@@ -91,6 +96,7 @@ class ScrollArea extends ScrollView
 
         var style:StyleElement = Browser.document.createStyleElement();
         style.textContent = '
+            #haxeui-container .$MARKER_CLASS, #haxeui-container .$MARKER_CLASS .haxeui-component { touch-action: pan-y; }
             @media not (pointer: coarse) {
                 .$MARKER_CLASS::-webkit-scrollbar { width: 10px; background: transparent; }
                 .$MARKER_CLASS::-webkit-scrollbar-track { background: transparent; }

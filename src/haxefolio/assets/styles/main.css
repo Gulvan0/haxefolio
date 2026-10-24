@@ -826,6 +826,23 @@
     padding-bottom: 8px;
 }
 
+.haxefolio-text-area {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.haxefolio-text-input-placeholder {
+    padding-left: 11px;
+    padding-right: 11px;
+    font-name: $ui-family-regular;
+    font-size: 13px;
+    color: #9a9ca2;
+}
+
+.haxefolio-text-area-placeholder {
+    padding-top: 9px;
+}
+
 .haxefolio-color-field-box {
     horizontal-spacing: 8px;
     padding-left: 7px;
