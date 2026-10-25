@@ -15,7 +15,9 @@ import js.html.StyleElement;
     Built on HaxeUI's `ScrollView` in native scroll mode, because both guarantees are properties
     of the browser's own scroller: `overscroll-behavior: contain` stops scroll chaining for wheel,
     drag and touch momentum alike, and an always-shown, styled scrollbar keeps its lane whether or
-    not the content overflows. HaxeUI's own scrollbars can do neither.
+    not the content overflows. HaxeUI's own scrollbars can do neither. The containment applies only
+    while the content actually overflows: an area with nothing to scroll lets the wheel through to
+    the page behind it.
 
     With a fine pointer, the scrollbar is a thin permanent lane (10px, 6px thumb) drawn with
     `::-webkit-scrollbar`, which HaxeUI's stylesheets cannot reach - so its rules are injected once
@@ -66,8 +68,19 @@ class ScrollArea extends ScrollView
         var nativeElement:Element = this.element;
         nativeElement.style.overflowX = "hidden";
         nativeElement.style.overflowY = "scroll";
-        (cast nativeElement.style : Dynamic).overscrollBehavior = "contain";
         fitContentsToLane();
+
+        var observer:Dynamic = js.Syntax.code("new ResizeObserver({0})", (_:Array<Dynamic>) -> updateContainment());
+        observer.observe(nativeElement);
+        observer.observe(contents.element);
+        updateContainment();
+    }
+
+    private function updateContainment():Void
+    {
+        var nativeElement:Element = this.element;
+        var overflows:Bool = nativeElement.scrollHeight > nativeElement.clientHeight;
+        (cast nativeElement.style : Dynamic).overscrollBehavior = overflows ? "contain" : "auto";
     }
 
     private override function onResized():Void
