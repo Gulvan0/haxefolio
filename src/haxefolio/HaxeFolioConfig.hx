@@ -35,6 +35,20 @@ typedef HaxeFolioConfig = {
     ?menuCollapseWidth:Int,
 
     /**
+        The height below which a landscape viewport (wider than it is tall) gets the `Rail` layout
+        whatever its width: the collapsed menu bar becomes a strip along the left edge (see
+        `MenuLayout`). Defaults to 500.
+    **/
+    ?menuRailHeight:Int,
+
+    /**
+        Path to the icon shown in place of the site name - under the rail's hamburger button, and on
+        a collapsed menu bar too narrow for the name - navigating to the default page when clicked.
+        Defaults to a house.
+    **/
+    ?homeIcon:String,
+
+    /**
         Viewport tier scales, independent of each other and of `menuCollapseWidth`: the tiers
         sharing a `scale` form one, and each scale has its own current tier (see
         `ResponsivityController.currentTier`). Every scale needs a tier starting at 0, its fallback,

@@ -17,8 +17,8 @@ import morestd.Detachable;
     host's own content, and a row of `ActionButton`s split evenly. Show it with
     `HaxeFolioApp.notify`, alone or as one card of a bigger notification.
 
-    It follows the breakpoint by itself: its buttons take the breakpoint's `fieldHeight`, and the
-    close control's hit area is larger under `.haxefolio-collapsed`.
+    It follows the layout by itself: its buttons take the layout's `fieldHeight`, and the close
+    control's hit area is larger under `.haxefolio-compact`.
 
     Declared in XML as `<notification-card caption="..." title="...">`, its child elements go into
     the body, except `<action-button>`s, which go into the action row. From code, add content with
@@ -122,7 +122,7 @@ class NotificationCard extends VBox
         for (actionButton in actionButtons)
             actionButton.percentWidth = 100 / actionButtons.length;
 
-        applyButtonHeight(AppearanceContext.current.geometry.fieldHeight.resolve(ResponsivityController.isCollapsed));
+        applyButtonHeight(AppearanceContext.current.geometry.fieldHeight.resolve(ResponsivityController.menuLayout));
     }
 
     /**

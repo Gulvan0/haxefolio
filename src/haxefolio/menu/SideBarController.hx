@@ -4,6 +4,7 @@ import haxe.ui.core.Component;
 import haxefolio.ElementShadow;
 import haxefolio.appearance.AppearanceContext;
 import haxefolio.InertHolds;
+import haxefolio.MenuLayout;
 import haxefolio.ResponsivityController;
 import haxefolio.Viewport;
 import haxefolio.overlay.OverlayController;
@@ -44,8 +45,8 @@ class SideBarController
 
         ElementShadow.apply(panel.element, AppearanceContext.current.shadows.sideBar);
 
-        ResponsivityController.onCollapseChange(collapsed -> {
-            if (!collapsed)
+        ResponsivityController.onMenuLayoutChange(layout -> {
+            if (layout == Expanded)
                 close(false);
         });
     }

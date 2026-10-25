@@ -4,14 +4,15 @@ import haxe.ui.Toolkit;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
 import haxe.ui.core.Screen;
+import haxefolio.MenuLayout;
 import haxefolio.ResponsivityController;
 import haxefolio.Viewport;
 
 /*
     Places notifications: one column, anchored to the bottom of the viewport, newest at the bottom
-    (closest to the anchor). Expanded, the column sits in the bottom-right corner and each
-    notification keeps its own width, right-aligned; collapsed, every notification spans the
-    viewport minus the edge margins. Nothing else is shared between notifications - frames, layout
+    (closest to the anchor). Expanded and in the rail layout, the column sits in the bottom-right
+    corner and each notification keeps its own width, right-aligned; collapsed, every notification
+    spans the viewport minus the edge margins. Nothing else is shared between notifications - frames, layout
     and lifetime are their content's.
 
     The column is a Screen root component of its own, added once by HaxeFolioApp.init after the app
@@ -20,7 +21,7 @@ import haxefolio.Viewport;
     beneath them.
 
     It is re-anchored whenever its own size changes (which covers showing, dismissing, and content
-    changing its height), on the debounced viewport resize, and when the breakpoint flips. Its own
+    changing its height), on the debounced viewport resize, and when the layout changes. Its own
     size changes are watched with a native ResizeObserver: HaxeUI's UIEvent.RESIZE did not fire
     when the column, auto-sized to its content, grew after the first layout, which left it anchored
     for a height of 0 (below the viewport's bottom edge).
@@ -51,7 +52,7 @@ class NotificationLayer
         var observer:Dynamic = js.Syntax.code("new ResizeObserver({0})", onColumnResized);
         observer.observe(column.element);
 
-        ResponsivityController.onCollapseChange(_ -> fit());
+        ResponsivityController.onMenuLayoutChange(_ -> fit());
 
         return column;
     }
@@ -84,7 +85,7 @@ class NotificationLayer
     }
 
     /*
-        Applies the current breakpoint's widths and re-anchors the column. Called off the debounced
+        Applies the current layout's widths and re-anchors the column. Called off the debounced
         viewport resize too.
     */
     @:allow(haxefolio)
@@ -98,7 +99,7 @@ class NotificationLayer
 
         for (notification in shown)
         {
-            var width:Float = ResponsivityController.isCollapsed ? collapsedWidth : notification.expandedWidth;
+            var width:Float = ResponsivityController.menuLayout == Collapsed ? collapsedWidth : notification.expandedWidth;
             notification.content.width = width;
             columnWidth = Math.max(columnWidth, width);
         }

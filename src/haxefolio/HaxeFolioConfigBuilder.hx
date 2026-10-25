@@ -20,6 +20,8 @@ class HaxeFolioConfigBuilder
     private var appIcon:Null<String>;
     private var siteName:Null<String>;
     private var menuCollapseWidth:Int;
+    private var menuRailHeight:Int;
+    private var homeIcon:Null<String>;
     private var widthTiers:Array<WidthTier>;
     private var debounceMs:Int;
     private var appearance:Null<AppearanceOverrides>;
@@ -41,6 +43,7 @@ class HaxeFolioConfigBuilder
         this.appSlug = appSlug;
         this.preferences = preferences;
         menuCollapseWidth = 900;
+        menuRailHeight = 500;
         widthTiers = [];
         debounceMs = 500;
         pages = [];
@@ -75,6 +78,18 @@ class HaxeFolioConfigBuilder
     public function setMenuCollapseWidth(menuCollapseWidth:Int):HaxeFolioConfigBuilder
     {
         this.menuCollapseWidth = menuCollapseWidth;
+        return this;
+    }
+
+    public function setMenuRailHeight(menuRailHeight:Int):HaxeFolioConfigBuilder
+    {
+        this.menuRailHeight = menuRailHeight;
+        return this;
+    }
+
+    public function setHomeIcon(homeIcon:String):HaxeFolioConfigBuilder
+    {
+        this.homeIcon = homeIcon;
         return this;
     }
 
@@ -202,6 +217,8 @@ class HaxeFolioConfigBuilder
             appIcon: appIcon,
             siteName: siteName,
             menuCollapseWidth: menuCollapseWidth,
+            menuRailHeight: menuRailHeight,
+            homeIcon: homeIcon,
             widthTiers: widthTiers,
             debounceMs: debounceMs,
             appearance: appearance,

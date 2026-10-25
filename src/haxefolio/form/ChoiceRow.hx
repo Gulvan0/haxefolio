@@ -4,7 +4,7 @@ import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.layouts.HorizontalLayout;
 import haxe.ui.layouts.VerticalLayout;
-import haxefolio.ByWidth;
+import haxefolio.ByMenuLayout;
 import haxefolio.form.plumbing.ChoiceButton;
 import haxefolio.form.plumbing.ChoiceOption;
 import haxefolio.form.plumbing.FieldGroupDirection;
@@ -36,7 +36,7 @@ class ChoiceRow<T> extends VBox
     private final optionCount:Int;
     private final directionBinding:Detachable;
 
-    public function new(label:Null<String>, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByWidth<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
+    public function new(label:Null<String>, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByMenuLayout<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
     {
         super();
 
@@ -69,7 +69,7 @@ class ChoiceRow<T> extends VBox
             buttonRow.addComponent(button);
         }
 
-        var resolvedDirection:ByWidth<FieldGroupDirection> = FieldGroupDirection.Horizontal;
+        var resolvedDirection:ByMenuLayout<FieldGroupDirection> = FieldGroupDirection.Horizontal;
         if (direction != null)
             resolvedDirection = direction;
 

@@ -16,7 +16,7 @@ enum Region
         A search input (see `SearchBar`). `height` overrides the `searchBarHeight` token for this
         instance only.
     **/
-    Search(bar:SearchBar, ?height:ByWidth<Int>);
+    Search(bar:SearchBar, ?height:ByMenuLayout<Int>);
 
     /**
         The title row (see `HeaderBar`): `title`, interpreted like any HaxeUI `.text` property, and a
@@ -24,20 +24,20 @@ enum Region
         this instance only. `hideClose` drops the close control, for a host whose footer carries the
         exit; a stack with nothing to dismiss (an embedded panel) has no close control either way.
     **/
-    Header(title:String, ?height:ByWidth<Int>, ?hideClose:Bool);
+    Header(title:String, ?height:ByMenuLayout<Int>, ?hideClose:Bool);
 
     /**
         A row of buttons (see `ActionBar`), typically the overlay's footer. `height` overrides the
         `actionBarHeight` token for this instance only.
     **/
-    Actions(bar:ActionBar, ?height:ByWidth<Int>);
+    Actions(bar:ActionBar, ?height:ByMenuLayout<Int>);
 
     /**
         A fixed-height region holding arbitrary content. `height` is declared, never measured:
         content that does not fit is cut off, not accommodated. `Custom` is the one region that
         insists on a number, because the framework has no constant for a region it did not design.
     **/
-    Custom(height:ByWidth<Int>, content:Component);
+    Custom(height:ByMenuLayout<Int>, content:Component);
 
     /**
         The scrolling area: vertical scrolling only, at the height the arithmetic leaves it (see
@@ -59,5 +59,5 @@ enum Region
         is locked (see `TabLock`). A stack has at most one `Tabs` region, and it counts as the stack's
         scrolling area (see `Scroll`).
     **/
-    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void, ?lock:TabLock);
+    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByMenuLayout<Int>, ?onSelect:Int->Void, ?lock:TabLock);
 }

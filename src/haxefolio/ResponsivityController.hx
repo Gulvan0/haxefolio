@@ -7,8 +7,8 @@ import morestd.Detachable;
 import morestd.RefreshableTimer;
 
 /*
-    Reacts to viewport resizes: debounces them, then applies the menuCollapseWidth threshold to the
-    menu bar and notifies the active page with the page container's current pixel dimensions.
+    Reacts to viewport resizes: debounces them, then applies the layout thresholds (menuCollapseWidth,
+    menuRailHeight) and notifies the active page with the page container's current pixel dimensions.
 
     Deliberately bypasses haxeui's own Screen/UIEvent.RESIZE machinery, which bottoms out in a
     plain `window` "resize" listener (see ScreenImpl.addResizeListener) - that listener isn't
@@ -17,22 +17,22 @@ import morestd.RefreshableTimer;
     before, indefinitely. A native ResizeObserver instead reports an element's live, current size
     regardless of what caused it to change.
 
-    The observed element is document.body, the viewport itself: the collapse threshold is a
-    property of the viewport, not of any one component laid out in it.
+    The observed element is document.body, the viewport itself: the thresholds are properties of
+    the viewport, not of any one component laid out in it.
 */
 class ResponsivityController
 {
-    /*
-        Whether the menu bar is currently in its collapsed (mobile) state - exposed so other parts
-        of the framework (e.g. HaxeFolioApp.showPreferences) can pick a presentation appropriate to
-        the current layout mode without duplicating the menuCollapseWidth comparison.
-    */
-    public static var isCollapsed(default, null):Bool = false;
+    /** The current layout state, see `MenuLayout` **/
+    public static var menuLayout(default, null):MenuLayout = Expanded;
 
-    /** Carried by every root component while the breakpoint is collapsed **/
+    /** Carried by every root component while the layout is `Collapsed` or `Rail` **/
+    public static inline final COMPACT_CLASS:String = "haxefolio-compact";
+    /** Carried by every root component while the layout is exactly `Collapsed` (not `Rail`) **/
     public static inline final COLLAPSED_CLASS:String = "haxefolio-collapsed";
-    /** Carried by every root component while the breakpoint is expanded **/
+    /** Carried by every root component while the layout is `Expanded` **/
     public static inline final EXPANDED_CLASS:String = "haxefolio-expanded";
+    /** Carried by every root component, along with `COMPACT_CLASS`, while the layout is `Rail` **/
+    public static inline final RAIL_CLASS:String = "haxefolio-rail";
     /** Every root component carries, per tier scale, this prefix followed by `<scale>-<tier>` for the scale's current tier **/
     public static inline final TIER_CLASS_PREFIX:String = "haxefolio-tier-";
 
@@ -41,19 +41,18 @@ class ResponsivityController
     private static var currentTiers:Map<String, String> = [];
     private static var tierChangeListeners:Map<String, Array<String->Void>> = [];
 
-    private static var collapseChangeListeners:Array<Bool->Void> = [];
+    private static var menuLayoutChangeListeners:Array<MenuLayout->Void> = [];
 
     private static var pageContainer:Component;
-    private static var hamburgerButton:Component;
-    private static var collapsibleMenuBarComponents:Array<Component>;
     private static var menuCollapseWidth:Int;
+    private static var menuRailHeight:Int;
     private static var onDebouncedResize:Float->Float->Void;
     private static var debounceTimer:RefreshableTimer;
     private static var latestWidth:Float;
     private static var latestHeight:Float;
     private static var hasAppliedInitialState:Bool;
 
-    public static function init(pageContainer:Component, hamburgerButton:Component, collapsibleMenuBarComponents:Array<Component>, menuCollapseWidth:Int, widthTiers:Array<WidthTier>, debounceMs:Int, onDebouncedResize:Float->Float->Void):Void
+    public static function init(pageContainer:Component, menuCollapseWidth:Int, menuRailHeight:Int, widthTiers:Array<WidthTier>, debounceMs:Int, onDebouncedResize:Float->Float->Void):Void
     {
         tierScales = buildTierScales(widthTiers);
         for (scale => tiers in tierScales)
@@ -62,9 +61,8 @@ class ResponsivityController
             tierChangeListeners.set(scale, []);
         }
         ResponsivityController.pageContainer = pageContainer;
-        ResponsivityController.hamburgerButton = hamburgerButton;
-        ResponsivityController.collapsibleMenuBarComponents = collapsibleMenuBarComponents;
         ResponsivityController.menuCollapseWidth = menuCollapseWidth;
+        ResponsivityController.menuRailHeight = menuRailHeight;
         ResponsivityController.onDebouncedResize = onDebouncedResize;
         ResponsivityController.hasAppliedInitialState = false;
 
@@ -90,7 +88,7 @@ class ResponsivityController
         if (!hasAppliedInitialState)
         {
             hasAppliedInitialState = true;
-            applyMenuCollapseState();
+            applyMenuLayout();
             applyTiers();
 
             for (root in Screen.instance.rootComponents)
@@ -104,31 +102,30 @@ class ResponsivityController
     {
         debounceTimer.stop();
 
-        applyMenuCollapseState();
+        applyMenuLayout();
         applyTiers();
         onDebouncedResize(pageContainer.element.offsetWidth, pageContainer.element.offsetHeight);
     }
 
-    private static function applyMenuCollapseState():Void
+    private static function applyMenuLayout():Void
     {
-        var newCollapsed:Bool = latestWidth < menuCollapseWidth;
-        var changed:Bool = newCollapsed != isCollapsed;
+        var newLayout:MenuLayout = if (latestHeight < menuRailHeight && latestWidth > latestHeight)
+            Rail;
+        else if (latestWidth < menuCollapseWidth)
+            Collapsed;
+        else
+            Expanded;
 
-        isCollapsed = newCollapsed;
-
-        for (component in collapsibleMenuBarComponents)
-            component.hidden = isCollapsed;
-
-        hamburgerButton.hidden = !isCollapsed;
-
-        if (!changed)
+        if (newLayout == menuLayout)
             return;
+
+        menuLayout = newLayout;
 
         for (root in Screen.instance.rootComponents)
             markRoot(root);
 
-        for (listener in collapseChangeListeners)
-            listener(isCollapsed);
+        for (listener in menuLayoutChangeListeners.copy())
+            listener(menuLayout);
     }
 
     private static function applyTiers():Void
@@ -190,29 +187,41 @@ class ResponsivityController
     }
 
     /*
-        Gives `root`, a Screen root component, the current breakpoint's class and each scale's tier class. HaxeUI
+        Gives `root`, a Screen root component, the current layout's classes and each scale's tier class. HaxeUI
         re-matches a component's selectors only when that component's own style is invalidated, so on
-        a change the whole subtree is invalidated, for `.haxefolio-collapsed .foo` rules to apply. HaxeFolio calls
+        a change the whole subtree is invalidated, for `.haxefolio-compact .foo` rules to apply. HaxeFolio calls
         this for each root it adds to Screen.
     */
     @:allow(haxefolio)
     private static function markRoot(root:Component):Void
     {
-        var current:String = isCollapsed ? COLLAPSED_CLASS : EXPANDED_CLASS;
-        var upToDate:Bool = root.hasClass(current);
+        var layoutClasses:Map<String, Bool> = [
+            EXPANDED_CLASS => menuLayout == Expanded,
+            COMPACT_CLASS => menuLayout != Expanded,
+            COLLAPSED_CLASS => menuLayout == Collapsed,
+            RAIL_CLASS => menuLayout == Rail
+        ];
+        var upToDate:Bool = true;
+        for (layoutClass => carried in layoutClasses)
+            upToDate = upToDate && root.hasClass(layoutClass) == carried;
         for (scale => tier in currentTiers)
             upToDate = upToDate && root.hasClass(tierClass(scale, tier));
         if (upToDate)
             return;
 
-        root.swapClass(current, isCollapsed ? EXPANDED_CLASS : COLLAPSED_CLASS);
+        for (layoutClass => carried in layoutClasses)
+            if (carried)
+                root.addClass(layoutClass, false);
+            else
+                root.removeClass(layoutClass, false);
         if (tierScales != null) // roots marked before init carry no tier classes yet
             for (scale => tiers in tierScales)
                 for (tier in tiers)
                     if (tier.name != currentTiers.get(scale))
                         root.removeClass(tierClass(scale, tier.name), false);
         for (scale => tier in currentTiers)
-            root.addClass(tierClass(scale, tier));
+            root.addClass(tierClass(scale, tier), false);
+        root.invalidateComponentStyle();
         invalidateDescendantStyles(root);
     }
 
@@ -231,24 +240,36 @@ class ResponsivityController
     }
 
     /**
-        The framework's only breakpoint subscription: applies `value` for the current state
-        immediately, then re-applies it whenever `isCollapsed` actually flips (not on every debounced
-        resize) - so a component built after the initial layout still starts in sync rather than
-        assuming the collapsed default. Anything whose layout depends on the breakpoint beyond what
-        the menu bar itself already reacts to takes a `ByWidth` and passes it through here.
+        The framework's only layout subscription: applies `value` for the current state
+        immediately, then re-applies it whenever `menuLayout` changes in a way that changes the
+        resolved value (not on every debounced resize) - so a component built after the initial
+        layout still starts in sync rather than assuming the collapsed default. Anything whose
+        layout depends on the layout state beyond what the menu itself already reacts to takes a
+        `ByMenuLayout` and passes it through here.
 
-        Detach the returned handle once the subscriber is disposed. For a `ByWidth` that is the same
-        in both states, `apply` runs once and nothing is subscribed, so the handle is a harmless no-op.
+        Detach the returned handle once the subscriber is disposed. For a constant `ByMenuLayout`,
+        `apply` runs once and nothing is subscribed, so the handle is a harmless no-op.
     **/
-    public static function bind<T>(value:ByWidth<T>, apply:T->Void):Detachable
+    public static function bind<T>(value:ByMenuLayout<T>, apply:T->Void):Detachable
     {
         if (value.isConstant)
         {
-            apply(value.resolve(isCollapsed));
+            apply(value.resolve(menuLayout));
             return new Detachable(() -> {});
         }
 
-        return onCollapseChange(collapsed -> apply(value.resolve(collapsed)));
+        var applied:Null<T> = null;
+        var hasApplied:Bool = false;
+
+        return onMenuLayoutChange(layout -> {
+            var resolved:T = value.resolve(layout);
+            if (hasApplied && resolved == applied)
+                return;
+
+            hasApplied = true;
+            applied = resolved;
+            apply(resolved);
+        });
     }
 
     /**
@@ -265,7 +286,7 @@ class ResponsivityController
 
     /**
         Calls `apply` with the current tier of `scale` immediately, then whenever it changes - after
-        the root classes are updated, and after the `bind` subscribers if the collapse state flipped
+        the root classes are updated, and after the `bind` subscribers if the layout state changed
         too. Detach the returned handle once the subscriber is disposed.
     **/
     public static function bindTier(scale:String, apply:String->Void):Detachable
@@ -278,15 +299,13 @@ class ResponsivityController
         return new Detachable(() -> listeners.remove(apply), false);
     }
 
-    /*
-        Notifies `listener` whenever `isCollapsed` actually flips, immediately with the current value first.
-    */
+    // notifies `listener` whenever `menuLayout` changes, immediately with the current value first
     @:allow(haxefolio)
-    private static function onCollapseChange(listener:Bool->Void):Detachable
+    private static function onMenuLayoutChange(listener:MenuLayout->Void):Detachable
     {
-        collapseChangeListeners.push(listener);
-        listener(isCollapsed);
+        menuLayoutChangeListeners.push(listener);
+        listener(menuLayout);
 
-        return new Detachable(() -> collapseChangeListeners.remove(listener), false);
+        return new Detachable(() -> menuLayoutChangeListeners.remove(listener), false);
     }
 }

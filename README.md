@@ -235,10 +235,24 @@ config.addRightMenubarItem(Widget(() -> widget, true));
 ```
 
 - **Badge.** `setBadgeCount(count)` shows a pill at the target's top-right corner (3px from the top, 2px from the right); 0 hides it. `setAccessibleName(name)` sets the target's `aria-label`.
-- **Dropdown.** While expanded (see `Responsivity`), the frame is the given width, right-aligned to the target; while collapsed, it spans the viewport minus 12px on each side. It sits 6px under the menu bar, takes the `menuDropdown` shadow token (see `Appearance`), and is as tall as `content`, up to 18px (expanded) or 12px (collapsed) above the bottom of the viewport, past which `content` scrolls in a `ScrollArea` (see `ScrollArea`). `content` is laid out at the frame's width, less the scrollbar lane.
-- **Opening and closing.** A click on the target toggles it; `open()`/`close()`, `isOpen`, `onOpened`/`onClosed`. It closes on a pointer press outside the target and the frame, **Esc**, a breakpoint flip, navigation, an overlay being presented, the side bar opening, and another dropdown widget opening.
+- **Dropdown.** While expanded (see `Responsivity`), the frame is the given width, right-aligned to the target; while collapsed, it spans the viewport minus 12px on each side. In the rail layout, it sits 6px right of the rail, the given width at most, level with the target's top - or raised as far as it must be to stay 12px clear of the viewport's bottom, as bottom-pinned targets need. Otherwise it sits 6px under the menu bar, takes the `menuDropdown` shadow token (see `Appearance`), and is as tall as `content`, up to 18px (expanded) or 12px (collapsed) above the bottom of the viewport, past which `content` scrolls in a `ScrollArea` (see `ScrollArea`). `content` is laid out at the frame's width, less the scrollbar lane.
+- **Opening and closing.** A click on the target toggles it; `open()`/`close()`, `isOpen`, `onOpened`/`onClosed`. It closes on a pointer press outside the target and the frame, **Esc**, a layout change, navigation, an overlay being presented, the side bar opening, and another dropdown widget opening.
 - **Beyond the content.** `attach(component)`/`detach(component)` add a component outside the frame's layout, positioned against `frame` (e.g. a popover beside it, with `Anchoring`); `setCover(component)` shows one over the top of the frame at its full width, above the scrolling content, which keeps its scroll position (`null` removes it).
 - **Styling.** `.haxefolio-dropdown-widget` (the target; `-open` while open), `.haxefolio-dropdown-widget-badge`, `.haxefolio-dropdown-widget-frame`.
+
+`haxefolio.menu.MenuDropdownWidget` is a `DropdownWidget` whose dropdown is a menu - e.g. an account menu that stays on the collapsed menu bar or the rail as an icon, where a `NormalMenu` would move into the side bar:
+
+```haxe
+var widget:MenuDropdownWidget = new MenuDropdownWidget(icon, "account", [
+    {slug: "preferences", action: Execute(showPreferences), icon: "settings.svg"},
+    {slug: "log_out", action: Execute(logOut), hiddenByDefault: true}
+], 240);
+config.addRightMenubarItem(Widget(() -> widget, true));
+```
+
+- **Rows.** One per `MenuItemDefinition`, looking like a `NormalMenu`'s items; a click closes the dropdown and runs the item's action. Absent `defaultText`, a row's label is the `haxefolio.menubar.menu.<slug>.item.<item slug>` locale key, the same as a `NormalMenu` item's. `setItemHidden(itemSlug, hidden)` shows or hides one (throws for an unknown slug).
+- **Header.** `setHeader(component)` shows a host component above the rows, over a divider; `null` removes it, disposing it. A click on it doesn't close the dropdown by itself - call `close()` if it should.
+- **Styling.** `.haxefolio-dropdown-menu` (the rows' column), `.haxefolio-dropdown-menu-divider`, `.haxefolio-dropdown-menu-item`.
 
 ### Updating menu bar labels at runtime
 
@@ -280,7 +294,7 @@ public static function hideSidebarExtraGroupItem(groupSlug:String, itemSlug:Stri
 
 The side bar slides in from the left edge when the menu bar's hamburger button is clicked: 320px wide (narrower on a viewport too small to leave 56px of the scrim uncovered), the viewport's full height, over a scrim covering the rest of the screen, menu bar included.
 
-Its first row repeats the collapsed menu bar's row - same height, padding and gap - so its two components sit exactly where the menu bar's own do: a button with a cross in place of the hamburger's three bars (closes the side bar) and the site name (closes the side bar and navigates to the default page). Below that, in a scrolling body, every `NormalMenu` from the menu bar is mirrored as a group: a header line with the menu's own label, followed by one row per item, showing the item's icon (if it has one) and label - clicking a row closes the side bar and runs the same action as the menu bar counterpart straight away, without waiting for the slide-out. Persistent widgets are not repeated in the side bar: they stay in the menu bar, under the scrim.
+Its first row repeats the collapsed menu bar's row - same height, padding and gap - so its two components sit exactly where the menu bar's own do: a button with a cross in place of the hamburger's three bars (closes the side bar) and the site name (closes the side bar and navigates to the default page). Below that, in a scrolling body, every `NormalMenu` from the menu bar is mirrored as a group: a header line with the menu's own label, followed by one row per item, showing the item's icon (if it has one) and label - clicking a row closes the side bar and runs the same action as the menu bar counterpart straight away, without waiting for the slide-out. Persistent widgets are not repeated in the side bar: they stay in the menu bar (or the rail), under the scrim. In the rail layout the side bar is unchanged: it slides in over the rail, its cross landing where the rail's hamburger button is.
 
 While the side bar is on screen, the rest of the app is unreachable by pointer, keyboard or assistive technology (it is marked `inert`). It is closed by its hamburger button, a click on the scrim, **Esc**, or navigating (see `Navigation`), and taken off screen at once, without the slide, when the menu bar leaves its collapsed layout (see `Responsivity`). It is not an overlay (see `Overlays`): it doesn't count as the one open overlay, so `present` works while it is open or closing - the overlay appears over it, and Esc then closes the overlay only.
 
@@ -303,7 +317,9 @@ Absent an explicit `defaultText`, every menu/item/group label goes through local
 
 HaxeFolio reacts to viewport size changes - window resizing on desktop, orientation changes on mobile - resizing the menu bar and notifying the active page, debounced (`HaxeFolioConfig.debounceMs`; defaults to 500) so a drag-resize doesn't trigger continuous work.
 
-Below `HaxeFolioConfig.menuCollapseWidth` (an author-chosen width past which the menu bar no longer fits everything; defaults to 900), the menu bar hides its `NormalMenu`s and any `Widget` not marked `persistent`, and reveals the hamburger button to reach the side bar instead. Above it, the reverse. Deciding *what* happens at the threshold is HaxeFolio's job; the framework user only supplies the threshold itself and which widgets should stay persistent.
+Below `HaxeFolioConfig.menuCollapseWidth` (an author-chosen width past which the menu bar no longer fits everything; defaults to 900), the menu bar hides its `NormalMenu`s and any `Widget` not marked `persistent`, and reveals the hamburger button to reach the side bar instead. Above it, the reverse. While collapsed, a bar too narrow for the site name beside its persistent widgets shows the `homeIcon` button in its place, measured on every resize. Deciding *what* happens at the threshold is HaxeFolio's job; the framework user only supplies the threshold itself and which widgets should stay persistent.
+
+A landscape viewport (wider than it is tall) shorter than `HaxeFolioConfig.menuRailHeight` (defaults to 500) - a phone on its side - gets a third layout whatever its width: the **rail**. The collapsed menu bar turns into a 52px strip along the left edge, and the page takes the rest of the width. At the top, the hamburger button, followed by an icon standing in for the site name (`HaxeFolioConfig.homeIcon`, a house by default; it navigates to the default page), then the persistent `Widget`s from `MenuBarConfig.left`; the persistent widgets from `right` are pinned to the bottom. They are the same widget instances as in the menu bar - each factory still runs once - moved between the two on a layout change. The three layouts are `haxefolio.MenuLayout`'s `Expanded`, `Collapsed` and `Rail`; `MenuFacade.menuRail` is the rail.
 
 Independently of that threshold, every time the page container is resized, the active page's `onResize(width, height)` is called with the new pixel dimensions of the area it is laid out in (see `Pages`) - overriding it to react to size changes is the framework user's responsibility.
 
@@ -316,34 +332,35 @@ Nothing makes a host pick one app-wide: some pages may follow the menu breakpoin
 
 ### Reacting to the collapse threshold directly
 
-Beyond the menu bar itself, any component whose own layout should change at the same threshold - e.g. a row of controls that stacks vertically once space is tight - can react to it directly, rather than inventing a second, competing breakpoint. A value that differs between the two states is a `ByWidth<T>` (`haxefolio.ByWidth`): either one value, used in both, or an `{expanded:T, collapsed:T}` pair, both converting implicitly:
+Beyond the menu bar itself, any component whose own layout should change at the same threshold - e.g. a row of controls that stacks vertically once space is tight - can react to it directly, rather than inventing a second, competing breakpoint. A value that differs between the layouts is a `ByMenuLayout<T>` (`haxefolio.ByMenuLayout`): either one value, used in all of them, or an `{expanded:T, collapsed:T, ?rail:T}` structure - an omitted `rail` takes the `collapsed` value, so a phone on its side is treated as a phone unless said otherwise. Both convert implicitly:
 
 ```haxe
-var perRow:ByWidth<Int> = 4;
-var perRow:ByWidth<Int> = {expanded: 5, collapsed: 3};
+var perRow:ByMenuLayout<Int> = 4;
+var perRow:ByMenuLayout<Int> = {expanded: 5, collapsed: 3};
+var perRow:ByMenuLayout<Int> = {expanded: 5, collapsed: 3, rail: 4};
 ```
 
 ```haxe
 class ResponsivityController
 {
-    public static var isCollapsed(default, null):Bool;
-    public static function bind<T>(value:ByWidth<T>, apply:T->Void):Detachable
+    public static var menuLayout(default, null):MenuLayout;
+    public static function bind<T>(value:ByMenuLayout<T>, apply:T->Void):Detachable
 }
 ```
 
-`isCollapsed` is the current state, kept live by the same resize handling described above. `bind` is the framework's only breakpoint subscription: it calls `apply` immediately, once, with `value` for the current state - so a component built after the initial layout still starts in sync - and again whenever `isCollapsed` actually flips (not on every debounced resize). Detach the returned handle once the component is done with it (e.g. a page's `onClose`), the same `Detachable` convention preferences use (see `Reacting to changes`). A `value` given as a single value rather than a pair never changes, so it isn't subscribed at all and its handle is a no-op.
+`menuLayout` is the current layout, kept live by the same resize handling described above. `bind` is the framework's only layout subscription: it calls `apply` immediately, once, with `value` for the current layout - so a component built after the initial layout still starts in sync - and again whenever a layout change changes the resolved value (not on every debounced resize). Detach the returned handle once the component is done with it (e.g. a page's `onClose`), the same `Detachable` convention preferences use (see `Reacting to changes`). A `value` given as a single value rather than a pair never changes, so it isn't subscribed at all and its handle is a no-op.
 
-Every form component that reflows at the breakpoint (`ChoiceRow`, `ChoiceGrid`, `FieldGroup`) takes a `ByWidth` and passes it through `bind` this way, so a host only says *what* differs, never *when*.
+Every form component that reflows at the breakpoint (`ChoiceRow`, `ChoiceGrid`, `FieldGroup`) takes a `ByMenuLayout` and passes it through `bind` this way, so a host only says *what* differs, never *when*.
 
-Enum constructors inside a `ByWidth` argument resolve unqualified where the expected type is known (`{expanded: Horizontal, collapsed: Vertical}`), but a default argument value can't do this - which is why the `direction` parameters below are optional rather than defaulted.
+Enum constructors inside a `ByMenuLayout` argument resolve unqualified where the expected type is known (`{expanded: Horizontal, collapsed: Vertical}`), but a default argument value can't do this - which is why the `direction` parameters below are optional rather than defaulted.
 
 ### Styling by the breakpoint
 
-What only looks different at the threshold - a height, a margin, a larger hit area - needs no code: every root component on screen (the app root, the notification column, overlays, the side bar) carries `haxefolio-collapsed` or `haxefolio-expanded` (`ResponsivityController.COLLAPSED_CLASS` / `EXPANDED_CLASS`), so a descendant selector does it:
+What only looks different at the threshold - a height, a margin, a larger hit area - needs no code: every root component on screen (the app root, the notification column, overlays, the side bar) carries `haxefolio-compact` or `haxefolio-expanded` (`ResponsivityController.COMPACT_CLASS` / `EXPANDED_CLASS`) - and in the rail layout `haxefolio-rail` (`RAIL_CLASS`) along with `haxefolio-compact`, and exactly in the collapsed layout `haxefolio-collapsed` (`COLLAPSED_CLASS`), mirroring `ByMenuLayout`'s fallback: a `.haxefolio-rail` rule placed after a `.haxefolio-compact` one overrides it - so a descendant selector does it:
 
 ```css
 .my-row { height: 40px; }
-.haxefolio-collapsed .my-row { height: 44px; }
+.haxefolio-compact .my-row { height: 44px; }
 ```
 
 HaxeUI re-matches a component's selectors only when its own style is invalidated, so on a flip HaxeFolio invalidates the style of every component under the roots - a cost paid once per flip, not per resize. Roots HaxeFolio doesn't add itself (HaxeUI's own popups, such as a `Menu`'s dropdown) don't carry the class.
@@ -379,7 +396,7 @@ class ResponsivityController
 
 ## Overlays
 
-HaxeFolio presents dismissible overlays: a fixed-size frame of `Region`s (see `Region stacks`) over a scrim. Which of two presentations appears is decided internally, by the same breakpoint everything else responds to (`menuCollapseWidth`, see `Responsivity`) - a **dialog** while expanded, a **sheet** while collapsed. A host never names a presentation: it supplies content that is valid in both states, and may branch on the breakpoint state (through `mobileContentFactory`, or a `ByWidth` value), never on the presentation itself.
+HaxeFolio presents dismissible overlays: a fixed-size frame of `Region`s (see `Region stacks`) over a scrim. Which of two presentations appears is decided internally, by the same layout everything else responds to (see `Responsivity`) - a **dialog** while expanded, a **sheet** while collapsed or in the rail layout. A host never names a presentation: it supplies content that is valid in both states, and may branch on the breakpoint state (through `mobileContentFactory`, or a `ByMenuLayout` value), never on the presentation itself.
 
 - The **dialog** is a centred window, 620px wide and at most 720px tall by default - the `dialogWidth`/`dialogHeight` geometry tokens (see `Appearance`), so a host sets a smaller window for one overlay through `present`'s `appearance`. The frame tracks the viewport: a short or narrow window shrinks it - the height down to a 420px floor (or the preferred height, if that is lower) - and only the scrolling region notices.
 - The **sheet** is a bottom `EdgePanel` (see `Region stacks`) covering the entire viewport, menu bar included, sliding up from the bottom edge.
@@ -474,7 +491,7 @@ notification.dismiss();
 
 The framework only places notifications; it draws nothing around `content`. Its surface, border, shadow, layout and controls are all the host's, so one notification may be a single card and another a whole stack of them.
 
-- **Placement.** Notifications form one column anchored to the bottom of the viewport, 12px from its edges, 10px apart, stacking upward in the order they were shown (the newest at the bottom). While the breakpoint is expanded (see `Responsivity`), the column sits in the bottom-right corner and each notification is its own `expandedWidth` wide, right-aligned. While it is collapsed, every notification spans the viewport width minus the margins. Widths follow the breakpoint live.
+- **Placement.** Notifications form one column anchored to the bottom of the viewport, 12px from its edges, 10px apart, stacking upward in the order they were shown (the newest at the bottom). While the layout is expanded or the rail (see `Responsivity`), the column sits in the bottom-right corner and each notification is its own `expandedWidth` wide, right-aligned. While it is collapsed, every notification spans the viewport width minus the margins. Widths follow the layout live.
 - **Height** is the content's, and may change while it is shown: the column re-anchors so its bottom edge stays put.
 - **Lifetime.** A notification stays until `dismiss()` is called - there is no expiry. `dismiss()` removes the content without disposing it, so the same component may be shown again by a later `notify`; calling it again does nothing. `isShown` tells whether it is still on screen.
 - **Modality.** Notifications are part of the app beneath an overlay or the side bar: both paint above them, and they are inert while either is open. They don't block anything themselves - there is no scrim.
@@ -486,7 +503,7 @@ The framework only places notifications; it draws nothing around `content`. Its 
 ```haxe
 var expanded:AnchorPlacement = {side: Left, align: End};
 var collapsed:AnchorPlacement = {side: Above, align: Start, stretch: true};
-var placement:ByWidth<AnchorPlacement> = {expanded: expanded, collapsed: collapsed};
+var placement:ByMenuLayout<AnchorPlacement> = {expanded: expanded, collapsed: collapsed};
 
 card.attach(popover); // NotificationCard.attach; or addComponent with includeInLayout = false
 var anchoring:Detachable = Anchoring.attach(popover, card, placement);
@@ -616,7 +633,7 @@ var row:ChoiceRow<String> = new ChoiceRow("Rated", [
 ```
 
 ```haxe
-public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByWidth<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
+public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByMenuLayout<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
 public function select(value:T):Void
 public function dispose():Void
 ```
@@ -624,7 +641,7 @@ public function dispose():Void
 `ChoiceOption<T>` (`haxefolio.form.plumbing`) is `{value:T, label:String, ?icon:String}`.
 `direction` (`Horizontal` when omitted) is `Horizontal` for a row of equal-width buttons or
 `Vertical` for a full-width stack; given as `{expanded: Horizontal, collapsed: Vertical}` the row
-stacks whenever `ResponsivityController.isCollapsed` flips (see `Reacting to the collapse
+stacks whenever `ResponsivityController.menuLayout` changes to a layout resolving to `Vertical` (see `Reacting to the collapse
 threshold directly`) - call `dispose()` once the row is done with (e.g. a page's `onClose`) to
 detach that subscription; with a `direction` that doesn't differ between the two states there's
 nothing to detach. `select(value)` highlights the option holding `value` without calling `onSelect` (the hook for a value driven from elsewhere; throws for an unknown value). `locked`/`lockReason` disable
@@ -667,9 +684,9 @@ than bleeding into whatever the slot's host renders next.
 ### ChoiceGrid
 
 The same selection semantics as `ChoiceRow`, but wrapping, for 6-20 curated options: rows of
-`perRow` cells - a `ByWidth<Int>`, so `{expanded: 5, collapsed: 3}` picks by
-`ResponsivityController.isCollapsed` (the framework's one app-wide breakpoint - no
-component-local pixel threshold) and a plain `4` is the same in both. Cell width is a
+`perRow` cells - a `ByMenuLayout<Int>`, so `{expanded: 5, collapsed: 3}` picks by
+`ResponsivityController.menuLayout` (the framework's one app-wide layout - no
+component-local pixel threshold) and a plain `4` is the same in all layouts. Cell width is a
 percentage of the row, and a short final row is padded with empty placeholders so its cells match
 the full rows' width exactly. Whether it selects one option or several is chosen per instance by
 a `ChoiceGridSelection<T>`:
@@ -680,7 +697,7 @@ var multi:ChoiceGrid<String> = new ChoiceGrid("Time controls", stringOptions, Mu
 ```
 
 ```haxe
-public function new(label:String, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ByWidth<Int>, gap:Int = 6, locked:Bool = false, ?lockReason:String)
+public function new(label:String, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ByMenuLayout<Int>, gap:Int = 6, locked:Bool = false, ?lockReason:String)
 public function selectSingle(value:Null<T>):Void
 public function selectMulti(values:Array<T>):Void
 public function dispose():Void
@@ -728,7 +745,7 @@ the disabled look when off and the muted locked-selected look (see `ChoiceButton
 
 A `surfaceSunken` inset box that groups fields belonging to one parameter - a row or a stack
 depending on `direction`, optionally fixed-height whenever its contents can vary. It is the
-framework's reflowing container: `direction` and `fixedHeight` are `ByWidth`s (see `Reacting to
+framework's reflowing container: `direction` and `fixedHeight` are `ByMenuLayout`s (see `Reacting to
 the collapse threshold directly`), so one group declared as
 `{expanded: Horizontal, collapsed: Vertical}` lays its fields side by side while expanded and
 stacks them while collapsed, with the host never branching on the breakpoint:
@@ -742,7 +759,7 @@ var group:FieldGroup = new FieldGroup(
 ```
 
 ```haxe
-public function new(fields:Array<Component>, ?direction:ByWidth<FieldGroupDirection>, ?fixedHeight:ByWidth<Int>)
+public function new(fields:Array<Component>, ?direction:ByMenuLayout<FieldGroupDirection>, ?fixedHeight:ByMenuLayout<Int>)
 public function dispose():Void
 ```
 
@@ -1082,12 +1099,12 @@ public function dispose():Void
 ```haxe
 enum Region
 {
-    Search(bar:SearchBar, ?height:ByWidth<Int>);
-    Header(title:String, ?height:ByWidth<Int>, ?hideClose:Bool);
-    Actions(bar:ActionBar, ?height:ByWidth<Int>);
-    Custom(height:ByWidth<Int>, content:Component);
+    Search(bar:SearchBar, ?height:ByMenuLayout<Int>);
+    Header(title:String, ?height:ByMenuLayout<Int>, ?hideClose:Bool);
+    Actions(bar:ActionBar, ?height:ByMenuLayout<Int>);
+    Custom(height:ByMenuLayout<Int>, content:Component);
     Scroll(content:Component);
-    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void, ?lock:TabLock);
+    Tabs(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByMenuLayout<Int>, ?onSelect:Int->Void, ?lock:TabLock);
 }
 ```
 
@@ -1096,7 +1113,7 @@ close control. `idPrefix` names the parts for a stylesheet (see `Overlays` in `C
 `embed` pass `haxefolio-overlay-<slug>`.
 
 - **Every height is declared, never measured.** `Custom` regions have the `height` they are given, `Header`, `Search`, `Actions` and `Tabs` (its strip) ones the `headerHeight`/`searchBarHeight`/`actionBarHeight`/`tabStripHeight` token of the `Appearance` in effect when the stack is built (60, 52, 68 and 44 by default; `height`/`stripHeight` overrides it for one instance) - all of them (a
-  `ByWidth`, so it may differ between the expanded and collapsed states; content that doesn't fit is
+  `ByMenuLayout`, so it may differ between the expanded and collapsed states; content that doesn't fit is
   cut off, not accommodated), and the frame has `frameHeight`. The scrolling area (a `Scroll` region, or the pages of a `Tabs` one) gets
   `scrollHeight = frameHeight - sum of the fixed heights`, recomputed when `frameHeight` or the breakpoint
   state changes. It is the only region that ever resizes; nothing is asked how tall it is, so adding
@@ -1390,7 +1407,7 @@ class StorageBackend
 
 ### Preference window
 
-`HaxeFolioApp.showPreferences()` opens the built-in preference window: an overlay (see `Overlays`) presented with slug `preference`, so it is a modal dialog while expanded and a sheet while collapsed, dismissed by its close control or Esc. Unlike the non-blocking box earlier versions showed beside a live menu bar, the rest of the app is unreachable while it is open.
+`HaxeFolioApp.showPreferences()` opens the built-in preference window: an overlay (see `Overlays`) presented with slug `preference`, so it is a modal dialog while expanded and a sheet otherwise, dismissed by its close control or Esc. Unlike the non-blocking box earlier versions showed beside a live menu bar, the rest of the app is unreachable while it is open.
 
 It is composed like any other overlay: a `Header` titled `{{haxefolio.preference.title}}`, a `Tabs` region in the `Navigate` role with one page per preference tab (labels from `haxefolio.preference.tab.<tabId>`, icons from `HaxeFolioConfig.preferenceTabIcons`), and an `Actions` footer holding one plain button, Reset (`PreferenceRegistry.resetAll()`). There is no Save: every control applies the moment it changes, so the window never mixes autosaved fields with a commit button.
 
@@ -1498,7 +1515,7 @@ HaxeFolioConfigBuilder.init("my-app", Preferences)
 ```
 
 - **`EmphasisStyle`** is `Filled` (default) or `Outlined`: which treatment means "selected"/"primary" - a solid `accent` fill, or an `accentTint` fill with an `accentMuted` border. Two independent roles read it, each keyed by its own `Appearance` field: **`selectionEmphasis`**, read by `ChoiceButton` (a component holding one of several peer values); and **`actionEmphasis`**, read by `ActionButton`'s primary state and `CommitTextField`'s commit button (a single call-to-action). The split exists because a host's accent hue may collide with its content imagery for a persistent chip-like selection without that being a reason to soften an actual call-to-action - a host typically sets `selectionEmphasis: Outlined` alone far more often than it sets `actionEmphasis: Outlined` too, since a screen's one primary action usually still wants full weight. Colour is still the stylesheet's business: it can restyle both treatments, but only code says which one is in use for each role. There is no CSS channel for selecting either.
-- **`GeometryTokens`** is the table of constants the framework's height arithmetic reads - `headerHeight` (60), `actionBarHeight` (68), `tabStripHeight` (44), `searchBarHeight` (52), `fieldHeight` (38; the height of a `TextInputField`'s input and a `CheckBoxRow`), `messageLine` (16), `rowGap` (10), `padding` (22), and `dialogWidth`/`dialogHeight` (620/720, the dialog presentation's preferred size), the first five being `ByWidth<Int>` so they may differ between expanded and collapsed. They live in code rather than CSS because they are needed before layout, and reading them back out of the style engine would make the arithmetic depend on cascade timing. Overriding a token propagates to every sum that reads it. Note that the built-in components do not yet all consume these tokens; each is wired up as the region that uses it lands.
+- **`GeometryTokens`** is the table of constants the framework's height arithmetic reads - `headerHeight` (60), `actionBarHeight` (68), `tabStripHeight` (44), `searchBarHeight` (52), `fieldHeight` (38; the height of a `TextInputField`'s input and a `CheckBoxRow`), `messageLine` (16), `rowGap` (10), `padding` (22), and `dialogWidth`/`dialogHeight` (620/720, the dialog presentation's preferred size), the first five being `ByMenuLayout<Int>` so they may differ between expanded and collapsed. They live in code rather than CSS because they are needed before layout, and reading them back out of the style engine would make the arithmetic depend on cascade timing. Overriding a token propagates to every sum that reads it. Note that the built-in components do not yet all consume these tokens; each is wired up as the region that uses it lands.
 
 - **`ShadowTokens`** are the elevation shadows of the framework's own floating surfaces: `dialog`, `sheet`, `sideBar`, `menuDropdown` and `notificationCard`, each a `haxefolio.Shadow` - `{offsetX, offsetY, blur, ?spread, color, opacity}`, in pixels, `color` as `0xRRGGBB`. They are code-side because HaxeUI can't draw a shadow from a stylesheet; a host typically overrides them all to tint them with its own ink. A host's own floating components get theirs from `ElementShadow.apply(element, shadow)`, which takes the same `Shadow` - keep the set of distinct shadows small and constant, as each one becomes a stylesheet rule that is never removed. A per-overlay `appearance` sets that overlay's `dialog`/`sheet` shadow.
 

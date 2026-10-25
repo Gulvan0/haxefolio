@@ -7,6 +7,7 @@ import haxe.ui.core.Component;
 import haxe.ui.core.Screen;
 import haxe.ui.events.MouseEvent;
 import haxefolio.ElementShadow;
+import haxefolio.MenuLayout;
 import haxefolio.ResponsivityController;
 import haxefolio.Viewport;
 import haxefolio.appearance.AppearanceContext;
@@ -23,14 +24,17 @@ import js.html.KeyboardEvent;
 
     Expanded, the frame is `expandedWidth` wide, right-aligned to the target; collapsed, it spans the
     viewport minus the edge margins. It sits under the menu bar and is as tall as its content, up to
-    the space left above the bottom of the viewport, past which the content scrolls.
+    the space left above the bottom of the viewport, past which the content scrolls. In the rail
+    layout, it sits right of the rail, `expandedWidth` wide at most, level with the target's top - or
+    raised as far as it must be to stay on screen.
 
     It closes on a click on the target, a pointer press outside the target and the frame, Esc, a
-    breakpoint flip, navigation, an overlay being presented and the side bar opening.
+    layout change, navigation, an overlay being presented and the side bar opening.
 **/
 class DropdownWidget extends Box
 {
     private static inline final GAP_UNDER_BAR:Float = 6;
+    private static inline final GAP_BESIDE_RAIL:Float = 6;
     private static inline final EDGE_MARGIN:Float = 12;
     private static inline final EXPANDED_BOTTOM_MARGIN:Float = 18;
 
@@ -88,7 +92,7 @@ class DropdownWidget extends Box
         Browser.document.addEventListener("pointerdown", onDocumentPointerDown, true);
         Browser.document.addEventListener("keydown", onDocumentKeyDown);
         Browser.window.addEventListener("resize", _ -> place());
-        ResponsivityController.onCollapseChange(_ -> close());
+        ResponsivityController.onMenuLayoutChange(_ -> close());
     }
 
     /** Closes whichever dropdown is open, if any **/
@@ -186,8 +190,16 @@ class DropdownWidget extends Box
         if (!isOpen)
             return;
 
-        var collapsed:Bool = ResponsivityController.isCollapsed;
-        var barBottom:Float = parentComponent.element.getBoundingClientRect().bottom / Toolkit.scaleY;
+        var contentHeight:Float = content.element.getBoundingClientRect().height / Toolkit.scaleY;
+
+        if (ResponsivityController.menuLayout == Rail)
+        {
+            placeBesideRail(contentHeight);
+            return;
+        }
+
+        var collapsed:Bool = ResponsivityController.menuLayout == Collapsed;
+        var barBottom:Float = MenuFacade.menuBar.element.getBoundingClientRect().bottom / Toolkit.scaleY;
         var targetRight:Float = element.getBoundingClientRect().right / Toolkit.scaleX;
         var width:Float = collapsed ? Viewport.width() - 2 * EDGE_MARGIN : expandedWidth;
 
@@ -197,8 +209,22 @@ class DropdownWidget extends Box
 
         var bottomMargin:Float = collapsed ? EDGE_MARGIN : EXPANDED_BOTTOM_MARGIN;
         var maxHeight:Float = Viewport.height() - frame.top - bottomMargin;
-        var contentHeight:Float = content.element.getBoundingClientRect().height / Toolkit.scaleY;
         scrollArea.height = Math.min(contentHeight, maxHeight);
+    }
+
+    private function placeBesideRail(contentHeight:Float):Void
+    {
+        var railRight:Float = MenuFacade.menuRail.element.getBoundingClientRect().right / Toolkit.scaleX;
+        var targetTop:Float = element.getBoundingClientRect().top / Toolkit.scaleY;
+        var left:Float = railRight + GAP_BESIDE_RAIL;
+        var frameBorders:Float = Math.max(0, (frame.element.offsetHeight - scrollArea.element.offsetHeight) / Toolkit.scaleY);
+
+        frame.width = Math.min(expandedWidth, Viewport.width() - left - EDGE_MARGIN);
+        frame.left = left;
+
+        var scrollHeight:Float = Math.min(contentHeight, Viewport.height() - 2 * EDGE_MARGIN - frameBorders);
+        scrollArea.height = scrollHeight;
+        frame.top = Math.max(EDGE_MARGIN, Math.min(targetTop, Viewport.height() - EDGE_MARGIN - scrollHeight - frameBorders));
     }
 
     private function onDocumentPointerDown(event:Event):Void

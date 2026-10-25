@@ -19,7 +19,7 @@ class Anchoring
         them is `floating`'s CSS margin on the side facing `anchor`. While stretched, `floating`'s
         width (height for `Left`/`Right`) is set from `anchor`'s, and reset once it no longer is.
     **/
-    public static function attach(floating:Component, anchor:Component, placement:ByWidth<AnchorPlacement>):Detachable
+    public static function attach(floating:Component, anchor:Component, placement:ByMenuLayout<AnchorPlacement>):Detachable
     {
         var binding:AnchorBinding = new AnchorBinding(floating, anchor);
         var breakpointBinding:Detachable = ResponsivityController.bind(placement, binding.setPlacement);

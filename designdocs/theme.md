@@ -90,7 +90,7 @@ Changing `accent` has a structural knock-on — re-evaluate `EmphasisStyle` (§5
 
 ## 3. Geometry tokens
 
-Defaults for the table in the generalization plan §6.1. `ByWidth` values give `Wide` then
+Defaults for the table in the generalization plan §6.1. `ByMenuLayout` values give `Wide` then
 `Narrow`; a single value is the same at both.
 
 | Token | Default | Notes |

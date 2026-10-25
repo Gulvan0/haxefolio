@@ -98,7 +98,19 @@
     horizontal-spacing: 4px;
 }
 
-.haxefolio-hamburger-button {
+/* the collapsed row turned on its side, so the hamburger button sits where the side bar's cross does */
+.haxefolio-menu-rail {
+    width: 52px;
+    padding-top: 4px;
+    padding-bottom: 8px;
+    padding-left: 4px;
+    vertical-spacing: 4px;
+    background-color: #fafafa;
+    border-right: 1px solid #d4d4d6;
+}
+
+.haxefolio-hamburger-button,
+.haxefolio-home-button {
     width: 44px;
     height: 44px;
     padding: 0;
@@ -112,12 +124,14 @@
     color: #5f6168;
 }
 
-.haxefolio-hamburger-button:hover {
+.haxefolio-hamburger-button:hover,
+.haxefolio-home-button:hover {
     background-color: transparent;
     border: none;
 }
 
-.haxefolio-hamburger-button:down {
+.haxefolio-hamburger-button:down,
+.haxefolio-home-button:down {
     background-color: #f0f0f1;
     border: none;
 }
@@ -235,6 +249,49 @@
     background-color: #fafafa;
     border: 1px solid #d4d4d6;
     border-radius: 8px;
+}
+
+/* MenuDropdownWidget: a NormalMenu's dropdown inside a DropdownWidget frame */
+.haxefolio-dropdown-menu {
+    padding: 6px;
+    vertical-spacing: 2px;
+}
+
+.haxefolio-dropdown-menu-divider {
+    height: 1px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    background-color: #d4d4d6;
+}
+
+.haxefolio-dropdown-menu-item {
+    height: 36px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 5px;
+    background-color: transparent;
+    border: none;
+    filter: none;
+    text-align: left;
+    icon-position: left;
+    horizontal-spacing: 10px;
+    font-name: $ui-family-medium;
+    font-size: 13px;
+    color: #1f2126;
+}
+
+.haxefolio-dropdown-menu-item:hover,
+.haxefolio-dropdown-menu-item:down {
+    background-color: #f0f0f1;
+    border: none;
+    color: #1f2126;
+}
+
+.haxefolio-dropdown-menu-item .icon {
+    width: 16px;
+    height: 16px;
 }
 
 .haxefolio-normal-menu {
@@ -1121,7 +1178,7 @@
     color: #5f6168;
 }
 
-.haxefolio-collapsed .haxefolio-notification-card-close {
+.haxefolio-compact .haxefolio-notification-card-close {
     width: 44px;
     height: 44px;
     margin-top: -14px;

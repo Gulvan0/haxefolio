@@ -1,6 +1,7 @@
 package haxefolio.menu;
 
 import haxe.ui.components.Button;
+import haxe.ui.containers.VBox;
 import haxe.ui.containers.menus.MenuBar;
 import haxefolio.menu.builder.components.NormalMenu;
 import haxefolio.menu.builder.components.NormalMenuItem;
@@ -26,12 +27,15 @@ import haxefolio.structure.EdgePanel;
 class MenuFacade
 {
     public static var menuBar(default, null):MenuBar;
+    /** The strip along the left edge the menu moves to in the `Rail` layout, see `MenuLayout` **/
+    public static var menuRail(default, null):VBox;
     public static var sideBar(default, null):EdgePanel;
 
     @:allow(haxefolio.HaxeFolioApp)
-    private static function init(menuBar:MenuBar, sideBar:EdgePanel):Void
+    private static function init(menuBar:MenuBar, menuRail:VBox, sideBar:EdgePanel):Void
     {
         MenuFacade.menuBar = menuBar;
+        MenuFacade.menuRail = menuRail;
         MenuFacade.sideBar = sideBar;
     }
 

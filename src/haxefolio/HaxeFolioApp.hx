@@ -5,6 +5,7 @@ import haxe.ui.Toolkit;
 import haxe.ui.locale.LocaleManager;
 import haxe.ui.focus.FocusManager;
 import haxe.ui.containers.Box;
+import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.containers.menus.MenuBar;
 import haxe.ui.core.Component;
@@ -122,7 +123,7 @@ class HaxeFolioApp
         var menuBarBuildResult:MenuBarBuildResult = MenuBarBuilder.build(config);
         var menuBar:MenuBar = menuBarBuildResult.menuBar;
 
-        MenuFacade.init(menuBar, sideBar);
+        MenuFacade.init(menuBar, menuBarBuildResult.menuRail, sideBar);
 
         pageContainer = new Box();
         pageContainer.percentWidth = 100;
@@ -130,12 +131,20 @@ class HaxeFolioApp
         pageContainer.id = "haxefolio-page-container";
         pageContainer.addClass("haxefolio-page-container");
 
-        var root:VBox = new VBox();
+        var column:VBox = new VBox();
+        column.percentWidth = 100;
+        column.percentHeight = 100;
+        column.verticalSpacing = 0;
+        column.addComponent(menuBar);
+        column.addComponent(pageContainer);
+
+        // only one of the menu's homes is shown at a time: the rail, or the bar on top of the column
+        var root:HBox = new HBox();
         root.percentWidth = 100;
         root.percentHeight = 100;
-        root.verticalSpacing = 0;
-        root.addComponent(menuBar);
-        root.addComponent(pageContainer);
+        root.horizontalSpacing = 0;
+        root.addComponent(menuBarBuildResult.menuRail);
+        root.addComponent(column);
 
         Screen.instance.addComponent(root);
 
@@ -145,9 +154,10 @@ class HaxeFolioApp
         SideBarController.init(sideBar, [root, notificationLayer]);
 
         var menuCollapseWidth:Int = config.menuCollapseWidth ?? 900;
+        var menuRailHeight:Int = config.menuRailHeight ?? 500;
         var debounceMs:Int = config.debounceMs ?? 500;
 
-        ResponsivityController.init(pageContainer, menuBarBuildResult.hamburgerButton, menuBarBuildResult.collapsibleComponents, menuCollapseWidth, config.widthTiers ?? [], debounceMs, (width, height) -> {
+        ResponsivityController.init(pageContainer, menuCollapseWidth, menuRailHeight, config.widthTiers ?? [], debounceMs, (width, height) -> {
             if (currentPage != null)
                 currentPage.onResize(currentPageScrollArea.element.clientWidth, currentPageScrollArea.element.clientHeight);
 

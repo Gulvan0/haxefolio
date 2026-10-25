@@ -5,14 +5,10 @@ import haxe.ui.containers.menus.Menu;
 import haxe.ui.core.Screen;
 import haxefolio.menu.builder.MenuBuilderHelpers;
 import js.Browser;
-import js.html.CSSStyleDeclaration;
-import js.html.CanvasRenderingContext2D;
 import js.html.Element;
 
 class NormalMenu extends Menu
 {
-    private static var measuringContext:Null<CanvasRenderingContext2D> = null;
-
     /*
         Called when the dropdown's width changed while it is open (see openPopup), for the menu bar
         to place it again.
@@ -84,7 +80,7 @@ class NormalMenu extends Menu
             if (textElement.textContent == "")
                 continue;
 
-            neededWidth = Math.max(neededWidth, this.width - label.width + measureSingleLine(textElement));
+            neededWidth = Math.max(neededWidth, this.width - label.width + MenuBuilderHelpers.measureSingleLine(textElement));
         }
 
         if (Math.abs(neededWidth - this.width) < 1)
@@ -93,17 +89,5 @@ class NormalMenu extends Menu
         this.width = Math.ceil(neededWidth);
         this.syncComponentValidation();
         return true;
-    }
-
-    private static function measureSingleLine(textElement:Element):Float
-    {
-        if (measuringContext == null)
-            measuringContext = Browser.document.createCanvasElement().getContext2d();
-
-        var computedStyle:CSSStyleDeclaration = Browser.window.getComputedStyle(textElement);
-        measuringContext.font = '${computedStyle.fontStyle} ${computedStyle.fontWeight} ${computedStyle.fontSize} ${computedStyle.fontFamily}';
-
-        // rounded up, as the browser rounds a text box's own width
-        return Math.ceil(measuringContext.measureText(textElement.textContent).width);
     }
 }

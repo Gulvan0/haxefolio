@@ -4,7 +4,7 @@ What replaced HaxeFolio's original overlay system, and why. API and usage live i
 README; this file keeps only the reasoning, so a later change can tell which decisions are
 load-bearing. Colour, type and geometry defaults are in `plans/haxefolio/haxefolio-theme.md`.
 
-Built in eight steps: `ByWidth`/`bind`, `Appearance`, `RegionStack`, `present`/`embed`,
+Built in eight steps: `ByMenuLayout`/`bind`, `Appearance`, `RegionStack`, `present`/`embed`,
 `HeaderBar`/`ActionBar`, `Tabs`, the preference window, and (unbuilt, only when a real case
 demands them) `SearchBar`, `Toolbar`, `StepIndicator`.
 
@@ -33,7 +33,7 @@ feeds the arithmetic (so tab pages may differ in height, each keeping its scroll
 `present` takes no presentation argument. The framework picks dialog (expanded) or sheet
 (collapsed) from `ResponsivityController.isCollapsed` once, at present time, and it stays fixed
 for that overlay's life (swapping live would rebuild the content and lose typed input). Hosts may
-branch on the breakpoint *state* (`mobileContentFactory`, `ByWidth`), never on the presentation:
+branch on the breakpoint *state* (`mobileContentFactory`, `ByMenuLayout`), never on the presentation:
 a host that names it makes the breakpoint decision at every call site and starts writing content
 valid in only one shape.
 
@@ -47,7 +47,7 @@ legal, since the user cannot tell what is already committed).
 ## 4. One breakpoint, one mechanism
 
 The only breakpoint is `menuCollapseWidth`. Components never subscribe to it themselves or invent
-a pixel threshold; they take a `ByWidth<T>` (one value, or `{expanded, collapsed}`) and pass it
+a pixel threshold; they take a `ByMenuLayout<T>` (one value, or `{expanded, collapsed}`) and pass it
 through `ResponsivityController.bind`. That replaced `ChoicesPerRow`, `stackOnCollapse` and every
 direct `onCollapseChange` subscription. `FieldGroup` is the reflowing container built on it.
 

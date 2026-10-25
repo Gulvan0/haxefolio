@@ -34,8 +34,8 @@ import morestd.Detachable;
     the roots of the one beneath it. The attribute goes through InertHolds, since the menu side bar
     makes the app inert too.
 
-    Presentation (dialog or sheet) is picked once, by ResponsivityController.isCollapsed at the
-    moment of presenting, and fixed for that overlay's lifetime: swapping live would have to rebuild
+    Presentation (dialog or sheet) is picked once, by ResponsivityController.menuLayout at the
+    moment of presenting - a sheet unless Expanded - and fixed for that overlay's lifetime: swapping live would have to rebuild
     the content from the other factory and lose whatever the user had typed.
 */
 class OverlayController
@@ -65,7 +65,7 @@ class OverlayController
 
         DropdownWidget.closeOpen();
 
-        var isCollapsed:Bool = ResponsivityController.isCollapsed;
+        var isCollapsed:Bool = ResponsivityController.menuLayout != Expanded;
         var factory:(Void->Void)->OverlayContent = (isCollapsed && mobileContentFactory != null) ? mobileContentFactory : contentFactory;
 
         var overlay:OpenOverlay = new OpenOverlay(slug);

@@ -3,7 +3,7 @@ package haxefolio.form;
 import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
-import haxefolio.ByWidth;
+import haxefolio.ByMenuLayout;
 import haxefolio.form.plumbing.FieldGroupDirection;
 import morestd.Detachable;
 
@@ -11,7 +11,7 @@ import morestd.Detachable;
     A `surfaceSunken` inset box that groups fields belonging to one parameter - a row or a stack
     depending on `direction`, fixed-height whenever its contents can vary (`fixedHeight`).
 
-    `direction` and `fixedHeight` are `ByWidth`s, so a group can lay its fields out side by side
+    `direction` and `fixedHeight` are `ByMenuLayout`s, so a group can lay its fields out side by side
     while expanded and stack them while collapsed (see `ResponsivityController.bind`). A field's
     own `percentWidth` is what it gets while the group is horizontal - it is remembered at
     construction and replaced by 100 while vertical, so the caller states the side-by-side split
@@ -36,7 +36,7 @@ class FieldGroup extends VBox
     private final gap:Null<Int>;
     private var content:Null<Component>;
 
-    public function new(fields:Array<Component>, ?direction:ByWidth<FieldGroupDirection>, ?fixedHeight:ByWidth<Int>, inset:Bool = true, ?gap:Int)
+    public function new(fields:Array<Component>, ?direction:ByMenuLayout<FieldGroupDirection>, ?fixedHeight:ByMenuLayout<Int>, inset:Bool = true, ?gap:Int)
     {
         super();
 
@@ -47,7 +47,7 @@ class FieldGroup extends VBox
         this.gap = gap;
         this.horizontalPercentWidths = [for (field in fields) field.percentWidth];
 
-        var resolvedDirection:ByWidth<FieldGroupDirection> = FieldGroupDirection.Vertical;
+        var resolvedDirection:ByMenuLayout<FieldGroupDirection> = FieldGroupDirection.Vertical;
         if (direction != null)
             resolvedDirection = direction;
 

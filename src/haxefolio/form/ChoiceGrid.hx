@@ -3,7 +3,7 @@ package haxefolio.form;
 import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
 import haxe.ui.core.Component;
-import haxefolio.ByWidth;
+import haxefolio.ByMenuLayout;
 import haxefolio.form.plumbing.ChoiceButton;
 import haxefolio.form.plumbing.ChoiceGridSelection;
 import haxefolio.form.plumbing.ChoiceOption;
@@ -13,7 +13,7 @@ import morestd.Detachable;
 
 /*
     The same selection semantics as ChoiceRow, but wrapping, for 6-20 curated options - under a
-    FieldHeader, in rows of `perRow` cells (a `ByWidth`, so it may differ between the
+    FieldHeader, in rows of `perRow` cells (a `ByMenuLayout`, so it may differ between the
     framework's one app-wide breakpoint's two states - see `ResponsivityController.bind`).
 
     Cell width is a percentage of the row, never pixels, so a host's scrollbar gutter or a padding
@@ -49,7 +49,7 @@ class ChoiceGrid<T> extends VBox
     private var selectedSingle:Null<T>;
     private var selectedMulti:Array<T>;
 
-    public function new(label:Null<String>, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ByWidth<Int>, gap:Int = 6, locked:Bool = false, ?lockReason:String, iconAlign:IconAlign = Leading)
+    public function new(label:Null<String>, options:Array<ChoiceOption<T>>, selection:ChoiceGridSelection<T>, perRow:ByMenuLayout<Int>, gap:Int = 6, locked:Bool = false, ?lockReason:String, iconAlign:IconAlign = Leading)
     {
         super();
 

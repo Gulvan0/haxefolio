@@ -14,7 +14,7 @@ import morestd.Detachable;
     The frame's height is given, never measured, and so is every region's; the scrolling area
     gets `scrollHeight = frameHeight - sum of fixed heights`. It is the only region that ever
     resizes: changing `frameHeight` (a viewport resize) or the breakpoint state (a fixed region's
-    `ByWidth` height differing between the two) changes exactly that one number. Nothing is ever
+    `ByMenuLayout` height differing between the two) changes exactly that one number. Nothing is ever
     asked how tall it is, so adding content to a region never moves another.
 
     A stack with no scrolling area is legal (every region fixed); one with more than one is not.
@@ -141,7 +141,7 @@ class RegionStack extends VBox
         this.addComponent(component);
     }
 
-    private function addTabsRegion(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByWidth<Int>, ?onSelect:Int->Void, ?lock:TabLock):Void
+    private function addTabsRegion(role:TabRole, pages:Array<TabPage>, ?stripHeight:ByMenuLayout<Int>, ?onSelect:Int->Void, ?lock:TabLock):Void
     {
         claimScrollingArea();
 
@@ -190,7 +190,7 @@ class RegionStack extends VBox
             headerBar.title = title ?? headerBaseTitle;
     }
 
-    private function addFixedRegion(height:ByWidth<Int>, content:Component, styleClass:String, ?idSuffix:String):Void
+    private function addFixedRegion(height:ByMenuLayout<Int>, content:Component, styleClass:String, ?idSuffix:String):Void
     {
         var slot:Box = new Box();
         slot.percentWidth = 100;
