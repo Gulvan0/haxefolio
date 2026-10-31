@@ -638,6 +638,10 @@ var row:ChoiceRow<String> = new ChoiceRow("Rated", [
 ```haxe
 public function new(label:String, options:Array<ChoiceOption<T>>, selected:T, onSelect:T->Void, ?direction:ByMenuLayout<FieldGroupDirection>, locked:Bool = false, ?lockReason:String)
 public function select(value:T):Void
+public function setLocked(locked:Bool, ?lockReason:String):Void
+public function setOptionEnabled(value:T, enabled:Bool):Void
+public function joinButtons():Void
+public var hint(default, set):Null<String>;
 public function dispose():Void
 ```
 
@@ -649,7 +653,16 @@ threshold directly`) - call `dispose()` once the row is done with (e.g. a page's
 detach that subscription; with a `direction` that doesn't differ between the two states there's
 nothing to detach. `select(value)` highlights the option holding `value` without calling `onSelect` (the hook for a value driven from elsewhere; throws for an unknown value). `locked`/`lockReason` disable
 every button in place - never hiding the row - and state the reason via the header's own hint,
-the same convention `FieldHeader.locked` already follows on its own.
+the same convention `FieldHeader.locked` already follows on its own. `hint` is that header line's
+text while the row isn't locked (e.g. what the options mean). `setOptionEnabled(value, false)`
+disables one option alone, for a value the rest of the form rules out; a lock still disables every
+option, and lifting it keeps that one disabled (throws for an unknown value).
+
+`joinButtons()` turns a horizontal row into one segmented strip (e.g. a 1-9 level picker): no gaps,
+neighbours sharing their border, rounded only at the ends (`.haxefolio-choice-button-joined`,
+`-joined-first`, `-joined-last`). The selected and the hovered button are raised above their
+neighbours so their whole border shows; the strip is its own stacking context, so they never rise
+above an overlay covering it.
 
 ### SwapSlot<K\>
 
@@ -683,6 +696,19 @@ fix the variant or the height; `SwapSlot` will not measure and resize around it 
 not clip on its own, so its `.haxefolio-swap-slot` class carries `clip: true;` (HaxeUI's
 equivalent of CSS `overflow: hidden`); a variant taller than `height` is cut off cleanly rather
 than bleeding into whatever the slot's host renders next.
+
+Variants may instead each get a height of their own - still declared, never measured:
+
+```haxe
+public function setVariantHeights(heights:Map<K, Int>, transitionMs:Int = 0):Void
+```
+
+`heights` holds one height per variant (a missing one throws). The slot takes the active variant's
+height at once; every later change of `active` animates `height` to the new variant's over
+`transitionMs` with an ease-out curve - frame by frame, so whatever is laid out around the slot
+follows it - or jumps when `transitionMs` is 0 or the user prefers reduced motion. Calling it again
+(e.g. from a `ResponsivityController.bind` on a `ByMenuLayout<Map<K, Int>>`) applies the new
+heights at once.
 
 ### ChoiceGrid
 
@@ -801,6 +827,8 @@ public var state(default, null):FieldState<T>;
 public var currentValue(get, set):T;
 public var valid(get, never):Bool;
 public var enabled(default, set):Bool;
+public var hint(default, set):String;
+public function addBesideStepper(component:Component, gap:Int):Void
 ```
 
 - **Invalid input is never reverted or clamped** - the user's keystrokes are theirs. The field
@@ -808,8 +836,12 @@ public var enabled(default, set):Bool;
   validated, so a host holding the last `onChange` value never holds an invalid one; a change in
   validity is reported through `onValidityChange` (and readable any time via `valid`/`state`),
   which is what a form uses to disable its primary action.
-- **Errors show only after the field is touched** (edited or stepped by the user). A field that
-  starts out invalid opens showing only its neutral `hint`.
+- **Errors show only after the field is touched** (edited or stepped by the user), **and only while
+  it is enabled**. A field that starts out invalid opens showing only its neutral `hint`, and a
+  disabled field, whose value doesn't count, shows it too. `hint` may be reassigned (e.g. to say
+  why the field is off).
+- `addBesideStepper` puts a control of the field's own (e.g. a "No limit" toggle) on the stepper's
+  line, `gap` pixels after it, under the same header - so the hint line spans both.
 - `validate` returns a whole `FieldState` for the signature's sake, but only `valid` and
   `message` matter: the field fills in `value` and `touched` itself, and `message` is shown only
   while invalid. Unparseable text shows `invalidFormatMessage`. Both must fit the header line -

@@ -106,6 +106,12 @@ what keeps the anti-jump guarantee in one place.
   the same reason. Switching challenge type in the Intellector overlay changes a login field
   into a visibility row into an explanatory sentence — without the enforced height every
   switch moves everything below it.
+- **Per-variant heights are declared too, and the change is animated.** When variants differ
+  much in height (a one-line choice next to a card picker), one shared height wastes space; each
+  variant then gets its own constant (`setVariantHeights`), still never measured. The slot steps its
+  own `height` frame by frame rather than leaving it to a CSS transition, because HaxeUI lays out
+  the slot's surroundings from `height`: a CSS-only transition would move them at once while the
+  slot's box was still animating.
 - **`FieldGroup.fixedHeight` is a caller-supplied constant**, strongly recommended whenever the
   group's contents can change and sized to the tallest variant. `direction` is set per
   instance by the caller, not derived from a breakpoint system.

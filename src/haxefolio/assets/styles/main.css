@@ -752,6 +752,20 @@
     color: #6b7180;
 }
 
+.haxefolio-choice-button-joined {
+    border-radius: 0px;
+}
+
+.haxefolio-choice-button-joined-first {
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+
+.haxefolio-choice-button-joined-last {
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
 .haxefolio-stepper-button {
     font-name: $ui-family-medium;
     font-size: 18px;

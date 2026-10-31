@@ -1,6 +1,8 @@
 package haxefolio.form;
 
+import haxe.ui.containers.HBox;
 import haxe.ui.containers.VBox;
+import haxe.ui.core.Component;
 import haxefolio.form.plumbing.FieldHeader;
 import haxefolio.form.plumbing.FieldState;
 import haxefolio.form.plumbing.Stepper;
@@ -15,18 +17,21 @@ import haxefolio.form.plumbing.Stepper;
     itself, reports the change in validity upward (`onValidityChange`, `valid`, `state`) and keeps
     `onChange` reserved for values that parsed *and* validated, so a host holding the last
     `onChange` value never holds an invalid one. Errors only show once the field has been touched
-    (edited or stepped by the user): a field that starts out invalid opens showing only its
-    neutral hint.
+    (edited or stepped by the user), and only while it is enabled: a field that starts out invalid
+    opens showing only its neutral hint, and a disabled one, whose value doesn't count, shows it too.
 
     `validate` returns a whole FieldState for the signature's sake, but only its `valid` and
     `message` matter: the field overwrites `value` and `touched` itself, and `message` is used
-    only while the field is invalid (while valid, the constructor's `hint` is shown instead). No
+    only while the field is invalid (while valid, `hint` is shown instead). No
     `text-overflow: ellipsis` exists, so a message must fit the header's line by construction -
     at a 288px half-width column roughly 22 label characters plus 14 hint/message characters.
 
     `step` is applied to the last known value on each -/+ press and is expected to keep its
     result within bounds itself: a button press has no "unparseable" case, so clamping there is
     unsurprising in a way clamping typed text would not be.
+
+    `addBesideStepper` puts a control of the field's own (e.g. a toggle switching the value off)
+    on the stepper's line, under the same header, so the hint line spans both.
 */
 class SteppedValueField<T> extends VBox
 {
@@ -37,7 +42,6 @@ class SteppedValueField<T> extends VBox
     private final format:T->String;
     private final step:T->Int->T;
     private final validate:T->FieldState<T>;
-    private final hint:String;
     private final invalidFormatMessage:String;
     private final onValidityChange:Null<Bool->Void>;
 
@@ -54,6 +58,9 @@ class SteppedValueField<T> extends VBox
         control (e.g. a preset grid) drives this field.
     **/
     public var currentValue(get, set):T;
+
+    /** The neutral hint, shown unless an error is **/
+    public var hint(default, set):String;
 
     public var valid(get, never):Bool;
     public var enabled(default, set):Bool;
@@ -111,6 +118,28 @@ class SteppedValueField<T> extends VBox
         return newValue;
     }
 
+    /** Puts `component` at the end of the stepper's line, `gap` pixels after the stepper **/
+    public function addBesideStepper(component:Component, gap:Int):Void
+    {
+        var line:HBox = new HBox();
+        line.percentWidth = 100;
+        line.horizontalSpacing = gap;
+        line.addClass("haxefolio-stepped-value-field-line");
+
+        this.removeComponent(stepper, false);
+        line.addComponent(stepper);
+        line.addComponent(component);
+        this.addComponent(line);
+    }
+
+    private function set_hint(value:String):String
+    {
+        hint = value;
+        if (state != null) // assigned once the constructor has built the header
+            render();
+        return value;
+    }
+
     private function get_valid():Bool
     {
         return state.valid;
@@ -121,6 +150,7 @@ class SteppedValueField<T> extends VBox
         enabled = value;
         stepper.enabled = value;
         header.locked = !value;
+        render();
         return value;
     }
 
@@ -170,7 +200,7 @@ class SteppedValueField<T> extends VBox
 
     private function render():Void
     {
-        var showError:Bool = !state.valid && state.touched;
+        var showError:Bool = enabled && !state.valid && state.touched;
         header.hint = showError ? state.message : hint;
         header.state = showError ? Error : Normal;
         stepper.invalid = showError;
