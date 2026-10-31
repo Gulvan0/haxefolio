@@ -1,5 +1,6 @@
 package haxefolio;
 
+import haxe.CallStack;
 import haxe.ui.HaxeUIApp;
 import haxe.ui.Toolkit;
 import haxe.ui.locale.LocaleManager;
@@ -148,10 +149,10 @@ class HaxeFolioApp
 
         Screen.instance.addComponent(root);
 
-        var notificationLayer:Component = NotificationLayer.init();
+        NotificationLayer.init();
 
-        OverlayController.init([root, sideBar, notificationLayer]);
-        SideBarController.init(sideBar, [root, notificationLayer]);
+        OverlayController.init([root, sideBar]);
+        SideBarController.init(sideBar, [root]);
 
         var menuCollapseWidth:Int = config.menuCollapseWidth ?? 900;
         var menuRailHeight:Int = config.menuRailHeight ?? 500;
@@ -180,7 +181,17 @@ class HaxeFolioApp
     **/
     public static function navigateTo(path:String, ?state:Dynamic, ?fragment:String):Void
     {
-        openPath(path, true, state, fragment);
+        openPath(path, true, false, state, fragment);
+    }
+
+    /**
+        `navigateTo`, with the destination replacing the current page's back/forward entry instead of
+        being added after it: for a page that forwards the user elsewhere, which Back would otherwise
+        reopen, only to be forwarded again.
+    **/
+    public static function redirectTo(path:String, ?state:Dynamic, ?fragment:String):Void
+    {
+        openPath(path, true, true, state, fragment);
     }
 
     /**
@@ -195,11 +206,20 @@ class HaxeFolioApp
     }
 
     /**
+        Whether navigating away from the open page would go ahead without the user's confirmation,
+        as the page's `canLeave` tells. True while no page is open.
+    **/
+    public static function currentPageMayBeLeft():Bool
+    {
+        return currentPage == null || currentPage.canLeave();
+    }
+
+    /**
         Navigates to the default page (the one registered with `isDefault: true`).
     **/
     public static function navigateToDefault():Void
     {
-        openDefaultPage(true);
+        openDefaultPage(true, false);
     }
 
     /** The path of the default page (the one registered with `isDefault: true`) **/
@@ -280,12 +300,22 @@ class HaxeFolioApp
         bottom, and stay until the returned handle's `dismiss()` is called - there is no expiry.
 
         The framework draws nothing around `content`: its surface, layout and controls are the
-        host's, and so is its height, which may change while shown (the stack re-anchors). Like
-        the page, notifications are unreachable while an overlay or the side bar is open.
+        host's, and so is its height, which may change while shown (the stack re-anchors).
+        Notifications paint above overlays and the side bar, and stay interactive while either is
+        open.
     **/
     public static function notify(content:Component, expandedWidth:Float):Notification
     {
         return NotificationLayer.show(content, expandedWidth);
+    }
+
+    /**
+        Raises the notification column by `inset` pixels above its usual bottom margin, keeping room for
+        something the host anchors to the bottom of the viewport. 0 restores the usual position.
+    **/
+    public static function setNotificationBottomInset(inset:Float):Void
+    {
+        NotificationLayer.setBottomInset(inset);
     }
 
     /**
@@ -419,11 +449,11 @@ class HaxeFolioApp
 
         if (path == null)
         {
-            openDefaultPage(false);
+            openDefaultPage(false, false);
             return;
         }
 
-        openPath(path, false);
+        openPath(path, false, false);
     }
 
     /*
@@ -447,7 +477,8 @@ class HaxeFolioApp
         return false;
     }
 
-    private static function openPath(path:String, isExplicitNavigation:Bool, ?state:Dynamic, ?fragment:String):Void
+    /** `replacesEntry`: an explicit navigation's destination replaces the current back/forward entry rather than following it **/
+    private static function openPath(path:String, isExplicitNavigation:Bool, replacesEntry:Bool, ?state:Dynamic, ?fragment:String):Void
     {
         if (!mayLeaveCurrentPage(isExplicitNavigation))
             return;
@@ -462,7 +493,9 @@ class HaxeFolioApp
             {
                 switchToPage(resolution.definition, resolution.params);
 
-                if (isExplicitNavigation)
+                if (isExplicitNavigation && replacesEntry)
+                    PageRouter.replaceUrl(path, pendingNavigationState, pendingFragment);
+                else if (isExplicitNavigation)
                     PageRouter.pushUrl(path, pendingNavigationState, pendingFragment);
 
                 endTransition();
@@ -477,10 +510,10 @@ class HaxeFolioApp
             }
         }
 
-        openDefaultPage(isExplicitNavigation);
+        openDefaultPage(isExplicitNavigation, replacesEntry);
     }
 
-    private static function openDefaultPage(isExplicitNavigation:Bool):Void
+    private static function openDefaultPage(isExplicitNavigation:Bool, replacesEntry:Bool):Void
     {
         if (!mayLeaveCurrentPage(isExplicitNavigation))
             return;
@@ -497,7 +530,7 @@ class HaxeFolioApp
             throw e;
         }
 
-        if (isExplicitNavigation)
+        if (isExplicitNavigation && !replacesEntry)
             PageRouter.pushUrl(PageRouter.defaultPageDefinition.path, pendingNavigationState, pendingFragment)
         else
             PageRouter.replaceUrl(PageRouter.defaultPageDefinition.path, pendingNavigationState, pendingFragment);
@@ -565,6 +598,7 @@ class HaxeFolioApp
         }
         catch (e:Dynamic)
         {
+            Browser.console.error("Page initialization failed", e, CallStack.toString(CallStack.exceptionStack()));
             pageContainer.removeComponent(scrollArea, true);
             throw e;
         }

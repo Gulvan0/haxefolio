@@ -16,9 +16,11 @@ import haxefolio.Viewport;
     and lifetime are their content's.
 
     The column is a Screen root component of its own, added once by HaxeFolioApp.init after the app
-    root. Overlays and the side bar are added to Screen only when shown, so they always paint above
-    it; the column is made inert along with the app root while either is open, as part of the app
-    beneath them.
+    root. It paints above everything else on Screen - overlays and the side bar included, although
+    they are added later - and is never made inert: a notification is often the outcome of an
+    action taken inside an overlay (a failed request, say), and must stay readable and dismissable
+    over it. Hence its z-index, set above the small ones pages use internally (see PageLink), which
+    compete with it unless something in between forms a stacking context.
 
     It is re-anchored whenever its own size changes (which covers showing, dismissing, and content
     changing its height), on the debounced viewport resize, and when the layout changes. Its own
@@ -30,16 +32,17 @@ class NotificationLayer
 {
     private static inline final EDGE_MARGIN:Int = 12;
     private static inline final GAP:Int = 10;
+    private static inline final Z_INDEX:String = "100";
 
     private static var column:VBox;
     private static var shown:Array<Notification> = [];
+    private static var bottomInset:Float = 0;
 
     /*
-        Creates the column and adds it to Screen. Returns it, so the caller can make it inert
-        together with the rest of the app.
+        Creates the column and adds it to Screen
     */
     @:allow(haxefolio)
-    private static function init():Component
+    private static function init():Void
     {
         column = new VBox();
         column.id = "haxefolio-notification-layer";
@@ -48,13 +51,12 @@ class NotificationLayer
         column.hidden = true;
 
         Screen.instance.addComponent(column);
+        column.element.style.zIndex = Z_INDEX;
 
         var observer:Dynamic = js.Syntax.code("new ResizeObserver({0})", onColumnResized);
         observer.observe(column.element);
 
         ResponsivityController.onMenuLayoutChange(_ -> fit());
-
-        return column;
     }
 
     @:allow(haxefolio)
@@ -70,6 +72,13 @@ class NotificationLayer
         fit();
 
         return notification;
+    }
+
+    @:allow(haxefolio)
+    private static function setBottomInset(inset:Float):Void
+    {
+        bottomInset = inset;
+        anchor();
     }
 
     @:allow(haxefolio.notification)
@@ -123,6 +132,6 @@ class NotificationLayer
         var height:Float = column.element.offsetHeight / Toolkit.scaleY;
 
         column.left = Viewport.width() - EDGE_MARGIN - width;
-        column.top = Viewport.height() - EDGE_MARGIN - height;
+        column.top = Viewport.height() - EDGE_MARGIN - bottomInset - height;
     }
 }

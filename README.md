@@ -92,6 +92,8 @@ Navigating between pages is done by calling `HaxeFolioApp.navigateTo(path)` from
 
 Every navigation updates the URL to `https://<host>:<port>/?p=<path>`, pushed onto the browser's history so back/forward navigation works as expected. `HaxeFolioApp.pageUrl(path, ?fragment)` returns that absolute URL without navigating, for a link to a page shared outside the app. Loading the site with no `p` parameter, an unresolvable one, or navigating back/forward to one, all fall back to the default page (updating the URL to match it). Since `.../?p=user/alice` and `.../?p=user/bob` are different paths, moving between them via back/forward destroys and recreates the page just like an explicit `navigateTo` call would.
 
+`HaxeFolioApp.redirectTo(path, ?state, ?fragment)` navigates the same way, except that the destination replaces the current page's history entry instead of being pushed after it. It's for a page that only forwards the user elsewhere once it learns where (a link to something that has since moved on): with `navigateTo`, Back would reopen that page, which would forward the user again.
+
 #### Passing state and a fragment
 
 Sometimes a transition needs to carry data that doesn't belong in the path - for example, a game page's "Analyze" button opening an analysis board already preloaded with that game's move list. `navigateTo` takes two further optional arguments for this:
@@ -493,8 +495,9 @@ The framework only places notifications; it draws nothing around `content`. Its 
 
 - **Placement.** Notifications form one column anchored to the bottom of the viewport, 12px from its edges, 10px apart, stacking upward in the order they were shown (the newest at the bottom). While the layout is expanded or the rail (see `Responsivity`), the column sits in the bottom-right corner and each notification is its own `expandedWidth` wide, right-aligned. While it is collapsed, every notification spans the viewport width minus the margins. Widths follow the layout live.
 - **Height** is the content's, and may change while it is shown: the column re-anchors so its bottom edge stays put.
+- **Bottom inset.** `HaxeFolioApp.setNotificationBottomInset(inset)` raises the column by `inset` pixels, leaving room for something the host keeps at the bottom of the viewport (a status pill, say); `0` restores the usual position.
 - **Lifetime.** A notification stays until `dismiss()` is called - there is no expiry. `dismiss()` removes the content without disposing it, so the same component may be shown again by a later `notify`; calling it again does nothing. `isShown` tells whether it is still on screen.
-- **Modality.** Notifications are part of the app beneath an overlay or the side bar: both paint above them, and they are inert while either is open. They don't block anything themselves - there is no scrim.
+- **Modality.** Notifications paint above everything else, overlays and the side bar included, and stay interactive while either is open - a notification is often the outcome of an action taken inside an overlay, such as a failed request. They don't block anything themselves - there is no scrim.
 
 ## Anchoring
 
