@@ -111,6 +111,13 @@ typedef HaxeFolioConfig = {
     ?leaveConfirmText:String,
 
     /**
+        Called with a description and the error when a page throws while being created or
+        initialized, and the default page opens instead, or when it then throws while being closed.
+        Whatever the default page throws while opening stays uncaught.
+    **/
+    ?onPageFailed:String->Dynamic->Void,
+
+    /**
         Maps each locale id the app provides strings for (the `id` declared under `<locales>` in
         the app's `module.xml`) to a human-readable display name, e.g. `"en" => "English"`. Only
         the keys are consulted by the framework itself, to validate the detected system locale

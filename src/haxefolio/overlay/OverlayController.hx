@@ -223,6 +223,31 @@ class OverlayController
     }
 
     /*
+        Whether any open overlay holds a text field the user has typed something into.
+    */
+    public static function holdsInput():Bool
+    {
+        for (overlay in openOverlays)
+        {
+            if (overlay.presentation == null)
+                continue;
+
+            for (root in overlay.presentation.roots())
+            {
+                var fields:js.html.NodeList = root.element.querySelectorAll("input, textarea");
+                for (i in 0...fields.length)
+                {
+                    var field:Dynamic = fields.item(i);
+                    if (field.type != "checkbox" && field.type != "radio" && field.type != "button" && field.value != "")
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /*
         Re-fits the open overlays' frames to the viewport, bottom to top, each nested one against
         the frame beneath it. Called off the same debounced resize signal ResponsivityController
         already computes.

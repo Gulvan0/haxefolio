@@ -1,6 +1,5 @@
 package haxefolio;
 
-import haxe.CallStack;
 import haxe.ui.HaxeUIApp;
 import haxe.ui.Toolkit;
 import haxe.ui.locale.LocaleManager;
@@ -97,6 +96,7 @@ class HaxeFolioApp
 
         var supportedLocales:Map<String, String> = config.supportedLocales ?? ["en" => "English"];
         var supportedLocaleCodes:Array<String> = [for (code in supportedLocales.keys()) code];
+        DefaultStrings.fillMissing(supportedLocaleCodes);
         var detectedLocale:String = resolveDetectedLocale(supportedLocaleCodes, LocaleManager.instance.language);
 
         if (config.languagePreference != null)
@@ -170,6 +170,19 @@ class HaxeFolioApp
         Browser.window.addEventListener("popstate", _ -> openFromCurrentUrl());
 
         openFromCurrentUrl();
+    }
+
+    /**
+        Asked before each explicit navigation (`navigateTo`, `redirectTo`): while it returns true, the
+        destination is opened as a full page load instead, so the browser starts the app afresh.
+        The `state` passed to the navigation is not carried over.
+    **/
+    public static var reloadOnNavigation:Null<Void->Bool> = null;
+
+    /** Whether an open overlay holds a text field the user has typed something into **/
+    public static function overlayHoldsInput():Bool
+    {
+        return OverlayController.holdsInput();
     }
 
     /**
@@ -319,11 +332,6 @@ class HaxeFolioApp
     }
 
     /**
-        Opens the built-in preference window: an overlay (see `present`) with one tab per
-        preference tab and a Reset footer, whose controls apply on change. Customizable through
-        `HaxeFolioConfig.preferenceWindowAppearance` and CSS (`#haxefolio-overlay-preference-*`).
-    **/
-    /**
         Whether `node` is bare background of the open page: it lies inside the page area (not the
         menu bar, an overlay or anything else on `Screen`) and the nearest HaxeUI component it
         belongs to is a pure layout container - a `Box` (`VBox`, `HBox`, the page itself...) or
@@ -356,6 +364,11 @@ class HaxeFolioApp
         }
     }
 
+    /**
+        Opens the built-in preference window: an overlay (see `present`) with one tab per
+        preference tab and a Reset footer, whose controls apply on change. Customizable through
+        `HaxeFolioConfig.preferenceWindowAppearance` and CSS (`#haxefolio-overlay-preference-*`).
+    **/
     public static function showPreferences():Void
     {
         present("preference", _ -> PreferenceWindowBuilder.build(config.preferenceTabIcons), null, config.preferenceWindowAppearance);
@@ -483,6 +496,16 @@ class HaxeFolioApp
         if (!mayLeaveCurrentPage(isExplicitNavigation))
             return;
 
+        if (isExplicitNavigation && reloadOnNavigation != null && reloadOnNavigation())
+        {
+            var url:String = PageRouter.absoluteUrl(path, fragment);
+            if (replacesEntry)
+                Browser.window.location.replace(url);
+            else
+                Browser.window.location.assign(url);
+            return;
+        }
+
         var resolution:Null<PageResolution> = PageRouter.resolve(path);
 
         if (resolution != null)
@@ -507,10 +530,19 @@ class HaxeFolioApp
 
                 if (resolution.definition == PageRouter.defaultPageDefinition)
                     throw e;
+
+                reportPageFailure('Failed to open the page "$path"', e);
             }
         }
 
         openDefaultPage(isExplicitNavigation, replacesEntry);
+    }
+
+    private static function reportPageFailure(description:String, error:Dynamic):Void
+    {
+        Browser.console.error(description, error);
+        if (config.onPageFailed != null)
+            config.onPageFailed(description, error);
     }
 
     private static function openDefaultPage(isExplicitNavigation:Bool, replacesEntry:Bool):Void
@@ -598,7 +630,7 @@ class HaxeFolioApp
         }
         catch (e:Dynamic)
         {
-            Browser.console.error("Page initialization failed", e, CallStack.toString(CallStack.exceptionStack()));
+            closeFailedPage(page, definition);
             pageContainer.removeComponent(scrollArea, true);
             throw e;
         }
@@ -608,6 +640,20 @@ class HaxeFolioApp
 
         currentPage = page;
         currentPageScrollArea = scrollArea;
+    }
+
+    // a failure to close is reported rather than thrown, so as not to replace the failure that caused it
+    private static function closeFailedPage(page:PageBase, definition:PageDefinition):Void
+    {
+        try
+        {
+            page.finalizeClose();
+        }
+        catch (e:Dynamic)
+        {
+            page.stopBlink();
+            reportPageFailure('Failed to close the page "${definition.path}" after its initialization failed', e);
+        }
     }
 
     private static function get_navigationState():Dynamic

@@ -7,6 +7,11 @@
         <resource path="${module}/assets/layouts" prefix="haxefolio/layouts" />
         <resource path="${module}/assets/styles" prefix="haxefolio/styles" />
     </resources>
+    <locales>
+        <locale id="en">
+            <resource path="haxefolio/locale/en.properties" />
+        </locale>
+    </locales>
     <components>
         <!-- classes usable as XML layout tags (each needs a no-argument constructor) -->
         <class name="haxefolio.structure.ActionButton" />

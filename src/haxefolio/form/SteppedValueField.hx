@@ -127,6 +127,8 @@ class SteppedValueField<T> extends VBox
         line.addClass("haxefolio-stepped-value-field-line");
 
         this.removeComponent(stepper, false);
+        stepper.verticalAlign = "center";
+        component.verticalAlign = "center";
         line.addComponent(stepper);
         line.addComponent(component);
         this.addComponent(line);

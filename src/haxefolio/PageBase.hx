@@ -58,7 +58,8 @@ class PageBase extends Box
     /**
         Called by the framework before the page is destroyed and the user is navigated away.
         Override to perform cleanup (e.g. detaching preference hooks, cancelling pending
-        requests). It is forbidden to call `HaxeFolioApp.navigateTo` from here.
+        requests). Also called if `init` throws, so it has to cope with an initialization cut short
+        at any point. It is forbidden to call `HaxeFolioApp.navigateTo` from here.
     **/
     private function onClose():Void
     {

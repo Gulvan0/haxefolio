@@ -56,7 +56,7 @@ class GamePage extends PageBase
 
 - `init` runs once the page has been added to the container - the place for a page's own setup, rather than its constructor. May throw; `HaxeFolioApp.navigateTo` may also be called from here to redirect elsewhere before the page finishes opening.
 - `onResize(width, height)` runs whenever the page container's size changes, debounced (see `Responsivity`), with the pixel dimensions of the area the page is laid out in: the container's, minus the scrollbar lane, if any (see `Page scrolling` below) - so `width` is the width the page can actually use.
-- `onClose` runs right before the page is torn down and the user is navigated away - the place for cleanup such as detaching preference `onChange` handlers (see `Preferences`) or cancelling pending requests. Calling `navigateTo` from here is not supported.
+- `onClose` runs right before the page is torn down and the user is navigated away - the place for cleanup such as detaching preference `onChange` handlers (see `Preferences`) or cancelling pending requests. It also runs if `init` throws, so it has to cope with an initialization cut short at any point. Calling `navigateTo` from here is not supported.
 
 If a page's factory (see below) or `init` throws, the framework redirects to the default page instead - except when the default page's own factory/`init` is what throws, in which case the exception is left uncaught.
 
@@ -752,7 +752,7 @@ the trailing edge (track and thumb, thumb right when on) says what the button do
 is not mistaken for an unselected choice; the caption is left-aligned and the marker pinned to the trailing edge, as in a settings row, so the button spans the same width as the other controls and nothing moves when the state caption changes. The caption is per state -
 `ToggleLabels` (`haxefolio.form.plumbing`), `{on:String, off:String}`, each interpreted like any HaxeUI
 `.text` property (a literal, or a `{{key}}` locale key) - and defaults to the locale keys
-`haxefolio.toggle.on` / `haxefolio.toggle.off` (see `Locale keys`), which the host defines. A toggle
+`haxefolio.toggle.on` / `haxefolio.toggle.off` (see `Locale keys`). A toggle
 therefore has no caption of its own outside its states: name what it controls in a header (see
 `FormSection`) or in the labels themselves:
 
@@ -1759,9 +1759,11 @@ None of its own: the window is a presented overlay with slug `preference`, style
 
 Every piece of preference window text, and every menu bar/side bar label not given an explicit `defaultText` (see `Menu bar`), is resolved through HaxeUI's localization system under the keys below.
 
-A locale entry that's missing entirely does **not** throw - HaxeUI's `LocaleManager` falls back to displaying the raw key itself (e.g. a literal `haxefolio.menubar.menu.navigation` on screen) wherever that key was bound. There is no HaxeFolio-level validation catching this earlier; a missing entry is a visible-at-runtime, not a thrown, failure.
+The framework ships English strings for the keys it fully owns, the second table below. A host overrides any of them by defining the same key in its own `.properties` file (its module must keep a priority above HaxeFolio's -1, which the default of 0 does), and translates them the same way. A key that a language in `supportedLocales` lacks shows the shipped English string, and a debug build traces which ones.
 
-| Key | Purpose |
+The keys in the first table name things the host declares, so the host defines them. A locale entry missing there does **not** throw - HaxeUI's `LocaleManager` falls back to displaying the raw key itself (e.g. a literal `haxefolio.menubar.menu.navigation` on screen) wherever that key was bound. There is no HaxeFolio-level validation catching this earlier; a missing entry is a visible-at-runtime, not a thrown, failure.
+
+| Host-defined key | Purpose |
 |---|---|
 | `haxefolio.menubar.menu.<slug>` | A `NormalMenu`'s label, absent `defaultText` - also used for its mirrored side bar group header the same way, absent the `NormalMenu`'s `defaultText` |
 | `haxefolio.menubar.menu.<menuSlug>.item.<itemSlug>` | A menu item's label, absent `defaultText` - shared with its side bar mirror the same way |
@@ -1770,9 +1772,13 @@ A locale entry that's missing entirely does **not** throw - HaxeUI's `LocaleMana
 | `haxefolio.preference.tab.<tabId>` | A preference tab's label |
 | `haxefolio.preference.<id>.name` | A preference's display name (the header of its section) |
 | `haxefolio.preference.<id>.value.<value>` | An option (or `locale`) preference's value button label |
+
+| Shipped key | Purpose |
+|---|---|
 | `haxefolio.toggle.on` / `haxefolio.toggle.off` | A `ToggleButton`'s default caption while on / off (used by the preference window's toggles), unless it is given `ToggleLabels` |
 | `haxefolio.text_input.reveal.show` / `haxefolio.text_input.reveal.hide` | The accessible name of a `RevealablePassword` `TextInputField`'s eye toggle while the text is hidden / shown |
 | `haxefolio.search.clear` | The accessible name of a `SearchBar`'s clear control |
+| `haxefolio.copy_field.copy` / `haxefolio.copy_field.copied` | A `CopyField` button's caption, and its caption right after copying |
 | `haxefolio.preference.title` | The preference window's title |
 | `haxefolio.preference.reset` | The preference window's reset button label |
 

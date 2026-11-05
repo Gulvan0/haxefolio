@@ -17,7 +17,8 @@ import js.html.StyleElement;
     drag and touch momentum alike, and an always-shown, styled scrollbar keeps its lane whether or
     not the content overflows. HaxeUI's own scrollbars can do neither. The containment applies only
     while the content actually overflows: an area with nothing to scroll lets the wheel through to
-    the page behind it.
+    the page behind it. An overflow of a few pixels (see `NEGLIGIBLE_OVERFLOW`) is clipped rather
+    than scrolled; the lane stays reserved through `scrollbar-gutter: stable`.
 
     With a fine pointer, the scrollbar is a thin permanent lane (10px, 6px thumb) drawn with
     `::-webkit-scrollbar`, which HaxeUI's stylesheets cannot reach - so its rules are injected once
@@ -39,6 +40,9 @@ import js.html.StyleElement;
 class ScrollArea extends ScrollView
 {
     private static inline var MARKER_CLASS:String = "haxefolio-scroll-area";
+
+    /** Content overflowing by no more than this many pixels is clipped instead of made scrollable **/
+    private static inline var NEGLIGIBLE_OVERFLOW:Int = 4;
 
     private static var styleInjected:Bool = false;
 
@@ -65,9 +69,13 @@ class ScrollArea extends ScrollView
     {
         super.onReady();
 
+        if (contents == null) // disposed before getting ready, as when the page inside fails to initialize
+            return;
+
         var nativeElement:Element = this.element;
         nativeElement.style.overflowX = "hidden";
         nativeElement.style.overflowY = "scroll";
+        (cast nativeElement.style : Dynamic).scrollbarGutter = "stable";
         fitContentsToLane();
 
         var observer:Dynamic = js.Syntax.code("new ResizeObserver({0})", (_:Array<Dynamic>) -> updateContainment());
@@ -79,7 +87,9 @@ class ScrollArea extends ScrollView
     private function updateContainment():Void
     {
         var nativeElement:Element = this.element;
-        var overflows:Bool = nativeElement.scrollHeight > nativeElement.clientHeight;
+        var overflow:Int = nativeElement.scrollHeight - nativeElement.clientHeight;
+        var overflows:Bool = overflow > NEGLIGIBLE_OVERFLOW;
+        nativeElement.style.overflowY = overflows || overflow <= 0 ? "scroll" : "hidden";
         (cast nativeElement.style : Dynamic).overscrollBehavior = overflows ? "contain" : "auto";
     }
 

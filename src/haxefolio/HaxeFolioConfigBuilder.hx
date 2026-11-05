@@ -32,6 +32,7 @@ class HaxeFolioConfigBuilder
     private var sidebarExtras:Array<SidebarGroup>;
     private var defaultTitleText:Null<String>;
     private var leaveConfirmText:Null<String>;
+    private var onPageFailed:Null<String->Dynamic->Void>;
     private var supportedLocales:Null<Map<String, String>>;
     private var preferenceTabIcons:Null<Map<String, String>>;
     private var preferenceWindowAppearance:Null<AppearanceOverrides>;
@@ -173,6 +174,12 @@ class HaxeFolioConfigBuilder
         return this;
     }
 
+    public function setPageFailureHandler(onPageFailed:String->Dynamic->Void):HaxeFolioConfigBuilder
+    {
+        this.onPageFailed = onPageFailed;
+        return this;
+    }
+
     public function addLocale(code:String, displayName:String):HaxeFolioConfigBuilder
     {
         if (supportedLocales == null)
@@ -227,6 +234,7 @@ class HaxeFolioConfigBuilder
             sidebarExtras: sidebarExtras,
             defaultTitleText: defaultTitleText,
             leaveConfirmText: leaveConfirmText,
+            onPageFailed: onPageFailed,
             supportedLocales: supportedLocales,
             preferenceTabIcons: preferenceTabIcons,
             preferenceWindowAppearance: preferenceWindowAppearance,

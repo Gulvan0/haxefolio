@@ -6,9 +6,14 @@ import morestd.StringSetMap;
 
 using StringTools;
 
+/**
+    Values kept in `localStorage`. Never throws: a value `localStorage` refuses (site data blocked,
+    quota exceeded) stays readable from memory until the page is closed.
+**/
 class StorageBackend
 {
     private final appSlug:String;
+    private final unsavedValues:Map<String, String> = [];
     private var changeListeners:StringSetMap<Null<String>->Void> = new StringSetMap();
 
     public function new(appSlug:String)
@@ -24,17 +29,43 @@ class StorageBackend
 
     public function read(id:String):Null<String>
     {
-        return Browser.window.localStorage.getItem(key(id));
+        if (unsavedValues.exists(id))
+            return unsavedValues.get(id);
+
+        try
+        {
+            return Browser.window.localStorage.getItem(key(id));
+        }
+        catch (_)
+        {
+            return null;
+        }
     }
 
     public function write(id:String, value:String):Void
     {
-        Browser.window.localStorage.setItem(key(id), value);
+        try
+        {
+            Browser.window.localStorage.setItem(key(id), value);
+            unsavedValues.remove(id);
+        }
+        catch (_)
+        {
+            unsavedValues.set(id, value);
+        }
     }
 
     public function remove(id:String):Void
     {
-        Browser.window.localStorage.removeItem(key(id));
+        unsavedValues.remove(id);
+
+        try
+        {
+            Browser.window.localStorage.removeItem(key(id));
+        }
+        catch (_)
+        {
+        }
     }
 
     /**
@@ -63,6 +94,8 @@ class StorageBackend
             return;
 
         var id:String = event.key.substr(keyPrefix.length);
+
+        unsavedValues.remove(id);
 
         for (listener in changeListeners.get(id))
             listener(event.newValue);

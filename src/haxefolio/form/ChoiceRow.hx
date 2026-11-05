@@ -121,6 +121,7 @@ class ChoiceRow<T> extends VBox
 
         buttons[index].selected = true;
         raiseSelected();
+        Toolkit.callLater(raiseSelected); // the group deselects the previous button later still
     }
 
     /**
@@ -140,6 +141,7 @@ class ChoiceRow<T> extends VBox
             disabledValues.push(value);
 
         buttons[index].disabled = locked || !enabled;
+        raiseSelected();
     }
 
     /** Joins the buttons of a horizontal row into one segmented strip **/
@@ -174,6 +176,8 @@ class ChoiceRow<T> extends VBox
 
         for (i in 0...buttons.length)
             buttons[i].disabled = locked || disabledValues.contains(optionValues[i]);
+
+        raiseSelected();
     }
 
     private function set_hint(value:Null<String>):Null<String>
@@ -198,13 +202,15 @@ class ChoiceRow<T> extends VBox
             raise(button, false);
     }
 
-    // in a joined strip, the selected button above the hovered one above the rest
+    // in a joined strip, the selected button above the hovered one above the enabled ones above the disabled ones
     private function raise(button:ChoiceButton, hovered:Bool):Void
     {
         if (!joined)
             return;
 
-        button.element.style.zIndex = button.selected ? "2" : hovered ? "1" : "";
+        var index:Int = buttons.indexOf(button);
+        var disabled:Bool = locked || disabledValues.contains(optionValues[index]);
+        button.element.style.zIndex = button.selected ? "3" : hovered ? "2" : disabled ? "" : "1";
     }
 
     /**
