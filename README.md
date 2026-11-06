@@ -1,4 +1,4 @@
-# HaxeFolio Manual
+# HaxeFolio
 
 HaxeFolio is a framework for building a HaxeUI HTML5 single-page web app. It lays out a menu bar and a page container, and the app is composed of "pages" swapped in and out of that container as the URL changes - from a general web technology perspective the site is still a single HTML page, so HaxeFolio's own notion of "page" (a HaxeUI component, not a document) is worth keeping in mind throughout this manual. HaxeFolio is built over the HaxeUI library and targets HTML5.
 
