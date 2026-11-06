@@ -2,6 +2,16 @@
 
 HaxeFolio is a framework for building a HaxeUI HTML5 single-page web app. It lays out a menu bar and a page container, and the app is composed of "pages" swapped in and out of that container as the URL changes - from a general web technology perspective the site is still a single HTML page, so HaxeFolio's own notion of "page" (a HaxeUI component, not a document) is worth keeping in mind throughout this manual. HaxeFolio is built over the HaxeUI library and targets HTML5.
 
+## Installation
+
+```
+haxelib git haxeui-core https://github.com/Gulvan0/haxeui-core intellector
+haxelib git haxeui-html5 https://github.com/haxeui/haxeui-html5
+haxelib install haxefolio
+```
+
+HaxeFolio needs `haxeui-core` fixes that haven't reached a release yet (see the notes under `Menu bar` and `ChoiceButton`). The `intellector` branch of the `Gulvan0/haxeui-core` fork is upstream master plus those fixes, and the `haxeui-html5` backend has to match it, so it comes from its master too. Install both before HaxeFolio: the `haxeui-core` release on haxelib (1.7.0) predates these fixes, and HaxeFolio doesn't compile against it.
+
 ## Getting started
 
 At minimum, an app registers its pages and menu, and calls `HaxeFolioApp.init`. For example:
@@ -225,7 +235,7 @@ Additionally, two components are always present as the menu bar's leftmost child
 
 A `NormalMenu` opens on a click on its label, and closes on a click outside it, on choosing one of its items, on **Esc**, or when the menu bar crosses `menuCollapseWidth` (see `Responsivity`). Its dropdown opens attached under its label, left-aligned to it - or right-aligned, when that would run off the screen - and is as wide as its widest item label needs, 232px at the least: labels are single-line and never truncated, so keep them short (roughly 27 Latin or 25 Cyrillic characters fit the minimum width at 13px), and re-check them in every shipped locale.
 
-Closing on Esc and on the breakpoint relies on `MenuBar.closeCurrentMenu()`, and sizing the dropdown on `Menu.openPopup()`, neither of which is in stock `haxeui-core` yet: they need https://github.com/haxeui/haxeui-core/pull/715 and https://github.com/haxeui/haxeui-core/pull/701 (both in the `Gulvan0/haxeui-core` fork).
+Closing on Esc and on the breakpoint relies on `MenuBar.closeCurrentMenu()`, and sizing the dropdown on `Menu.openPopup()`, neither of which is in stock `haxeui-core` yet: they need https://github.com/haxeui/haxeui-core/pull/715 and https://github.com/haxeui/haxeui-core/pull/746 (both on the `Gulvan0/haxeui-core` fork's `intellector` branch).
 
 ### Dropdown widgets
 
@@ -602,8 +612,8 @@ its own muted grey-blue look, `:down:disabled`: unmistakably "chosen", yet clear
 the same under both emphasis styles. This is the one place the stylesheet uses a chained
 pseudo-class selector, which stock `haxeui-core` mis-parses (it drops all but the first
 pseudo-class, so the rule would mute *every* selected button) - it needs the fix in
-https://github.com/haxeui/haxeui-core/pull/713 (in the `Gulvan0/haxeui-core` fork's
-`fix/compound-pseudo-class-selector` branch).
+https://github.com/haxeui/haxeui-core/pull/713 (on the `Gulvan0/haxeui-core` fork's
+`intellector` branch).
 
 ### Stepper (`haxefolio.form.plumbing`)
 

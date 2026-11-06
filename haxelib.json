@@ -1,11 +1,14 @@
 {
     "name": "haxefolio",
-    "url": "",
+    "url": "https://github.com/Gulvan0/haxefolio",
     "license": "MIT",
     "version": "0.1.0",
     "classPath": "src/",
     "description": "A framework for building a HaxeUI HTML5 single-page web app: menu bar, page routing, responsivity and a preference system.",
-    "contributors": [],
+    "releasenote": "Initial release",
+    "contributors": [
+        "Gulvan"
+    ],
     "dependencies": {
         "haxeui-core": "",
         "haxeui-html5": "",
