@@ -4,7 +4,6 @@
         <resource path="${module}/assets/fonts" prefix="haxefolio/fonts" />
         <resource path="${module}/assets/images" prefix="haxefolio/images" />
         <resource path="${module}/assets/locale" prefix="haxefolio/locale" />
-        <resource path="${module}/assets/layouts" prefix="haxefolio/layouts" />
         <resource path="${module}/assets/styles" prefix="haxefolio/styles" />
     </resources>
     <locales>
