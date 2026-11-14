@@ -11,7 +11,7 @@ import js.html.WheelEvent;
     element once. A vertical wheel turn scrolls the content sideways unless the scroller has vertical
     room to scroll, and never reaches the ancestors while there is something to scroll sideways. The
     content can be dragged with the left mouse button; a drag doesn't click the item it started on.
-    An edge hiding content fades out. Touch scrolling stays native.
+    An edge hiding content fades out (`SidewaysFade`, also usable alone). Touch scrolling stays native.
 **/
 class SidewaysScroll
 {
@@ -19,7 +19,6 @@ class SidewaysScroll
     private static inline final LINE_HEIGHT_PX:Float = 16;
 
     private final scroller:Element;
-    private final fadePx:Int;
 
     private var pressX:Null<Float> = null;
     private var pressScrollLeft:Float = 0;
@@ -34,13 +33,12 @@ class SidewaysScroll
     private function new(scroller:Element, fadePx:Int)
     {
         this.scroller = scroller;
-        this.fadePx = fadePx;
 
+        SidewaysFade.attach(scroller, fadePx);
         scroller.addEventListener("wheel", onWheel, {passive: false});
         scroller.addEventListener("pointerdown", onPointerDown);
-        scroller.addEventListener("scroll", refreshFades);
         scroller.addEventListener("click", onClickCapture, true);
-        js.Syntax.code("new ResizeObserver({0})", (_:Array<Dynamic>) -> refreshFades()).observe(scroller);
+        js.Syntax.code("new ResizeObserver({0})", (_:Array<Dynamic>) -> refreshCursor()).observe(scroller);
     }
 
     private function onWheel(event:WheelEvent):Void
@@ -91,7 +89,7 @@ class SidewaysScroll
         suppressClick = dragging;
         dragging = false;
         pressX = null;
-        refreshFades();
+        refreshCursor();
     }
 
     private function onClickCapture(event:MouseEvent):Void
@@ -106,7 +104,7 @@ class SidewaysScroll
 
     private function isScrollable():Bool
     {
-        return scroller.scrollWidth > scroller.clientWidth + 1;
+        return SidewaysFade.isScrollable(scroller);
     }
 
     private function isOverScrollbar(event:PointerEvent):Bool
@@ -114,15 +112,8 @@ class SidewaysScroll
         return event.clientY > scroller.getBoundingClientRect().top + scroller.clientHeight;
     }
 
-    private function refreshFades():Void
+    private function refreshCursor():Void
     {
-        var hiddenLeft:Bool = scroller.scrollLeft > 1;
-        var hiddenRight:Bool = scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1;
-        var start:String = hiddenLeft ? 'transparent 0, black ${fadePx}px' : "black 0";
-        var end:String = hiddenRight ? 'black calc(100% - ${fadePx}px), transparent 100%' : "black 100%";
-        var mask:String = 'linear-gradient(to right, $start, $end)';
-        scroller.style.setProperty("mask-image", mask);
-        scroller.style.setProperty("-webkit-mask-image", mask);
         if (!dragging)
             scroller.style.cursor = isScrollable() ? "grab" : "";
     }

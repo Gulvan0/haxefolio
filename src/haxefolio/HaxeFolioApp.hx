@@ -148,6 +148,7 @@ class HaxeFolioApp
         root.addComponent(column);
 
         Screen.instance.addComponent(root);
+        root.element.style.setProperty("isolation", "isolate"); // z-indices inside the page (link overlays) stay under what is put on the screen later
 
         NotificationLayer.init();
 
