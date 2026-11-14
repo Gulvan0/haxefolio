@@ -527,6 +527,11 @@ var anchoring:Detachable = Anchoring.attach(popover, card, placement);
 - **The gap** is the floating component's CSS margin on the side facing the anchor (`margin-right` for `Left`, and so on), which is how it can differ per breakpoint (see `Styling by the breakpoint`).
 - **Adding and removing** the floating component is the caller's. It has to be a child of `anchor` excluded from its layout: positions are relative to the anchor's top-left corner, and may lie outside its bounds, so no ancestor may clip.
 
+When an ancestor of the anchor does clip (a scroll view, a collapsed card), `Anchoring.attachOnScreen(floating, anchor, placement)` places `floating` on the screen instead: it is added as a root of its own, over the page (under overlays presented later and under notifications), and follows the anchor's on-screen bounds as any of its ancestors scrolls or the window resizes. `floating` must have no parent; detaching the handle removes it from the screen without disposing it. The anchor may leave the DOM while attached (its owner re-rendering it): placing then pauses, and the owner re-attaches against the new anchor.
+
+- **Staying on screen.** If `floating` doesn't fit the viewport on `placement`'s side but more of it fits on the opposite one, it goes there instead (`Below` becomes `Above`, `Right` becomes `Left`, and back), and it is shifted along the side to stay 8px inside the viewport's edges. A floating component taller (or wider) than either side's room is the caller's to size down.
+- `side`, `align`, `stretch` and the gap work as for `attach`.
+
 ## Form components
 
 `haxefolio.form` is a small, general-purpose library of form/data-entry components. None of
